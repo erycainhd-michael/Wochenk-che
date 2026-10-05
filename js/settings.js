@@ -20,6 +20,7 @@ export const DEFAULT_SETTINGS = {
   // Ballaststoffe in g/Tag: Start, Steigerung pro Woche, Obergrenze
   fiber: { start: 28, step: 2, max: 40 },
   psyllium: false,
+  proteinPowder: true,
   planHour: 9,
 };
 

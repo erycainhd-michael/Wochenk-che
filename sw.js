@@ -1,6 +1,6 @@
 // Service Worker: App offline verfügbar machen + Push-Nachrichten anzeigen.
 // Bei Änderungen an App-Dateien VERSION erhöhen, damit iPhones die neue Version laden.
-const VERSION = 'mf-v1';
+const VERSION = 'mf-v2';
 const SHELL = [
   './',
   './index.html',

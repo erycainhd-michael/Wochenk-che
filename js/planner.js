@@ -36,7 +36,7 @@ export function prepareContext(input) {
     return r.ingredients.every((l) => !idx.get(l.id)?.season || idx.get(l.id).season.includes(month));
   };
 
-  const usable = recipes.filter((r) => inSeason(r) && !isDisliked(r) && !exclude.has(r.id) && r.ingredients.every((l) => idx.has(l.id)));
+  const usable = recipes.filter((r) => inSeason(r) && !isDisliked(r) && (!r.requires || settings[r.requires]) && !exclude.has(r.id) && r.ingredients.every((l) => idx.has(l.id)));
   const info = new Map();
   for (const r of recipes) {
     const m = recipeMacros(r, idx, settings, 1);
@@ -269,7 +269,7 @@ function fitDay({ ctx, fixed, breakfast, mains, snackUsage, combos }) {
       const inf = ctx.info.get(s.id);
       S = addMacros(S, inf.macros);
       pref += 0.08 * (1 - Math.min(inf.weight, 1.5)) + 0.08 * Math.max(0, (snackUsage[s.id] || 0) - 1) + 0.03 * inf.cost;
-      if (s.effort > 1) pref += 0.05;
+      if (s.effort > 1) pref += 0.05 + 0.25 * (snackUsage[s.id] || 0);
     }
     const R = g.kcal - fixed.kcal - S.kcal;
     let fb = 1;
@@ -552,6 +552,46 @@ export function generatePlan(input) {
   best.budgetInfo = budgetInfo;
   best.evaluation = evaluatePlan(best, ctx);
   return best;
+}
+
+/**
+ * Markiert eine Mahlzeit dieser Woche als „auswärts“ (oder wieder als „zu Hause“), ohne den Rest
+ * des Plans umzuwerfen. Portionen und Einkaufsliste werden neu berechnet.
+ */
+export function setEatOut(plan, mealKey, on, input) {
+  const ctx = prepareContext({ ...input, pantry: plan.pantryUsed || input.pantry, weekNo: plan.weekNo });
+  const structure = structuredClone(plan.structure);
+  const [dStr, slot] = mealKey.split('-');
+  const d = Number(dStr);
+  const eat = new Set(structure.eatOut);
+  if (on) {
+    eat.add(mealKey);
+    if (slot === 'fruehstueck') structure.breakfasts[d] = null;
+    else {
+      for (const c of structure.cooks) c.portions = c.portions.filter((k) => k !== mealKey);
+      structure.cooks = structure.cooks.filter((c) => c.portions.length);
+    }
+  } else {
+    eat.delete(mealKey);
+    const rng = mulberry32((Date.now() & 0xffff) + d);
+    if (slot === 'fruehstueck') {
+      const counts = {};
+      structure.breakfasts.filter(Boolean).forEach((id) => (counts[id] = (counts[id] || 0) + 1));
+      structure.breakfasts[d] = Object.keys(counts).sort((a, b) => counts[b] - counts[a])[0] || ctx.breakfasts[0]?.id || null;
+    } else {
+      const usedIds = new Set(structure.cooks.map((c) => c.recipeId));
+      let pool = ctx.mains.filter((r) => r.effort < 3 && !usedIds.has(r.id));
+      if (!pool.length) pool = ctx.mains.filter((r) => r.effort < 3);
+      const r = pickWeighted(pool, pool.map((x) => Math.pow(ctx.info.get(x.id).weight, 1.5) / Math.max(0.5, ctx.info.get(x.id).cost)), rng);
+      structure.cooks.push({ id: `c${Date.now().toString(36)}`, recipeId: r.id, day: d, slot, portions: [mealKey] });
+      structure.cooks.sort((a, b) => a.day - b.day || (a.slot === 'mittag' ? -1 : 1));
+    }
+  }
+  structure.eatOut = [...eat];
+  const next = finalizePlan(structure, ctx);
+  Object.assign(next, { seed: plan.seed, weekNo: plan.weekNo, pantryUsed: plan.pantryUsed, createdAt: plan.createdAt, done: plan.done || {} });
+  next.evaluation = evaluatePlan(next, ctx);
+  return next;
 }
 
 /** Ersetzt ein Gericht (Hauptgericht-Kochvorgang oder Frühstück) und berechnet den Plan neu. */

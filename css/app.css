@@ -164,6 +164,7 @@ body.has-timers .view { padding-bottom: calc(var(--tab-h) + env(safe-area-inset-
 .meal .mn { font-weight: 600; }
 .meal .mm { font-size: 0.8rem; color: var(--muted); }
 .meal.done .mn { text-decoration: line-through; opacity: 0.6; }
+.meal-btns { display: flex; flex-direction: column; gap: 6px; }
 .meal.eatout .mi { width: 44px; text-align: center; font-size: 1.3rem; }
 
 .check {

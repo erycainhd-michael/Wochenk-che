@@ -139,3 +139,22 @@ test('Zeitzone: Montag 9:00 Berlin, Sommer- und Winterzeit', () => {
   assert.equal(mondayOf(new Date('2026-10-04T23:30:00Z')), '2026-10-05');
   assert.equal(berlinNow(new Date('2026-10-05T07:00:00Z')).hour, 9);
 });
+
+test('Auswärtsessen nachträglich ändern: Slot wird Pauschale bzw. wieder gekocht', async () => {
+  const { setEatOut } = await import('../js/planner.js');
+  const input = { recipes, idx, settings: settings(), weekStart: '2026-10-05' };
+  const key = '2-abend';
+  const out = setEatOut(plan, key, true, input);
+  assert.equal(out.days[2].meals.find((m) => m.key === key).kind, 'eatout');
+  assert.ok(!out.cooks.some((c) => c.portions.some((p) => p.key === key)));
+  const back = setEatOut(out, key, false, input);
+  assert.equal(back.days[2].meals.find((m) => m.key === key).kind, 'recipe');
+  assert.ok(Math.abs(back.days[2].totals.kcal - 2800) / 2800 < 0.06);
+});
+
+test('Proteinpulver: nur eingeplant, wenn aktiviert', () => {
+  const s = settings();
+  s.proteinPowder = false;
+  const p = generatePlan({ recipes, idx, settings: s, weekStart: '2026-10-05', seed: 5, candidates: 10 });
+  assert.ok(!p.shopping.items.some((i) => i.id === 'proteinpulver'));
+});

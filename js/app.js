@@ -1,7 +1,7 @@
 // Michael Food – App-Oberfläche (Vanilla JS, kein Build-Schritt).
 import { DAY_NAMES, DAY_SHORT, SLOT_LABEL, addDays, berlinNow, escapeHtml as e, euro, factorLabel, formatDate, isoWeek, mondayOf, num } from './util.js';
 import { buildIndex, plausibility } from './nutrition.js';
-import { budgetCost, generatePlan, swapMeal } from './planner.js';
+import { budgetCost, generatePlan, setEatOut, swapMeal } from './planner.js';
 import { mergeOffers, regularPrice, STORES } from './prices.js';
 import { amountText, packText } from './shopping.js';
 import { recipeWeights, weekHints } from './feedback.js';
@@ -124,9 +124,9 @@ function plannerInput(extra = {}) {
   };
 }
 
-function createPlan(pantry) {
+function createPlan(pantry, eatOut) {
   const ws = currentWeek();
-  const plan = generatePlan(plannerInput({ pantry }));
+  const plan = generatePlan(plannerInput({ pantry, settings: { ...S.settings, eatOut: eatOut || S.settings.eatOut } }));
   plan.done = {};
   S.plans[ws] = plan;
   savePlans();
@@ -318,7 +318,8 @@ function dayCard(plan, d, open, isToday) {
       const done = plan.done?.[m.key];
       if (m.kind === 'eatout') {
         return `<li class="meal eatout"><span class="mi">${ICON.eatout}</span><div class="mt"><div class="ml">${SLOT_LABEL[m.slot]} · auswärts</div>
-          <div class="mn">Auswärtsessen (Pauschale)</div><div class="mm">≈ ${num(m.macros.kcal)} kcal · ≈ ${num(m.macros.p)} g P</div></div></li>`;
+          <div class="mn">Auswärtsessen (Pauschale)</div><div class="mm">≈ ${num(m.macros.kcal)} kcal · ≈ ${num(m.macros.p)} g P</div></div>
+          <button class="icon-btn" data-action="meal-eatout" data-on="0" data-key="${m.key}" title="Doch zu Hause essen">🏠</button></li>`;
       }
       const r = recipe(m.recipeId);
       const cook = m.cookId ? plan.cooks.find((c) => c.id === m.cookId) : null;
@@ -334,7 +335,7 @@ function dayCard(plan, d, open, isToday) {
           <div class="mn">${e(r.name)}</div>
           <div class="mm">${factorLabel(m.factor)} Portion · ${num(m.macros.kcal)} kcal · ${num(m.macros.p)} g P</div>
         </a>
-        ${m.slot !== 'snack' && !m.leftover ? `<button class="icon-btn" data-action="swap" data-key="${m.key}" title="Gericht tauschen">↻</button>` : ''}
+        ${m.slot !== 'snack' ? `<div class="meal-btns">${!m.leftover ? `<button class="icon-btn" data-action="swap" data-key="${m.key}" title="Gericht tauschen">↻</button>` : ''}<button class="icon-btn" data-action="meal-eatout" data-on="1" data-key="${m.key}" title="Auswärts essen">🍴</button></div>` : ''}
       </li>`;
     })
     .join('');
@@ -356,7 +357,27 @@ function dayCard(plan, d, open, isToday) {
   </section>`;
 }
 
-// --- Planung (Reste-Abfrage) -------------------------------------------------
+// --- Auswärtsessen-Raster (Planung & Einstellungen) --------------------------
+
+function eatOutGrid(list, action) {
+  const eo = new Set(list.map((x) => `${x.day}-${x.slot}`));
+  return `<table class="eo"><tr><th></th><th>Früh</th><th>Mittag</th><th>Abend</th></tr>
+    ${DAY_SHORT.map(
+      (d, i) =>
+        `<tr><td>${d}</td>${['fruehstueck', 'mittag', 'abend']
+          .map((s) => `<td><button class="pill ${eo.has(`${i}-${s}`) ? 'on' : ''}" data-action="${action}" data-day="${i}" data-slot="${s}">${eo.has(`${i}-${s}`) ? '🍴' : '·'}</button></td>`)
+          .join('')}</tr>`
+    ).join('')}
+  </table>`;
+}
+
+function toggleInList(list, day, slot) {
+  const i = list.findIndex((x) => x.day === day && x.slot === slot);
+  if (i >= 0) list.splice(i, 1);
+  else list.push({ day, slot });
+}
+
+// --- Planung (Auswärtsessen + Reste-Abfrage) ---------------------------------
 
 function viewPlanning() {
   const ws = currentWeek();
@@ -372,6 +393,9 @@ function viewPlanning() {
     items.sort((a, b) => ing(a.id).name.localeCompare(ing(b.id).name, 'de'));
     S.ui.draftPantry = { week: ws, items };
   }
+  if (!S.ui.draftEatOut || S.ui.draftEatOut.week !== ws) {
+    S.ui.draftEatOut = { week: ws, list: structuredClone(S.settings.eatOut) };
+  }
   const d = S.ui.draftPantry;
   const prevFb = prev && !feedbackFor(prev.weekStart);
   const options = [...S.idx.values()]
@@ -384,7 +408,12 @@ function viewPlanning() {
     ${!prev ? `<div class="banner info">Tipp: Prüfe vor dem ersten Plan kurz die <a href="#/einstellungen">Einstellungen</a> (Ziele, Auswärtsessen, Budget, Läden).</div>` : ''}
     ${prevFb ? `<div class="banner">Für letzte Woche fehlt noch dein Feedback. <a class="btn small" href="#/rueckblick/${prev.weekStart}">Kurz nachtragen</a></div>` : ''}
     <section class="card">
-      <h2>Was ist von letzter Woche übrig?</h2>
+      <h2>1. Wann isst du diese Woche auswärts?</h2>
+      <p class="sub">Tippe die Mahlzeiten an (${S.ui.draftEatOut.list.length}× ausgewählt). Sie werden mit ca. ${num(S.settings.eatOutKcal)} kcal eingerechnet; an diesen Tagen wird entsprechend weniger gekocht. Später kannst du das in der Wochenansicht bei jeder Mahlzeit mit 🍴 ändern.</p>
+      ${eatOutGrid(S.ui.draftEatOut.list, 'draft-eatout')}
+    </section>
+    <section class="card">
+      <h2>2. Was ist von letzter Woche übrig?</h2>
       <p class="sub">${prev ? 'Vorausgefüllt mit den Packungsresten, die die App berechnet hat. Korrigiere, was nicht stimmt – diese Reste werden in dieser Woche zuerst verplant.' : 'Trage ein, was du schon zu Hause hast – das wird zuerst verplant.'}</p>
       <ul class="pantry">
         ${
@@ -666,7 +695,6 @@ function viewSettings() {
     `<label class="field">${label}<input type="number" inputmode="numeric" data-set="${path}" value="${getPath(st, path)}" ${attrs}></label>`;
   const slider = (key, label) =>
     `<label class="field slider">${label} <b id="sl-${key}">${st.sliders[key]} %</b><input type="range" min="0" max="100" step="5" data-set="sliders.${key}" data-live="sl-${key}" value="${st.sliders[key]}"></label>`;
-  const eo = new Set(st.eatOut.map((x) => `${x.day}-${x.slot}`));
   const ps = pushSupport();
   const offers = allOffers();
   const ingOptions = [...S.idx.values()]
@@ -702,21 +730,15 @@ function viewSettings() {
     ${num_('budget', 'Wochenbudget (€)', 'step="1"')}
   </section>
 
-  <section class="card"><h2>Auswärts essen</h2>
-    <p class="sub">Tippe an, wann du auswärts isst (${st.eatOut.length}× pro Woche). Diese Mahlzeiten werden als Pauschale eingerechnet.</p>
-    <table class="eo"><tr><th></th><th>Früh</th><th>Mittag</th><th>Abend</th></tr>
-      ${DAY_SHORT.map(
-        (d, i) =>
-          `<tr><td>${d}</td>${['fruehstueck', 'mittag', 'abend']
-            .map((s) => `<td><button class="pill ${eo.has(`${i}-${s}`) ? 'on' : ''}" data-action="toggle-eatout" data-day="${i}" data-slot="${s}">${eo.has(`${i}-${s}`) ? '🍴' : '·'}</button></td>`)
-            .join('')}</tr>`
-      ).join('')}
-    </table>
+  <section class="card"><h2>Auswärts essen – Standardwoche</h2>
+    <p class="sub">Vorschlag für jede neue Woche (${st.eatOut.length}×). Vor jeder Planung kannst du ihn für die konkrete Woche anpassen, danach auch einzelne Mahlzeiten in der Wochenansicht.</p>
+    ${eatOutGrid(st.eatOut, 'toggle-eatout')}
     <div class="grid2">${num_('eatOutKcal', 'Pauschale kcal', 'step="50"')}${num_('eatOutProtein', 'Pauschale Protein (g)', 'step="5"')}</div>
   </section>
 
   <section class="card"><h2>Gerichte</h2>
     ${num_('complexPerWeek', 'Aufwendige Gerichte pro Woche', 'min="0" max="3"')}
+    <label class="row"><input type="checkbox" data-set="proteinPowder" ${st.proteinPowder ? 'checked' : ''}> Proteinpulver als Ergänzung einplanen (Shake, Porridge, Skyr-Creme)</label>
     <div class="field">Abneigungen <span class="sub">(werden nicht eingeplant)</span>
       <div class="chips">${st.dislikes.map((d, i) => `<span class="chip">${e(d)} <button data-action="del-dislike" data-i="${i}" aria-label="entfernen">×</button></span>`).join('')}</div>
       <div class="add-row"><input id="dislike-new" placeholder="z. B. Pilze"><button class="btn small" data-action="add-dislike">Hinzufügen</button></div>
@@ -856,7 +878,12 @@ async function onClick(ev) {
     case 'replan':
       if (plan?.weekStart === currentWeek() && !confirm('Plan dieser Woche neu erstellen? Häkchen der Einkaufsliste werden zurückgesetzt.')) return;
       S.ui.draftPantry = null;
+      S.ui.draftEatOut = null;
       if (plan?.weekStart === currentWeek()) {
+        S.ui.draftEatOut = {
+          week: currentWeek(),
+          list: (plan.structure.eatOut || []).map((k) => ({ day: Number(k.split('-')[0]), slot: k.split('-')[1] })),
+        };
         const last = store.get('lastPantry');
         S.ui.draftPantry = {
           week: currentWeek(),
@@ -884,8 +911,9 @@ async function onClick(ev) {
       el.disabled = true;
       el.textContent = 'Plane …';
       setTimeout(() => {
-        createPlan(pantry);
+        createPlan(pantry, S.ui.draftEatOut?.list);
         S.ui.draftPantry = null;
+        S.ui.draftEatOut = null;
         S.ui.openDays = {};
         location.hash = '#/woche';
         toast('Dein Wochenplan ist fertig!');
@@ -930,13 +958,19 @@ async function onClick(ev) {
         fb.week[el.dataset.field] = Number(el.dataset.val);
       });
       return render();
-    case 'toggle-eatout': {
-      const day = Number(el.dataset.day);
-      const slot = el.dataset.slot;
-      const i = S.settings.eatOut.findIndex((x) => x.day === day && x.slot === slot);
-      if (i >= 0) S.settings.eatOut.splice(i, 1);
-      else S.settings.eatOut.push({ day, slot });
+    case 'toggle-eatout':
+      toggleInList(S.settings.eatOut, Number(el.dataset.day), el.dataset.slot);
       saveSettings();
+      return render();
+    case 'draft-eatout':
+      toggleInList(S.ui.draftEatOut.list, Number(el.dataset.day), el.dataset.slot);
+      return render();
+    case 'meal-eatout': {
+      const on = el.dataset.on === '1';
+      const next = setEatOut(plan, el.dataset.key, on, plannerInput({ weekStart: plan.weekStart }));
+      S.plans[plan.weekStart] = next;
+      savePlans();
+      toast(on ? 'Als auswärts markiert – Plan & Einkauf angepasst' : 'Wieder zu Hause eingeplant – Plan & Einkauf angepasst');
       return render();
     }
     case 'fix-carbs':

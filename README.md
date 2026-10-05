@@ -157,10 +157,10 @@ Lokal testen (für Neugierige): `npm test` und `npm start`, dann http://localhos
 
 ---
 
-## 6. Offene Fragen (mit den Annahmen, die ich getroffen habe)
+## 6. Festgelegte Entscheidungen
 
-1. **Mittagessen:** Isst du werktags mittags zu Hause/aus der Lunchbox oder in der Kantine? *Annahme:* Lunchbox mit dem Rest vom Vorabend. Kantine kannst du in den Einstellungen als „auswärts“ markieren.
-2. **Ballaststoffe aktuell:** Wie viel isst du ungefähr heute? *Annahme:* Start bei 28 g/Tag, +2 g pro Woche bis 40 g. Wenn du heute deutlich weniger isst, den Startwert senken (z. B. 22 g).
-3. **Auswärtsessen:** Welche Tage sind typisch? *Annahme:* Freitag- und Samstagabend mit je ca. 1.000 kcal.
-4. **Edeka-Markt-ID:** Bitte einmal nach Schritt 4 ermitteln – ohne Internetzugriff auf edeka.de konnte ich den automatischen Abruf hier nicht live testen.
-5. **Proteinshake:** Soll Proteinpulver als Option dazukommen? *Annahme:* Nein – Quark-Shake ohne Pulver ist drin.
+1. **Mittagessen:** Lunchbox mit dem Essen vom Vorabend (Meal-Prep).
+2. **Ballaststoffe:** Start 28 g/Tag, +2 g pro Woche bis 40 g (in den Einstellungen änderbar).
+3. **Auswärtsessen:** Vor jeder Planung fragt die App, wann du diese Woche auswärts isst (vorausgefüllt mit deiner Standardwoche). Danach kannst du in der Wochenansicht jede Mahlzeit mit 🍴 auf „auswärts“ oder mit 🏠 zurück auf „zu Hause“ setzen – Portionen und Einkaufsliste passen sich an.
+4. **Edeka-Markt-ID:** wird über Schritt 4 ermittelt; ohne ID gelten Richtpreise.
+5. **Proteinpulver:** als Ergänzung eingeplant (Shake, Protein-Porridge, Skyr-Creme), abschaltbar unter Einstellungen → Gerichte.
