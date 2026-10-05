@@ -1,0 +1,694 @@
+{
+  "_info": "Mengen pro 1 Portion (Basis). Der Planer skaliert die Portionen auf deine Tagesziele. type: main | breakfast | snack. dishes = Abwasch-Score (Töpfe/Pfannen/Bleche/Geräte). effort: 1 = sehr einfach, 2 = normal, 3 = aufwendig. mealPrep = eignet sich, um am Folgetag nochmal gegessen zu werden. timer in Sekunden. opt: 'psyllium' = nur bei aktivierter Flohsamen-Ergänzung.",
+  "recipes": [
+    {
+      "id": "carbonara", "name": "Protein-Carbonara mit Erbsen", "type": "main", "time": 20, "dishes": 2, "effort": 1, "mealPrep": false,
+      "tags": ["pasta", "italienisch", "schnell"], "protein": "Ei & Speck",
+      "ingredients": [
+        { "id": "spaghetti", "g": 110 }, { "id": "eier", "g": 120 }, { "id": "parmesan", "g": 25 }, { "id": "speck", "g": 40 },
+        { "id": "erbsen_tk", "g": 100 }, { "id": "gewuerze", "g": 2, "note": "Salz, viel Pfeffer" }
+      ],
+      "steps": [
+        { "t": "Reichlich Salzwasser aufkochen. Eier mit fein geriebenem Parmesan und viel Pfeffer in einer Schüssel verquirlen." },
+        { "t": "Spaghetti ins kochende Wasser geben.", "timer": 540, "label": "Spaghetti" },
+        { "t": "Speck in einer großen Pfanne ohne Öl knusprig braten, Herd aus." },
+        { "t": "Erbsen 2 Minuten vor Ende zu den Nudeln ins Wasser geben.", "timer": 120, "label": "Erbsen" },
+        { "t": "Eine Tasse Nudelwasser abschöpfen. Nudeln + Erbsen abgießen, in die Pfanne zum Speck geben, kurz abkühlen lassen (ca. 1 Min.).", "timer": 60, "label": "Abkühlen" },
+        { "t": "Ei-Käse-Mischung mit einem Schuss Nudelwasser unterrühren, bis es cremig ist (nicht mehr erhitzen, sonst stockt das Ei)." }
+      ],
+      "tip": "Die Erbsen bringen Gemüse, Ballaststoffe und zusätzliches Protein – der Carbonara-Charakter bleibt."
+    },
+    {
+      "id": "tagliatelle_thunfisch", "name": "Grüne Tagliatelle mit Thunfisch-Sahne-Sauce & Kapern", "type": "main", "time": 20, "dishes": 2, "effort": 1, "mealPrep": false,
+      "tags": ["pasta", "fisch", "schnell"], "protein": "Thunfisch",
+      "ingredients": [
+        { "id": "tagliatelle_verdi", "g": 110 }, { "id": "thunfisch", "g": 150 }, { "id": "kochsahne", "g": 60 }, { "id": "babyspinat", "g": 80 },
+        { "id": "kapern", "g": 10 }, { "id": "zitrone", "g": 20, "note": "Saft + etwas Abrieb" }, { "id": "zwiebeln", "g": 40 }, { "id": "olivenoel", "g": 5 }
+      ],
+      "steps": [
+        { "t": "Nudelwasser aufsetzen. Zwiebel fein würfeln." },
+        { "t": "Tagliatelle ins kochende Salzwasser geben.", "timer": 420, "label": "Tagliatelle" },
+        { "t": "Zwiebel im Olivenöl glasig dünsten.", "timer": 180, "label": "Zwiebel" },
+        { "t": "Kochsahne, abgetropften Thunfisch und Kapern zugeben, kurz köcheln. Mit Zitrone, Salz und Pfeffer abschmecken." },
+        { "t": "Babyspinat unterheben, bis er zusammenfällt. Nudeln abgießen und in der Sauce schwenken." }
+      ],
+      "tip": "Spinat und Zitrone machen die Sahnesauce frischer, Thunfisch liefert über 35 g Protein."
+    },
+    {
+      "id": "roesti_lachs", "name": "Rösti mit Limetten-Crème & Räucherlachs", "type": "main", "time": 25, "dishes": 1, "effort": 1, "mealPrep": false,
+      "tags": ["fisch", "ofen"], "protein": "Räucherlachs & Skyr",
+      "ingredients": [
+        { "id": "roesti_tk", "g": 300 }, { "id": "raeucherlachs", "g": 100 }, { "id": "creme_fraiche", "g": 30 }, { "id": "skyr", "g": 100 },
+        { "id": "limette", "g": 30, "note": "Abrieb + Saft" }, { "id": "gurke", "g": 150 }, { "id": "rucola", "g": 30 }
+      ],
+      "steps": [
+        { "t": "Ofen auf 220 °C Umluft vorheizen, Rösti auf ein Blech mit Backpapier legen." },
+        { "t": "Rösti backen, nach der Hälfte wenden.", "timer": 1200, "label": "Rösti" },
+        { "t": "Crème fraîche mit Skyr, Limettenabrieb, Limettensaft, Salz und Pfeffer verrühren." },
+        { "t": "Gurke in Scheiben schneiden. Rösti mit Crème, Räucherlachs, Gurke und Rucola anrichten." }
+      ],
+      "tip": "Halb Crème fraîche, halb Skyr: gleicher Geschmack, deutlich mehr Protein."
+    },
+    {
+      "id": "pesto_pasta", "name": "Pesto-Nudeln mit Hähnchen, Tomaten & Mandelsplittern", "type": "main", "time": 20, "dishes": 2, "effort": 1, "mealPrep": true,
+      "tags": ["pasta", "italienisch", "vollkorn"], "protein": "Hähnchen",
+      "ingredients": [
+        { "id": "vk_pasta", "g": 110 }, { "id": "pesto", "g": 35 }, { "id": "haehnchenbrust", "g": 150 }, { "id": "cherrytomaten", "g": 150 },
+        { "id": "mandeln", "g": 15 }, { "id": "rucola", "g": 30 }, { "id": "olivenoel", "g": 5 }
+      ],
+      "steps": [
+        { "t": "Nudelwasser aufsetzen. Hähnchen in Streifen schneiden, salzen und pfeffern." },
+        { "t": "Nudeln ins kochende Salzwasser geben.", "timer": 600, "label": "Nudeln" },
+        { "t": "Mandeln in der trockenen Pfanne goldbraun rösten und herausnehmen.", "timer": 120, "label": "Mandeln" },
+        { "t": "Hähnchen im Öl rundum braten, halbierte Tomaten 2 Minuten mitbraten.", "timer": 360, "label": "Hähnchen" },
+        { "t": "Nudeln abgießen (etwas Wasser auffangen), mit Pesto und einem Schuss Nudelwasser in die Pfanne geben. Mit Rucola und Mandeln servieren." }
+      ],
+      "tip": "Vollkornnudeln schmecken mit Pesto besonders gut – wenn dir normale Nudeln lieber sind, einfach tauschen."
+    },
+    {
+      "id": "lachs_bowl", "name": "Reisbowl mit Lachs, Edamame & Gurke", "type": "main", "time": 25, "dishes": 2, "effort": 1, "mealPrep": true,
+      "tags": ["fisch", "bowl", "asiatisch"], "protein": "Lachs & Edamame",
+      "ingredients": [
+        { "id": "reis", "g": 90 }, { "id": "lachs_tk", "g": 125 }, { "id": "edamame", "g": 80 }, { "id": "gurke", "g": 120 },
+        { "id": "moehren", "g": 60, "note": "roh geraspelt" }, { "id": "avocado", "g": 50 }, { "id": "sesam", "g": 5 },
+        { "id": "sojasauce", "g": 15 }, { "id": "limette", "g": 15 }
+      ],
+      "steps": [
+        { "t": "Reis mit der doppelten Menge Wasser aufsetzen.", "timer": 720, "label": "Reis" },
+        { "t": "Lachs (gern direkt gefroren) auf Backpapier bei 200 °C backen, mit Sojasauce beträufeln.", "timer": 1200, "label": "Lachs" },
+        { "t": "Edamame 3 Minuten vor Ende zum Reis geben.", "timer": 180, "label": "Edamame" },
+        { "t": "Gurke und Avocado schneiden, Möhre raspeln." },
+        { "t": "Alles in einer Schüssel anrichten, mit Sesam, Limette und Sojasauce toppen." }
+      ],
+      "tip": "Funktioniert auch kalt als Lunch-Box am Folgetag (Avocado dann frisch schneiden)."
+    },
+    {
+      "id": "tikka_masala", "name": "Chicken Tikka Masala mit Spinat & Reis", "type": "main", "time": 30, "dishes": 2, "effort": 1, "mealPrep": true,
+      "tags": ["curry", "indisch"], "protein": "Hähnchen & Skyr",
+      "ingredients": [
+        { "id": "haehnchenbrust", "g": 180 }, { "id": "curry_paste", "g": 35 }, { "id": "passierte_tomaten", "g": 150 }, { "id": "skyr", "g": 60 },
+        { "id": "kochsahne", "g": 40 }, { "id": "spinat_tk", "g": 100 }, { "id": "zwiebeln", "g": 60 }, { "id": "reis", "g": 85 }, { "id": "rapsoel", "g": 5 }
+      ],
+      "steps": [
+        { "t": "Reis aufsetzen.", "timer": 720, "label": "Reis" },
+        { "t": "Zwiebel würfeln und im Öl anbraten, Hähnchenwürfel dazu und rundum anbraten.", "timer": 300, "label": "Anbraten" },
+        { "t": "Tikka-Paste kurz mitrösten, dann passierte Tomaten, Kochsahne und gefrorenen Spinat zugeben.", "timer": 600, "label": "Köcheln" },
+        { "t": "Herd aus, Skyr unterrühren (nicht mehr kochen lassen). Mit Reis servieren." }
+      ],
+      "tip": "Skyr statt eines Teils der Sahne: cremig, mild und mehr Protein. Spinat fällt geschmacklich kaum auf."
+    },
+    {
+      "id": "butter_chicken", "name": "Butter Chicken mit Erbsen & Reis", "type": "main", "time": 30, "dishes": 2, "effort": 1, "mealPrep": true,
+      "tags": ["curry", "indisch"], "protein": "Hähnchen",
+      "ingredients": [
+        { "id": "haehnchenbrust", "g": 170 }, { "id": "butter", "g": 10 }, { "id": "passierte_tomaten", "g": 150 }, { "id": "tomatenmark", "g": 15 },
+        { "id": "kochsahne", "g": 50 }, { "id": "skyr", "g": 50 }, { "id": "ingwer", "g": 5 }, { "id": "knoblauch", "g": 5 },
+        { "id": "gewuerze", "g": 4, "note": "Garam Masala, Paprika, Salz" }, { "id": "erbsen_tk", "g": 100 }, { "id": "reis", "g": 85 }
+      ],
+      "steps": [
+        { "t": "Reis aufsetzen.", "timer": 720, "label": "Reis" },
+        { "t": "Hähnchenwürfel mit Skyr, Garam Masala und Salz vermengen (Kurz-Marinade)." },
+        { "t": "Butter schmelzen, Ingwer und Knoblauch kurz anschwitzen, Tomatenmark mitrösten.", "timer": 120, "label": "Anschwitzen" },
+        { "t": "Hähnchen samt Marinade zugeben und anbraten.", "timer": 300, "label": "Hähnchen" },
+        { "t": "Passierte Tomaten, Kochsahne und Erbsen zugeben und köcheln lassen.", "timer": 480, "label": "Köcheln" }
+      ],
+      "tip": "Erbsen bringen Farbe und Ballaststoffe, ohne den Butter-Chicken-Geschmack zu verändern."
+    },
+    {
+      "id": "flammkuchen_elsass", "name": "Elsässer Flammkuchen mit Salat", "type": "main", "time": 25, "dishes": 1, "effort": 1, "mealPrep": true,
+      "tags": ["ofen", "deftig"], "protein": "Skyr, Schinken & Speck",
+      "ingredients": [
+        { "id": "flammkuchenteig", "g": 130 }, { "id": "creme_fraiche", "g": 40 }, { "id": "skyr", "g": 120 }, { "id": "speck", "g": 40 },
+        { "id": "kochschinken", "g": 50 }, { "id": "rote_zwiebel", "g": 50 }, { "id": "romana", "g": 100 }, { "id": "balsamico", "g": 5 }, { "id": "olivenoel", "g": 3 }
+      ],
+      "steps": [
+        { "t": "Ofen auf 220 °C Ober-/Unterhitze vorheizen. Teig auf dem Backpapier aufs Blech legen." },
+        { "t": "Crème fraîche mit Skyr, Salz, Pfeffer und Muskat verrühren und auf den Teig streichen." },
+        { "t": "Zwiebelringe, Speck und Schinkenstreifen darauf verteilen." },
+        { "t": "Flammkuchen backen, bis der Rand knusprig ist.", "timer": 720, "label": "Flammkuchen" },
+        { "t": "Währenddessen Salat schneiden und mit Balsamico und Olivenöl anmachen." }
+      ],
+      "tip": "Die Skyr-Crème macht den Flammkuchen zu einer vollwertigen Proteinmahlzeit. Rest schmeckt auch kalt."
+    },
+    {
+      "id": "flammkuchen_ziege", "name": "Ziegenkäse-Apfel-Honig-Flammkuchen mit Walnüssen", "type": "main", "time": 25, "dishes": 1, "effort": 1, "mealPrep": true,
+      "tags": ["ofen", "vegetarisch", "süß-salzig"], "protein": "Skyr & Ziegenkäse",
+      "ingredients": [
+        { "id": "flammkuchenteig", "g": 130 }, { "id": "skyr", "g": 100 }, { "id": "creme_fraiche", "g": 20 }, { "id": "ziegenkaese", "g": 60 },
+        { "id": "apfel", "g": 90 }, { "id": "honig", "g": 10 }, { "id": "walnuesse", "g": 15 }, { "id": "rucola", "g": 30 }
+      ],
+      "steps": [
+        { "t": "Ofen auf 220 °C Ober-/Unterhitze vorheizen, Teig aufs Blech legen." },
+        { "t": "Skyr mit Crème fraîche, Salz und Pfeffer verrühren und aufstreichen. Apfel in dünne Spalten schneiden, mit Ziegenkäse und Walnüssen verteilen." },
+        { "t": "Backen, bis der Rand goldbraun ist.", "timer": 720, "label": "Flammkuchen" },
+        { "t": "Mit Honig beträufeln und mit Rucola belegen." }
+      ],
+      "tip": "Walnüsse liefern Omega-3-Fette, der Rucola bringt Frische – Genuss bleibt Genuss."
+    },
+    {
+      "id": "rosmarin_lachs", "name": "Rosmarinkartoffeln mit Lachs & Spinat", "type": "main", "time": 30, "dishes": 2, "effort": 1, "mealPrep": false,
+      "tags": ["fisch", "ofen", "kartoffel"], "protein": "Lachs & Skyr",
+      "ingredients": [
+        { "id": "kartoffeln", "g": 350 }, { "id": "lachs_tk", "g": 150 }, { "id": "babyspinat", "g": 100 }, { "id": "olivenoel", "g": 10 },
+        { "id": "zitrone", "g": 20 }, { "id": "knoblauch", "g": 3 }, { "id": "skyr", "g": 80, "note": "als Zitronen-Dip" }, { "id": "gewuerze", "g": 2, "note": "Rosmarin, Salz" }
+      ],
+      "steps": [
+        { "t": "Ofen auf 220 °C Umluft. Kartoffeln vierteln (Schale dran), mit Olivenöl, Rosmarin und Salz aufs Blech." },
+        { "t": "Kartoffeln vorbacken.", "timer": 900, "label": "Kartoffeln" },
+        { "t": "Lachs mit aufs Blech legen, salzen, Zitronenscheiben darauf.", "timer": 900, "label": "Lachs" },
+        { "t": "Knoblauch in einer Pfanne anschwitzen, Spinat darin zusammenfallen lassen." },
+        { "t": "Skyr mit Zitronensaft, Salz und Pfeffer zum Dip verrühren. Alles anrichten." }
+      ],
+      "tip": "Kartoffeln mit Schale = mehr Ballaststoffe und weniger Arbeit."
+    },
+    {
+      "id": "pueree_fischstaebchen", "name": "Kartoffelpüree mit Fischstäbchen & Rahmspinat", "type": "main", "time": 30, "dishes": 3, "effort": 1, "mealPrep": false,
+      "tags": ["fisch", "klassiker", "comfort"], "protein": "Fisch",
+      "ingredients": [
+        { "id": "kartoffeln", "g": 300 }, { "id": "milch", "g": 80 }, { "id": "butter", "g": 8 }, { "id": "fischstaebchen", "g": 200 },
+        { "id": "rahmspinat", "g": 200 }, { "id": "gewuerze", "g": 1, "note": "Salz, Muskat" }
+      ],
+      "steps": [
+        { "t": "Kartoffeln schälen, würfeln und in Salzwasser kochen.", "timer": 1080, "label": "Kartoffeln" },
+        { "t": "Fischstäbchen im Ofen (220 °C) oder in der Pfanne zubereiten.", "timer": 900, "label": "Fischstäbchen" },
+        { "t": "Rahmspinat in einem kleinen Topf mit einem Schluck Wasser erhitzen.", "timer": 480, "label": "Rahmspinat" },
+        { "t": "Kartoffeln abgießen, mit warmer Milch, Butter, Salz und Muskat stampfen." }
+      ],
+      "tip": "Kindheitsklassiker mit solider Proteinmenge – dazu passt ein Apfel als Nachtisch."
+    },
+    {
+      "id": "cordon_bleu", "name": "Cordon bleu mit Mais, Spiegelei & Ofenkartoffeln", "type": "main", "time": 30, "dishes": 2, "effort": 1, "mealPrep": false,
+      "tags": ["klassiker", "vegetarisch"], "protein": "Cordon bleu & Ei",
+      "ingredients": [
+        { "id": "cordon_bleu", "g": 180 }, { "id": "eier", "g": 60 }, { "id": "mais", "g": 100 }, { "id": "kartoffeln", "g": 200 },
+        { "id": "romana", "g": 80 }, { "id": "olivenoel", "g": 5 }
+      ],
+      "steps": [
+        { "t": "Ofen auf 220 °C. Kartoffeln in Spalten schneiden, mit wenig Öl und Salz aufs Blech.", "timer": 1500, "label": "Kartoffeln" },
+        { "t": "Cordon bleu nach Packungsangabe in der Pfanne braten.", "timer": 480, "label": "Cordon bleu" },
+        { "t": "Mais in der Pfanne kurz mitwärmen, Spiegelei daneben braten.", "timer": 240, "label": "Spiegelei" },
+        { "t": "Salat schneiden und alles anrichten." }
+      ],
+      "tip": "Ein Salat dazu bringt Grün auf den Teller – mehr braucht der Klassiker nicht."
+    },
+    {
+      "id": "toast_hawaii", "name": "Toast Hawaii mit Paprika & Hüttenkäse-Dip", "type": "main", "time": 20, "dishes": 1, "effort": 1, "mealPrep": false,
+      "tags": ["ofen", "klassiker"], "protein": "Schinken, Käse & Hüttenkäse",
+      "ingredients": [
+        { "id": "vk_toast", "g": 110 }, { "id": "kochschinken", "g": 100 }, { "id": "ananas", "g": 120 }, { "id": "gouda", "g": 60 },
+        { "id": "huettenkaese", "g": 100 }, { "id": "paprika", "g": 160, "note": "roh in Streifen" }, { "id": "kraeuter_tk", "g": 5 }
+      ],
+      "steps": [
+        { "t": "Ofen auf 200 °C. Toasts aufs Blech, mit Schinken, Ananas und Käse belegen." },
+        { "t": "Überbacken, bis der Käse schmilzt.", "timer": 600, "label": "Toast Hawaii" },
+        { "t": "Hüttenkäse mit Kräutern, Salz und Pfeffer verrühren, Paprika in Streifen schneiden und dazu dippen." }
+      ],
+      "tip": "Vollkorntoast und Rohkost-Dip machen aus dem Retro-Klassiker eine runde Mahlzeit."
+    },
+    {
+      "id": "bordelaise", "name": "Fischfilet Bordelaise mit Salzkartoffeln & Brokkoli", "type": "main", "time": 35, "dishes": 2, "effort": 1, "mealPrep": true,
+      "tags": ["fisch", "klassiker", "ofen"], "protein": "Fisch & Skyr",
+      "ingredients": [
+        { "id": "bordelaise", "g": 190 }, { "id": "kartoffeln", "g": 350 }, { "id": "brokkoli", "g": 200 }, { "id": "butter", "g": 5 },
+        { "id": "skyr", "g": 100, "note": "als Kräuterdip" }, { "id": "kraeuter_tk", "g": 5 }
+      ],
+      "steps": [
+        { "t": "Ofen auf 200 °C. Fischfilet in der Schale in den Ofen.", "timer": 2100, "label": "Fisch (laut Packung)" },
+        { "t": "Kartoffeln schälen, halbieren und in Salzwasser kochen.", "timer": 1200, "label": "Kartoffeln" },
+        { "t": "Brokkoliröschen für die letzten 5 Minuten im Dämpfeinsatz über die Kartoffeln (oder mit ins Wasser) geben.", "timer": 300, "label": "Brokkoli" },
+        { "t": "Skyr mit Kräutern, Salz und Pfeffer verrühren. Kartoffeln mit etwas Butter servieren." }
+      ],
+      "tip": "Brokkoli im selben Topf spart Abwasch."
+    },
+    {
+      "id": "ofengemuese", "name": "Ofengemüse mit Feta, Kichererbsen & Kräuterquark", "type": "main", "time": 30, "dishes": 1, "effort": 1, "mealPrep": true,
+      "tags": ["ofen", "vegetarisch", "bunt"], "protein": "Quark, Feta & Kichererbsen",
+      "ingredients": [
+        { "id": "suesskartoffel", "g": 200 }, { "id": "paprika", "g": 160 }, { "id": "zucchini", "g": 150 }, { "id": "rote_zwiebel", "g": 60 },
+        { "id": "kichererbsen", "g": 130 }, { "id": "feta", "g": 75 }, { "id": "olivenoel", "g": 12 }, { "id": "magerquark", "g": 125 },
+        { "id": "kraeuter_tk", "g": 10 }, { "id": "gewuerze", "g": 2, "note": "Paprika edelsüß, Salz" }
+      ],
+      "steps": [
+        { "t": "Ofen auf 220 °C Umluft. Gemüse in mundgerechte Stücke schneiden, mit abgetropften Kichererbsen, Öl, Paprikapulver und Salz aufs Blech." },
+        { "t": "Backen, nach der Hälfte einmal wenden.", "timer": 1500, "label": "Ofengemüse" },
+        { "t": "Für die letzten 5 Minuten den zerbröselten Feta darauf verteilen.", "timer": 300, "label": "Feta" },
+        { "t": "Quark mit Kräutern, Salz, Pfeffer und einem Schluck Wasser glatt rühren und dazu servieren." }
+      ],
+      "tip": "Vier Gemüsefarben auf einem Blech – Kichererbsen werden im Ofen knusprig."
+    },
+    {
+      "id": "rote_bete_feta", "name": "Ofen-Rote-Bete mit Feta, Kürbiskernen & Bulgur", "type": "main", "time": 30, "dishes": 2, "effort": 1, "mealPrep": true,
+      "tags": ["ofen", "vegetarisch", "vollkorn"], "protein": "Feta, Skyr & Kürbiskerne",
+      "ingredients": [
+        { "id": "rote_bete", "g": 250 }, { "id": "feta", "g": 75 }, { "id": "kuerbiskerne", "g": 20 }, { "id": "bulgur", "g": 80 },
+        { "id": "olivenoel", "g": 8 }, { "id": "rucola", "g": 30 }, { "id": "skyr", "g": 100, "note": "mit Zitrone als Dip" }, { "id": "zitrone", "g": 10 },
+        { "id": "gewuerze", "g": 2, "note": "Kräuter der Provence, Salz" }
+      ],
+      "steps": [
+        { "t": "Ofen auf 200 °C. Rote Bete in Spalten schneiden, mit Öl und Kräutern der Provence aufs Blech." },
+        { "t": "Rote Bete backen, nach 10 Min. Feta in Stücken dazulegen.", "timer": 1200, "label": "Rote Bete" },
+        { "t": "Bulgur mit der doppelten Menge Gemüsebrühe aufkochen und quellen lassen.", "timer": 600, "label": "Bulgur" },
+        { "t": "Kürbiskerne in einer Pfanne ohne Fett rösten (oder die letzten 3 Min. aufs Blech)." },
+        { "t": "Skyr mit Zitrone verrühren. Alles mit Rucola anrichten." }
+      ],
+      "tip": "Vorgegarte Rote Bete spart Zeit und färbt weniger. Kürbiskerne bringen Eisen, Magnesium und Crunch."
+    },
+    {
+      "id": "gnocchi_pfanne", "name": "Gnocchi-Pfanne mit Tomaten, Spinat & Mozzarella", "type": "main", "time": 15, "dishes": 1, "effort": 1, "mealPrep": false,
+      "tags": ["italienisch", "vegetarisch", "schnell", "one-pan"], "protein": "Mozzarella",
+      "ingredients": [
+        { "id": "gnocchi", "g": 250 }, { "id": "cherrytomaten", "g": 150 }, { "id": "babyspinat", "g": 80 }, { "id": "mozzarella", "g": 125 },
+        { "id": "olivenoel", "g": 8 }, { "id": "knoblauch", "g": 3 }
+      ],
+      "steps": [
+        { "t": "Gnocchi direkt (ohne Kochen) im Olivenöl goldbraun braten.", "timer": 480, "label": "Gnocchi" },
+        { "t": "Halbierte Tomaten und Knoblauch zugeben und kurz schmoren.", "timer": 180, "label": "Tomaten" },
+        { "t": "Spinat unterheben, Mozzarella in Stücken darauf legen, Deckel drauf, bis er schmilzt.", "timer": 120, "label": "Mozzarella" }
+      ],
+      "tip": "Eine Pfanne, 15 Minuten – ideal für stressige Tage."
+    },
+    {
+      "id": "haehnchen_bulgur", "name": "Hähnchen-Bulgur-Pfanne mit Paprika & Feta", "type": "main", "time": 25, "dishes": 1, "effort": 1, "mealPrep": true,
+      "tags": ["one-pot", "orientalisch", "vollkorn"], "protein": "Hähnchen & Feta",
+      "ingredients": [
+        { "id": "haehnchenbrust", "g": 160 }, { "id": "bulgur", "g": 80 }, { "id": "paprika", "g": 160 }, { "id": "zucchini", "g": 150 },
+        { "id": "tomatenmark", "g": 15 }, { "id": "gemuesebruehe", "g": 3 }, { "id": "feta", "g": 40 }, { "id": "olivenoel", "g": 10 },
+        { "id": "gewuerze", "g": 2, "note": "Kreuzkümmel, Paprika" }
+      ],
+      "steps": [
+        { "t": "Hähnchenwürfel im Öl in einer großen Pfanne anbraten.", "timer": 300, "label": "Hähnchen" },
+        { "t": "Paprika und Zucchini würfeln, zugeben und mitbraten. Tomatenmark und Gewürze kurz mitrösten.", "timer": 240, "label": "Gemüse" },
+        { "t": "Bulgur und 200 ml Brühe pro Portion zugeben, Deckel drauf, quellen lassen.", "timer": 600, "label": "Bulgur" },
+        { "t": "Mit zerbröseltem Feta servieren." }
+      ],
+      "tip": "Alles in einer Pfanne – schmeckt aufgewärmt am nächsten Tag fast noch besser."
+    },
+    {
+      "id": "linsen_curry", "name": "Rotes Linsen-Kokos-Curry mit Spinat & Reis", "type": "main", "time": 25, "dishes": 2, "effort": 1, "mealPrep": true,
+      "tags": ["curry", "vegetarisch", "hülsenfrüchte"], "protein": "Linsen & Skyr",
+      "ingredients": [
+        { "id": "linsen_rot", "g": 80 }, { "id": "kokosmilch", "g": 80 }, { "id": "spinat_tk", "g": 150 }, { "id": "gehackte_tomaten", "g": 150 },
+        { "id": "zwiebeln", "g": 50 }, { "id": "reis", "g": 60 }, { "id": "skyr", "g": 80, "note": "als Topping" }, { "id": "gewuerze", "g": 3, "note": "Curry, Kreuzkümmel" }
+      ],
+      "steps": [
+        { "t": "Reis aufsetzen.", "timer": 720, "label": "Reis" },
+        { "t": "Zwiebel würfeln, in einem Topf mit Currypulver anschwitzen.", "timer": 120, "label": "Zwiebel" },
+        { "t": "Linsen (gespült), Tomaten, Kokosmilch, gefrorenen Spinat und 150 ml Wasser pro Portion zugeben.", "timer": 720, "label": "Linsen" },
+        { "t": "Salzen, mit Skyr-Klecks servieren." }
+      ],
+      "tip": "Rote Linsen sind meist gut verträglich – trotzdem ballaststoffreich. Die App plant sie erst, wenn dein Ballaststoffziel es zulässt."
+    },
+    {
+      "id": "wraps_haehnchen", "name": "Hähnchen-Wraps mit Hüttenkäse, Paprika & Mais", "type": "main", "time": 20, "dishes": 1, "effort": 1, "mealPrep": true,
+      "tags": ["wrap", "lunchbox"], "protein": "Hähnchen & Hüttenkäse",
+      "ingredients": [
+        { "id": "wraps", "g": 124 }, { "id": "haehnchenbrust", "g": 150 }, { "id": "huettenkaese", "g": 100 }, { "id": "paprika", "g": 80 },
+        { "id": "mais", "g": 60 }, { "id": "romana", "g": 50 }, { "id": "rapsoel", "g": 5 }, { "id": "gewuerze", "g": 2, "note": "Paprika, Kreuzkümmel" }
+      ],
+      "steps": [
+        { "t": "Hähnchen in Streifen schneiden, würzen und im Öl braten.", "timer": 420, "label": "Hähnchen" },
+        { "t": "Paprika in Streifen schneiden, Salat zupfen, Mais abtropfen." },
+        { "t": "Wraps kurz in der Pfanne erwärmen, mit Hüttenkäse bestreichen, füllen und einrollen." }
+      ],
+      "tip": "Gut als Lunchbox: Füllung getrennt mitnehmen und frisch einrollen."
+    },
+    {
+      "id": "tofu_wok", "name": "Knusper-Tofu-Wok mit Erdnusssauce & Reis", "type": "main", "time": 25, "dishes": 2, "effort": 1, "mealPrep": true,
+      "tags": ["asiatisch", "vegetarisch"], "protein": "Tofu",
+      "ingredients": [
+        { "id": "tofu", "g": 200 }, { "id": "wokgemuese", "g": 250 }, { "id": "reis", "g": 80 }, { "id": "sojasauce", "g": 20 },
+        { "id": "erdnussmus", "g": 15 }, { "id": "sesam", "g": 5 }, { "id": "rapsoel", "g": 10 }, { "id": "limette", "g": 15 }
+      ],
+      "steps": [
+        { "t": "Reis aufsetzen.", "timer": 720, "label": "Reis" },
+        { "t": "Tofu trocken tupfen, würfeln und im Öl knusprig braten.", "timer": 480, "label": "Tofu" },
+        { "t": "Wokgemüse zugeben und unter Rühren braten.", "timer": 360, "label": "Gemüse" },
+        { "t": "Erdnussmus mit Sojasauce, Limettensaft und 3 EL Wasser verrühren, unterschwenken. Mit Sesam servieren." }
+      ],
+      "tip": "Abwechslung bei der Proteinquelle: Soja liefert vollwertiges Eiweiß."
+    },
+    {
+      "id": "bolognese", "name": "Spaghetti Bolognese mit Linsen & Zucchini", "type": "main", "time": 30, "dishes": 2, "effort": 1, "mealPrep": true,
+      "tags": ["pasta", "italienisch", "tomatensauce"], "protein": "Rind & Linsen",
+      "ingredients": [
+        { "id": "spaghetti", "g": 110 }, { "id": "rinderhack", "g": 125 }, { "id": "linsen_rot", "g": 25 }, { "id": "passierte_tomaten", "g": 200 },
+        { "id": "zwiebeln", "g": 50 }, { "id": "zucchini", "g": 100, "note": "fein gerieben" }, { "id": "parmesan", "g": 10 }, { "id": "olivenoel", "g": 5 }
+      ],
+      "steps": [
+        { "t": "Hack im Öl krümelig anbraten, Zwiebel und geriebene Zucchini mitbraten.", "timer": 480, "label": "Hack" },
+        { "t": "Passierte Tomaten, rote Linsen und 100 ml Wasser pro Portion zugeben, köcheln lassen.", "timer": 900, "label": "Sauce" },
+        { "t": "Währenddessen Spaghetti kochen.", "timer": 540, "label": "Spaghetti" },
+        { "t": "Abschmecken, mit Parmesan servieren." }
+      ],
+      "tip": "Rote Linsen und Zucchini verschwinden in der Sauce – mehr Ballaststoffe, gleicher Geschmack."
+    },
+    {
+      "id": "garnelen_pasta", "name": "Garnelen-Tomaten-Pasta mit Zucchini", "type": "main", "time": 20, "dishes": 2, "effort": 1, "mealPrep": false,
+      "tags": ["pasta", "fisch", "italienisch"], "protein": "Garnelen",
+      "ingredients": [
+        { "id": "spaghetti", "g": 110 }, { "id": "garnelen", "g": 150 }, { "id": "cherrytomaten", "g": 150 }, { "id": "zucchini", "g": 150 },
+        { "id": "knoblauch", "g": 5 }, { "id": "olivenoel", "g": 12 }, { "id": "parmesan", "g": 15 }
+      ],
+      "steps": [
+        { "t": "Spaghetti in Salzwasser kochen.", "timer": 540, "label": "Spaghetti" },
+        { "t": "Zucchini würfeln und im Olivenöl anbraten.", "timer": 240, "label": "Zucchini" },
+        { "t": "Aufgetaute Garnelen, Knoblauch und halbierte Tomaten zugeben.", "timer": 240, "label": "Garnelen" },
+        { "t": "Nudeln mit einem Schuss Nudelwasser untermischen, mit Parmesan servieren." }
+      ],
+      "tip": "Garnelen am Vorabend in den Kühlschrank legen – dann sind sie aufgetaut."
+    },
+    {
+      "id": "tomate_mozzarella", "name": "Tomate-Mozzarella mit Vollkornbrot & Eiern", "type": "main", "time": 15, "dishes": 1, "effort": 1, "mealPrep": false,
+      "tags": ["italienisch", "kalt", "schnell"], "protein": "Mozzarella & Ei",
+      "ingredients": [
+        { "id": "tomaten", "g": 250 }, { "id": "mozzarella", "g": 125 }, { "id": "basilikum", "g": 10 }, { "id": "olivenoel", "g": 8 },
+        { "id": "balsamico", "g": 10 }, { "id": "vk_brot", "g": 120 }, { "id": "eier", "g": 120 }
+      ],
+      "steps": [
+        { "t": "Eier wachsweich bis hart kochen.", "timer": 480, "label": "Eier" },
+        { "t": "Tomaten und Mozzarella in Scheiben schneiden, abwechselnd anrichten." },
+        { "t": "Mit Basilikum, Olivenöl, Balsamico, Salz und Pfeffer anmachen. Mit Brot und Eiern servieren." }
+      ],
+      "tip": "Das perfekte Sommer-Abendbrot – Eier und Vollkornbrot machen es satt."
+    },
+    {
+      "id": "cherry_ricotta", "name": "Ofen-Cherrytomaten mit Zitronen-Ricotta & Mandeln", "type": "main", "time": 20, "dishes": 1, "effort": 1, "mealPrep": false,
+      "tags": ["italienisch", "vegetarisch", "ofen"], "protein": "Ricotta & Skyr",
+      "ingredients": [
+        { "id": "cherrytomaten", "g": 200 }, { "id": "ricotta", "g": 100 }, { "id": "skyr", "g": 150 }, { "id": "zitrone", "g": 10, "note": "Abrieb + Saft" },
+        { "id": "mandeln", "g": 15 }, { "id": "vk_brot", "g": 120 }, { "id": "olivenoel", "g": 8 }, { "id": "honig", "g": 5 }
+      ],
+      "steps": [
+        { "t": "Ofen auf 220 °C. Cherrytomaten mit Olivenöl und Salz in einer Ofenform schmoren.", "timer": 900, "label": "Tomaten" },
+        { "t": "Ricotta mit Skyr, Zitronenabrieb, Zitronensaft, Salz und Pfeffer cremig rühren." },
+        { "t": "Mandeln für die letzten 3 Min. mit in den Ofen geben.", "timer": 180, "label": "Mandeln" },
+        { "t": "Zitronen-Ricotta auf einen Teller streichen, Tomaten darauf, mit Mandeln und Honig toppen. Brot dazu." }
+      ],
+      "tip": "Skyr im Ricotta verdoppelt das Protein, ohne dass es weniger cremig wird."
+    },
+    {
+      "id": "spargel_schinken", "name": "Spargel mit Kochschinken, Ei & Joghurt-Hollandaise", "type": "main", "time": 30, "dishes": 3, "effort": 1, "mealPrep": false,
+      "season": [4, 5, 6], "tags": ["saisonal", "klassiker"], "protein": "Schinken, Ei & Skyr",
+      "ingredients": [
+        { "id": "spargel", "g": 400 }, { "id": "kochschinken", "g": 100 }, { "id": "eier", "g": 120 }, { "id": "kartoffeln", "g": 300 },
+        { "id": "butter", "g": 10 }, { "id": "skyr", "g": 80 }, { "id": "senf", "g": 5 }, { "id": "zitrone", "g": 10 }
+      ],
+      "steps": [
+        { "t": "Kartoffeln in Salzwasser kochen.", "timer": 1200, "label": "Kartoffeln" },
+        { "t": "Spargel schälen (grünen nur unten) und in Salzwasser mit etwas Butter garen.", "timer": 720, "label": "Spargel" },
+        { "t": "Eier kochen.", "timer": 480, "label": "Eier" },
+        { "t": "Skyr mit Senf, Zitrone, Salz und der restlichen geschmolzenen Butter verrühren (Joghurt-Hollandaise)." }
+      ],
+      "tip": "Nur in der Spargelsaison (April–Juni) im Plan."
+    },
+    {
+      "id": "pueree_hack", "name": "Kartoffelpüree mit Rinder-Hackbällchen, Erbsen & Bratensauce", "type": "main", "time": 30, "dishes": 3, "effort": 2, "mealPrep": true,
+      "tags": ["klassiker", "comfort"], "protein": "Rind",
+      "ingredients": [
+        { "id": "kartoffeln", "g": 300 }, { "id": "milch", "g": 80 }, { "id": "butter", "g": 8 }, { "id": "rinderhack", "g": 140 },
+        { "id": "eier", "g": 20 }, { "id": "erbsen_tk", "g": 120 }, { "id": "bratensauce", "g": 8 }, { "id": "senf", "g": 5 }
+      ],
+      "steps": [
+        { "t": "Kartoffeln schälen, würfeln und kochen.", "timer": 1080, "label": "Kartoffeln" },
+        { "t": "Hack mit etwas Ei, Senf, Salz und Pfeffer verkneten, kleine Bällchen formen und rundum braten.", "timer": 600, "label": "Hackbällchen" },
+        { "t": "Bratensauce nach Packung im Bratensatz anrühren, Erbsen darin garen.", "timer": 240, "label": "Sauce & Erbsen" },
+        { "t": "Kartoffeln mit warmer Milch und Butter stampfen." }
+      ],
+      "tip": "Statt gekochter Möhren gibt es Erbsen – passt genauso gut zur Bratensauce."
+    },
+    {
+      "id": "ofen_lachs_brokkoli", "name": "Blech-Lachs mit Brokkoli, Kartoffeln & Honig-Senf", "type": "main", "time": 30, "dishes": 1, "effort": 1, "mealPrep": true,
+      "tags": ["fisch", "ofen", "one-pan"], "protein": "Lachs & Skyr",
+      "ingredients": [
+        { "id": "kartoffeln", "g": 300 }, { "id": "lachs_tk", "g": 125 }, { "id": "brokkoli", "g": 200 }, { "id": "honig", "g": 8 },
+        { "id": "senf", "g": 10 }, { "id": "olivenoel", "g": 8 }, { "id": "skyr", "g": 100, "note": "als Dip" }
+      ],
+      "steps": [
+        { "t": "Ofen auf 220 °C Umluft. Kartoffeln in Spalten mit der Hälfte des Öls aufs Blech.", "timer": 900, "label": "Kartoffeln" },
+        { "t": "Brokkoli und Lachs dazulegen. Honig, Senf und restliches Öl verrühren und über den Lachs streichen.", "timer": 900, "label": "Lachs & Brokkoli" },
+        { "t": "Skyr mit einem Rest Honig-Senf als Dip verrühren." }
+      ],
+      "tip": "Ein Blech, fertig. Lachs liefert Omega-3, Brokkoli Vitamin C und Folat."
+    },
+    {
+      "id": "omelett", "name": "Gemüse-Omelett mit Feta & Vollkornbrot", "type": "main", "time": 15, "dishes": 1, "effort": 1, "mealPrep": false,
+      "tags": ["ei", "vegetarisch", "schnell"], "protein": "Ei & Feta",
+      "ingredients": [
+        { "id": "eier", "g": 180 }, { "id": "feta", "g": 40 }, { "id": "paprika", "g": 100 }, { "id": "babyspinat", "g": 60 },
+        { "id": "champignons", "g": 100 }, { "id": "vk_brot", "g": 100 }, { "id": "olivenoel", "g": 5 }
+      ],
+      "steps": [
+        { "t": "Pilze und Paprika klein schneiden und im Öl anbraten.", "timer": 240, "label": "Gemüse" },
+        { "t": "Spinat zugeben, verquirlte Eier darüber gießen, Feta darüber bröseln.", "timer": 300, "label": "Omelett stocken" },
+        { "t": "Mit Brot servieren." }
+      ],
+      "tip": "Drei Gemüsesorten in zehn Minuten."
+    },
+    {
+      "id": "kuerbis_haehnchen", "name": "Ofen-Kürbis mit Hähnchen, Feta & Walnüssen", "type": "main", "time": 30, "dishes": 2, "effort": 1, "mealPrep": true,
+      "season": [9, 10, 11, 12], "tags": ["ofen", "saisonal", "herbst"], "protein": "Hähnchen & Feta",
+      "ingredients": [
+        { "id": "hokkaido", "g": 300 }, { "id": "haehnchenbrust", "g": 150 }, { "id": "feta", "g": 40 }, { "id": "walnuesse", "g": 15 },
+        { "id": "rote_zwiebel", "g": 50 }, { "id": "olivenoel", "g": 10 }, { "id": "bulgur", "g": 60 }
+      ],
+      "steps": [
+        { "t": "Ofen auf 220 °C. Hokkaido (mit Schale) in Spalten, Zwiebel in Ringe, mit Öl und Salz aufs Blech.", "timer": 1500, "label": "Kürbis" },
+        { "t": "Bulgur mit doppelter Menge Brühe quellen lassen.", "timer": 600, "label": "Bulgur" },
+        { "t": "Hähnchen würfeln und nach 10 Minuten mit aufs Blech legen.", "timer": 900, "label": "Hähnchen" },
+        { "t": "Mit Feta und Walnüssen servieren." }
+      ],
+      "tip": "Hokkaido muss nicht geschält werden – Herbstgericht mit viel Beta-Carotin."
+    },
+    {
+      "id": "doener_bowl", "name": "Hähnchen-Döner-Bowl mit Skyr-Tzatziki & Reis", "type": "main", "time": 25, "dishes": 2, "effort": 1, "mealPrep": true,
+      "tags": ["bowl", "orientalisch"], "protein": "Hähnchen & Skyr",
+      "ingredients": [
+        { "id": "haehnchenbrust", "g": 170 }, { "id": "skyr", "g": 120 }, { "id": "gurke", "g": 100 }, { "id": "knoblauch", "g": 5 },
+        { "id": "reis", "g": 80 }, { "id": "tomaten", "g": 120 }, { "id": "rote_zwiebel", "g": 30 }, { "id": "olivenoel", "g": 10 },
+        { "id": "gewuerze", "g": 3, "note": "Gyros-/Dönergewürz" }
+      ],
+      "steps": [
+        { "t": "Reis aufsetzen.", "timer": 720, "label": "Reis" },
+        { "t": "Hähnchen in dünne Streifen schneiden, mit Gewürz und Öl scharf anbraten.", "timer": 420, "label": "Hähnchen" },
+        { "t": "Gurke raspeln, ausdrücken, mit Skyr, Knoblauch und Salz zu Tzatziki verrühren." },
+        { "t": "Tomaten und Zwiebel schneiden. Alles in einer Schüssel anrichten." }
+      ],
+      "tip": "Döner-Gefühl zu Hause – und wenn du auswärts Döner isst, ist das genauso eine normale Mahlzeit."
+    },
+    {
+      "id": "pellkartoffeln_quark", "name": "Pellkartoffeln mit Kräuterquark, Leinsamen & Gurke", "type": "main", "time": 25, "dishes": 1, "effort": 1, "mealPrep": false,
+      "tags": ["klassiker", "vegetarisch", "kartoffel"], "protein": "Quark & Ei",
+      "ingredients": [
+        { "id": "kartoffeln", "g": 400 }, { "id": "magerquark", "g": 250 }, { "id": "kraeuter_tk", "g": 10 }, { "id": "leinsamen", "g": 10 },
+        { "id": "gurke", "g": 150 }, { "id": "olivenoel", "g": 10 }, { "id": "eier", "g": 60 }
+      ],
+      "steps": [
+        { "t": "Kartoffeln mit Schale kochen; das Ei für die letzten 9 Minuten mit in den Topf geben.", "timer": 1200, "label": "Kartoffeln" },
+        { "t": "Quark mit Kräutern, Salz, Pfeffer, Öl und einem Schuss Wasser cremig rühren, Leinsamen darüber." },
+        { "t": "Gurke in Scheiben schneiden und dazu servieren." }
+      ],
+      "tip": "Ein Topf, viel Protein, kaum Abwasch."
+    },
+    {
+      "id": "shakshuka", "name": "Shakshuka mit Feta & Vollkornbrot", "type": "main", "time": 25, "dishes": 1, "effort": 1, "mealPrep": false,
+      "tags": ["ei", "vegetarisch", "one-pan", "tomatensauce"], "protein": "Ei & Feta",
+      "ingredients": [
+        { "id": "eier", "g": 180 }, { "id": "gehackte_tomaten", "g": 250 }, { "id": "paprika", "g": 160 }, { "id": "zwiebeln", "g": 50 },
+        { "id": "feta", "g": 40 }, { "id": "vk_brot", "g": 100 }, { "id": "olivenoel", "g": 8 }, { "id": "gewuerze", "g": 2, "note": "Kreuzkümmel, Paprika" }
+      ],
+      "steps": [
+        { "t": "Zwiebel und Paprika würfeln und im Öl weich braten.", "timer": 360, "label": "Gemüse" },
+        { "t": "Tomaten und Gewürze zugeben, köcheln lassen.", "timer": 300, "label": "Sauce" },
+        { "t": "Mulden formen, Eier hineinschlagen, Deckel drauf und stocken lassen.", "timer": 420, "label": "Eier" },
+        { "t": "Mit Feta bestreuen und mit Brot servieren." }
+      ],
+      "tip": "Tomatensauce + Ei = schnelles, sättigendes Pfannengericht."
+    },
+    {
+      "id": "pizza", "name": "Pizza mit Hähnchen, Pilzen & Paprika", "type": "main", "time": 30, "dishes": 1, "effort": 2, "mealPrep": true,
+      "tags": ["pizza", "italienisch", "ofen"], "protein": "Mozzarella & Hähnchen",
+      "ingredients": [
+        { "id": "pizzateig", "g": 200 }, { "id": "passierte_tomaten", "g": 80 }, { "id": "mozzarella", "g": 125 }, { "id": "haehnchenbrust", "g": 80 },
+        { "id": "champignons", "g": 80 }, { "id": "paprika", "g": 80 }, { "id": "rucola", "g": 20 }, { "id": "gewuerze", "g": 1, "note": "Oregano, Salz" }
+      ],
+      "steps": [
+        { "t": "Ofen auf 250 °C (höchste Stufe) vorheizen. Teig aufs Blech legen." },
+        { "t": "Hähnchen in dünne Streifen, Pilze und Paprika in Scheiben schneiden." },
+        { "t": "Passierte Tomaten mit Oregano und Salz aufstreichen, belegen, Mozzarella darauf." },
+        { "t": "Pizza backen.", "timer": 720, "label": "Pizza" },
+        { "t": "Mit Rucola belegen." }
+      ],
+      "tip": "Pizza bleibt Pizza – mit Hähnchen und Gemüse belegt wird sie zur vollwertigen Mahlzeit."
+    },
+    {
+      "id": "lasagne", "name": "Lasagne mit Rinderhack, Spinat & Ricotta", "type": "main", "time": 80, "dishes": 3, "effort": 3, "mealPrep": true,
+      "tags": ["italienisch", "aufwendig", "ofen", "wochenende"], "protein": "Rind & Käse",
+      "ingredients": [
+        { "id": "lasagneplatten", "g": 80 }, { "id": "rinderhack", "g": 125 }, { "id": "passierte_tomaten", "g": 200 }, { "id": "spinat_tk", "g": 100 },
+        { "id": "ricotta", "g": 60 }, { "id": "mozzarella", "g": 40 }, { "id": "parmesan", "g": 10 }, { "id": "zwiebeln", "g": 40 }, { "id": "olivenoel", "g": 5 }
+      ],
+      "steps": [
+        { "t": "Zwiebel würfeln, mit Hack im Öl krümelig anbraten.", "timer": 480, "label": "Hack" },
+        { "t": "Passierte Tomaten zugeben, salzen, pfeffern und einkochen lassen.", "timer": 900, "label": "Ragù" },
+        { "t": "Spinat auftauen (Mikrowelle oder Topf), ausdrücken und mit Ricotta, Salz und Muskat verrühren." },
+        { "t": "Ofen auf 190 °C. In einer Auflaufform abwechselnd Ragù, Platten und Spinat-Ricotta schichten; mit Ragù, Mozzarella und Parmesan abschließen." },
+        { "t": "Lasagne backen.", "timer": 2100, "label": "Lasagne" },
+        { "t": "10 Minuten ruhen lassen, dann schneiden.", "timer": 600, "label": "Ruhen" }
+      ],
+      "tip": "Dein Wochenend-Projekt: gleich mehrere Portionen backen – Reste sind ideale Mittagessen."
+    },
+    {
+      "id": "gefuellte_paprika", "name": "Gefüllte Paprika mit Hack, Reis & Feta", "type": "main", "time": 60, "dishes": 2, "effort": 3, "mealPrep": true,
+      "tags": ["ofen", "aufwendig", "wochenende"], "protein": "Rind & Feta",
+      "ingredients": [
+        { "id": "paprika", "g": 320 }, { "id": "rinderhack", "g": 100 }, { "id": "reis", "g": 50 }, { "id": "feta", "g": 40 },
+        { "id": "passierte_tomaten", "g": 150 }, { "id": "zwiebeln", "g": 40 }, { "id": "kraeuter_tk", "g": 5 }, { "id": "skyr", "g": 100, "note": "als Dip" }
+      ],
+      "steps": [
+        { "t": "Reis halbgar kochen.", "timer": 480, "label": "Reis vorgaren" },
+        { "t": "Hack mit Zwiebel anbraten, mit Reis, Kräutern und der Hälfte des Fetas mischen.", "timer": 360, "label": "Füllung" },
+        { "t": "Ofen auf 200 °C. Paprika halbieren, entkernen und füllen. Passierte Tomaten in die Form, Paprika hinein, restlichen Feta darüber." },
+        { "t": "Im Ofen garen.", "timer": 2100, "label": "Paprika" },
+        { "t": "Mit Skyr-Dip servieren." }
+      ],
+      "tip": "Etwas mehr Zeit, dafür ein richtiges Sonntagsessen – gut vorzubereiten."
+    },
+
+    {
+      "id": "overnight_oats", "name": "Overnight-Oats mit Skyr & Beeren", "type": "breakfast", "time": 5, "dishes": 0, "effort": 1, "mealPrep": true,
+      "tags": ["vorbereiten", "vollkorn"], "protein": "Skyr",
+      "ingredients": [
+        { "id": "haferflocken", "g": 70 }, { "id": "skyr", "g": 200 }, { "id": "milch", "g": 100 }, { "id": "beeren_tk", "g": 100 },
+        { "id": "walnuesse", "g": 10 }, { "id": "flohsamenschalen", "g": 4, "opt": "psyllium" }
+      ],
+      "steps": [
+        { "t": "Abends Haferflocken, Skyr, Milch und gefrorene Beeren in einem Glas verrühren (ggf. Flohsamenschalen + extra Schluck Milch). Über Nacht in den Kühlschrank." },
+        { "t": "Morgens mit Walnüssen toppen." }
+      ],
+      "tip": "Null Aufwand am Morgen, 35+ g Protein."
+    },
+    {
+      "id": "quark_bowl", "name": "Quark-Bowl mit Banane, Haferflocken & Erdnussmus", "type": "breakfast", "time": 5, "dishes": 0, "effort": 1, "mealPrep": false,
+      "tags": ["schnell"], "protein": "Quark",
+      "ingredients": [
+        { "id": "magerquark", "g": 250 }, { "id": "milch", "g": 50 }, { "id": "banane", "g": 120 }, { "id": "haferflocken", "g": 40 }, { "id": "erdnussmus", "g": 15 },
+        { "id": "flohsamenschalen", "g": 4, "opt": "psyllium" }
+      ],
+      "steps": [
+        { "t": "Quark mit Milch cremig rühren, Banane in Scheiben, Haferflocken und Erdnussmus darauf." }
+      ],
+      "tip": "Erdnussmus macht's cremig und liefert ungesättigte Fette."
+    },
+    {
+      "id": "ruehrei_brot", "name": "Rührei mit Vollkornbrot, Tomaten & Hüttenkäse", "type": "breakfast", "time": 10, "dishes": 1, "effort": 1, "mealPrep": false,
+      "tags": ["herzhaft", "ei"], "protein": "Ei & Hüttenkäse",
+      "ingredients": [
+        { "id": "eier", "g": 180 }, { "id": "vk_brot", "g": 100 }, { "id": "tomaten", "g": 100 }, { "id": "butter", "g": 5 }, { "id": "huettenkaese", "g": 100 }
+      ],
+      "steps": [
+        { "t": "Eier verquirlen, salzen und in Butter bei mittlerer Hitze stocken lassen.", "timer": 180, "label": "Rührei" },
+        { "t": "Brot mit Hüttenkäse bestreichen, Rührei und Tomatenscheiben dazu." }
+      ],
+      "tip": "Herzhafter Start mit über 40 g Protein."
+    },
+    {
+      "id": "porridge", "name": "Apfel-Zimt-Porridge mit Skyr & Walnüssen", "type": "breakfast", "time": 10, "dishes": 1, "effort": 1, "mealPrep": false,
+      "tags": ["warm", "vollkorn"], "protein": "Skyr & Milch",
+      "ingredients": [
+        { "id": "haferflocken", "g": 70 }, { "id": "milch", "g": 250 }, { "id": "apfel", "g": 90 }, { "id": "skyr", "g": 150 }, { "id": "walnuesse", "g": 10 },
+        { "id": "flohsamenschalen", "g": 4, "opt": "psyllium" }
+      ],
+      "steps": [
+        { "t": "Haferflocken mit Milch und gewürfeltem Apfel aufkochen, mit Zimt würzen und quellen lassen.", "timer": 300, "label": "Porridge" },
+        { "t": "Vom Herd nehmen, Skyr unterrühren, mit Walnüssen toppen." }
+      ],
+      "tip": "Warmes Frühstück für kalte Tage."
+    },
+    {
+      "id": "lachs_toast", "name": "Vollkorntoast mit Räucherlachs, Frischkäse & Gurke + Skyr", "type": "breakfast", "time": 5, "dishes": 0, "effort": 1, "mealPrep": false,
+      "tags": ["fisch", "herzhaft"], "protein": "Räucherlachs & Skyr",
+      "ingredients": [
+        { "id": "vk_toast", "g": 100 }, { "id": "frischkaese", "g": 40 }, { "id": "raeucherlachs", "g": 60 }, { "id": "gurke", "g": 80 }, { "id": "skyr", "g": 150 }, { "id": "honig", "g": 5 }
+      ],
+      "steps": [
+        { "t": "Toast rösten, mit Frischkäse bestreichen, mit Lachs und Gurke belegen. Skyr mit etwas Honig dazu." }
+      ],
+      "tip": "Verwertet angebrochenen Räucherlachs."
+    },
+    {
+      "id": "huettenkaese_brot", "name": "Hüttenkäse-Brote mit Ei & Paprika", "type": "breakfast", "time": 10, "dishes": 1, "effort": 1, "mealPrep": false,
+      "tags": ["herzhaft", "ei"], "protein": "Hüttenkäse & Ei",
+      "ingredients": [
+        { "id": "vk_brot", "g": 120 }, { "id": "huettenkaese", "g": 200 }, { "id": "eier", "g": 60 }, { "id": "paprika", "g": 80 }, { "id": "kraeuter_tk", "g": 3 }
+      ],
+      "steps": [
+        { "t": "Ei kochen.", "timer": 540, "label": "Ei" },
+        { "t": "Brot mit Hüttenkäse und Kräutern bestreichen, mit Ei- und Paprikascheiben belegen." }
+      ],
+      "tip": "Einfach, sättigend, gut für den Büro-Morgen."
+    },
+
+    {
+      "id": "skyr_beeren", "name": "Skyr mit Beeren & Nüssen", "type": "snack", "time": 2, "dishes": 0, "effort": 1, "mealPrep": false,
+      "tags": ["protein"], "protein": "Skyr",
+      "ingredients": [ { "id": "skyr", "g": 200 }, { "id": "beeren_tk", "g": 100 }, { "id": "nussmix", "g": 15 } ],
+      "steps": [ { "t": "Beeren (gern gefroren) auf den Skyr, Nüsse darüber." } ]
+    },
+    {
+      "id": "apfel_nuesse", "name": "Apfel & Nüsse", "type": "snack", "time": 1, "dishes": 0, "effort": 1, "mealPrep": false,
+      "tags": ["energie", "unterwegs"], "protein": "Nüsse",
+      "ingredients": [ { "id": "apfel", "g": 180 }, { "id": "nussmix", "g": 25 } ],
+      "steps": [ { "t": "Einpacken, mitnehmen." } ]
+    },
+    {
+      "id": "quark_shake", "name": "Bananen-Quark-Shake (ohne Pulver)", "type": "snack", "time": 3, "dishes": 1, "effort": 1, "mealPrep": false,
+      "tags": ["protein", "nach dem Training"], "protein": "Quark & Milch",
+      "ingredients": [ { "id": "magerquark", "g": 200 }, { "id": "milch", "g": 250 }, { "id": "banane", "g": 120 }, { "id": "haferflocken", "g": 20 } ],
+      "steps": [ { "t": "Alles im Mixer (oder mit dem Pürierstab) glatt mixen." } ]
+    },
+    {
+      "id": "hummus_sticks", "name": "Hummus mit Gemüsesticks & Brot", "type": "snack", "time": 5, "dishes": 0, "effort": 1, "mealPrep": false,
+      "tags": ["gemüse"], "protein": "Kichererbsen",
+      "ingredients": [ { "id": "hummus", "g": 80 }, { "id": "paprika", "g": 100 }, { "id": "gurke", "g": 100 }, { "id": "moehren", "g": 80, "note": "roh" }, { "id": "vk_brot", "g": 50 } ],
+      "steps": [ { "t": "Gemüse in Sticks schneiden und in Hummus dippen." } ]
+    },
+    {
+      "id": "huettenkaese_tomate", "name": "Hüttenkäse mit Cherrytomaten & Kräutern", "type": "snack", "time": 2, "dishes": 0, "effort": 1, "mealPrep": false,
+      "tags": ["protein", "herzhaft"], "protein": "Hüttenkäse",
+      "ingredients": [ { "id": "huettenkaese", "g": 200 }, { "id": "cherrytomaten", "g": 125 }, { "id": "kraeuter_tk", "g": 3 } ],
+      "steps": [ { "t": "Tomaten halbieren, mit Hüttenkäse, Kräutern, Salz und Pfeffer mischen." } ]
+    },
+    {
+      "id": "tiramisu", "name": "Skyr-Tiramisu", "type": "snack", "time": 15, "dishes": 1, "effort": 2, "mealPrep": true,
+      "tags": ["dessert", "genuss", "vorbereiten"], "protein": "Skyr",
+      "ingredients": [
+        { "id": "skyr", "g": 120 }, { "id": "mascarpone", "g": 25 }, { "id": "loeffelbiskuits", "g": 30 }, { "id": "espresso", "g": 50 },
+        { "id": "kakao", "g": 3 }, { "id": "honig", "g": 8 }
+      ],
+      "steps": [
+        { "t": "Espresso kochen und abkühlen lassen. Skyr mit Mascarpone und Honig glatt rühren." },
+        { "t": "Löffelbiskuits kurz in Espresso tunken, abwechselnd mit der Creme in ein Glas schichten." },
+        { "t": "Mit Kakao bestäuben und kühlen.", "timer": 7200, "label": "Kühlen (mind. 2 h)" }
+      ],
+      "tip": "Echter Tiramisu-Geschmack mit Skyr statt nur Mascarpone – Genuss mit 17 g Protein."
+    },
+    {
+      "id": "banane_erdnuss", "name": "Banane mit Erdnussmus", "type": "snack", "time": 1, "dishes": 0, "effort": 1, "mealPrep": false,
+      "tags": ["energie", "vor dem Training"], "protein": "Erdnuss",
+      "ingredients": [ { "id": "banane", "g": 120 }, { "id": "erdnussmus", "g": 20 } ],
+      "steps": [ { "t": "Banane schälen, mit Erdnussmus bestreichen." } ]
+    },
+    {
+      "id": "mandarinen_schoko", "name": "Clementinen & ein Stück Zartbitterschokolade", "type": "snack", "time": 1, "dishes": 0, "effort": 1, "mealPrep": false,
+      "tags": ["genuss", "obst"], "protein": "–",
+      "ingredients": [ { "id": "mandarinen", "g": 150 }, { "id": "zartbitter", "g": 20 } ],
+      "steps": [ { "t": "Genießen." } ]
+    },
+    {
+      "id": "eier_gurke", "name": "Zwei gekochte Eier mit Gurke", "type": "snack", "time": 10, "dishes": 1, "effort": 1, "mealPrep": true,
+      "tags": ["protein", "herzhaft"], "protein": "Ei",
+      "ingredients": [ { "id": "eier", "g": 120 }, { "id": "gurke", "g": 100 } ],
+      "steps": [ { "t": "Eier kochen (gern mehrere auf Vorrat).", "timer": 540, "label": "Eier" }, { "t": "Mit Gurke, Salz und Pfeffer essen." } ]
+    }
+  ]
+}
