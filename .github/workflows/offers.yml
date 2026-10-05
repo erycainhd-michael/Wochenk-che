@@ -1,0 +1,48 @@
+name: Angebote holen
+
+on:
+  schedule:
+    # Montag 6:00 Uhr Berliner Zeit. Cron läuft in UTC, daher zwei Einträge:
+    - cron: '0 4 * * 1' # Sommerzeit (MESZ = UTC+2)
+    - cron: '0 5 * * 1' # Winterzeit (MEZ = UTC+1)
+  workflow_dispatch:
+    inputs:
+      find_market:
+        description: 'Optional: PLZ oder Straße, um die Edeka-Markt-ID zu finden (z. B. 12163)'
+        required: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: offers
+  cancel-in-progress: false
+
+jobs:
+  offers:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Angebote laden (fällt bei Fehlern still auf Richtpreise zurück)
+        env:
+          CRON_SCHEDULE: ${{ github.event.schedule }}
+          TARGET_HOUR: '6'
+          FORCE: ${{ github.event_name == 'workflow_dispatch' && '1' || '' }}
+          FIND_MARKET: ${{ github.event.inputs.find_market }}
+          EDEKA_MARKET_ID: ${{ vars.EDEKA_MARKET_ID }}
+        run: node scripts/fetch-offers.mjs
+      - name: offers.json speichern
+        run: |
+          if git diff --quiet -- data/offers.json; then
+            echo "Keine Änderungen."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/offers.json
+          git commit -m "Angebote aktualisiert ($(date -u +%F))"
+          git push
