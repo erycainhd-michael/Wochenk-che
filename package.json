@@ -8,7 +8,6 @@
     "test": "node --test "tests/*.test.mjs"",
     "validate": "node scripts/validate-data.mjs",
     "offers": "FORCE=1 node scripts/fetch-offers.mjs",
-    "icons": "node scripts/make-icons.mjs",
     "start": "npx --yes http-server -c-1 -p 8080 ."
   },
   "dependencies": {
