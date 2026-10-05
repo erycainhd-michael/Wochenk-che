@@ -47,7 +47,7 @@ js/storage.js                             Lokale Speicherung, Export/Import
 data/ingredients.json                     112 Zutaten: Nährwerte/100 g, Packung, Richtpreis Lidl/Edeka, Haltbarkeit
 data/recipes.json                         51 Rezepte (36 Hauptgerichte, 6 Frühstücke, 9 Snacks)
 data/offers.json                          Angebote (von der Action geschrieben)
-scripts/                                  Angebote holen, Push senden, Daten prüfen, Icons erzeugen
+scripts/                                  Angebote holen, Push senden, Daten prüfen
 tests/                                    Automatische Tests
 .github/workflows/                        Die drei GitHub Actions
 ```
