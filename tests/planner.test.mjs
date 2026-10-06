@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import { buildIndex, plausibility } from '../js/nutrition.js';
 import { generatePlan, refitPlan, swapMeal } from '../js/planner.js';
+import { sportKcal } from '../js/sport.js';
 import { DEFAULT_SETTINGS } from '../js/settings.js';
 import { makePriceFn, matchIngredient, parseGrams } from '../js/prices.js';
 import { recipeWeights } from '../js/feedback.js';
@@ -87,6 +88,21 @@ test('Neue Tagesziele: gleiche Gerichte, Portionen passen sich an', () => {
   const avgK = next.days.reduce((a, d) => a + d.totals.kcal, 0) / 7;
   assert.ok(avgK > 3000, `Ø ${Math.round(avgK)} kcal`);
   assert.equal(next.goals.kcal, 3200);
+});
+
+test('Sport erhöht das Kalorienziel des Tages und die Portionen', () => {
+  const withSport = { ...plan, structure: { ...plan.structure, sport: { 2: [{ type: 'laufen', level: 1, min: 45, kcal: 500 }] } } };
+  const next = refitPlan(withSport, { recipes, idx, settings: settings(), weekStart: '2026-10-05' });
+  assert.equal(next.days[2].goalKcal, 3300);
+  assert.equal(next.days[2].sportKcal, 500);
+  assert.ok(next.days[2].totals.kcal > plan.days[2].totals.kcal + 250, `${Math.round(next.days[2].totals.kcal)} kcal`);
+  assert.ok(Math.abs(next.days[3].totals.kcal - plan.days[3].totals.kcal) < 150);
+  assert.deepEqual(next.structure.sport, withSport.structure.sport);
+});
+
+test('Sport-kcal nach MET: (MET − 1) × kg × Stunden', () => {
+  assert.equal(sportKcal('laufen', 1, 60, 80), 705); // (9,8 − 1) × 80 × 1
+  assert.equal(sportKcal('kraft', 1, 45, 80), 240); // (5 − 1) × 80 × 0,75
 });
 
 test('Spezielles nur dort kaufen, wo es das gibt (z. B. grüne Tagliatelle bei Edeka)', () => {
