@@ -619,13 +619,12 @@ function laterStart(plan, todayIdx, firstDay) {
   if (!S.ui.laterOpen) {
     return `<button class="link later-link" data-action="later-open">📅 ${firstDay ? `Plan startet am ${DAY_NAMES[firstDay]} – ändern` : 'Erst später in die Woche starten?'}</button>`;
   }
-  const from = Math.max(0, todayIdx);
-  const sel = S.ui.laterDay ?? Math.max(firstDay, from);
+  const sel = S.ui.laterDay ?? (firstDay || Math.max(0, todayIdx));
   return `<section class="card later">
     <h2>Ab wann bist du da?</h2>
-    <p class="sub">Mise plant die Woche ab diesem Tag neu und du kaufst nur für die restlichen Tage ein. Haken auf der Einkaufsliste werden zurückgesetzt.</p>
-    <div class="pills days">${DAY_SHORT.map((d, i) => `<button class="pill circle ${sel === i ? 'on' : ''}" data-action="later-day" data-day="${i}" ${i < from ? 'disabled' : ''}>${d}</button>`).join('')}</div>
-    <div class="grid2"><button class="btn" data-action="later-cancel">Abbrechen</button><button class="btn primary" data-action="later-go" data-day="${sel}">Ab ${DAY_SHORT[sel]} planen</button></div>
+    <p class="sub">Mise plant die Woche ab diesem Tag neu und du kaufst nur für die restlichen Tage ein. „Mo“ plant wieder die ganze Woche. Haken auf der Einkaufsliste werden zurückgesetzt.</p>
+    <div class="pills days">${DAY_SHORT.map((d, i) => `<button class="pill circle ${sel === i ? 'on' : ''}" data-action="later-day" data-day="${i}">${d}</button>`).join('')}</div>
+    <div class="grid2"><button class="btn" data-action="later-cancel">Abbrechen</button><button class="btn primary" data-action="later-go" data-day="${sel}">${sel ? `Ab ${DAY_SHORT[sel]} planen` : 'Ganze Woche'}</button></div>
   </section>`;
 }
 
@@ -636,7 +635,7 @@ function evaluationHtml(plan) {
 function mealRow(plan, m) {
   if (m.kind === 'eatout') {
     return `<li class="meal eatout"><span class="mi">${ICON.eatout}</span><div class="mt"><div class="ml">${SLOT_LABEL[m.slot]} · auswärts</div>
-      <div class="mn">Auswärtsessen</div><div class="mm">≈ ${num(m.macros.kcal)} kcal · ≈ ${g_(m.macros.p)} P</div></div></li>`;
+      <div class="mn">Auswärtsessen</div><div class="mm">≈ ${num(m.macros.kcal)} kcal · ≈ ${g_(m.macros.p)} Protein</div></div></li>`;
   }
   const r = recipe(m.recipeId);
   const cook = m.cookId ? plan.cooks.find((c) => c.id === m.cookId) : null;
@@ -651,7 +650,7 @@ function mealRow(plan, m) {
     <a class="mt" href="#/mahlzeit/${m.key}">
       <div class="ml">${ICON[isSnack ? 'snack' : m.slot]} ${isSnack ? 'Snack' : SLOT_LABEL[m.slot]} · ${r.time} Min.</div>
       <div class="mn">${e(r.name)}</div>
-      <div class="mm">${num(m.macros.kcal)} kcal · ${g_(m.macros.p)} P</div>
+      <div class="mm">${num(m.macros.kcal)} kcal · ${g_(m.macros.p)} Protein</div>
       ${badges.length ? `<div class="badges">${badges.join('')}</div>` : ''}
     </a>
     ${
@@ -673,7 +672,7 @@ function dayCard(plan, d, open, isToday) {
   return `<section class="card day ${isToday ? 'accent' : ''}" data-day="${d.day}">
     <button class="day-head" data-action="toggle-day" data-day="${d.day}" data-open="${open ? 1 : 0}">
       <b>${d.name} ${formatDate(d.date)}${isToday ? ' · heute' : ''}</b>
-      <span class="sub">${num(d.totals.kcal)} kcal · ${g_(d.totals.p)} P${d.sportKcal ? ` · <span class="sport-tag">${sportIcons(plan, d.day)} +${num(d.sportKcal)} kcal</span>` : ''}</span>
+      <span class="sub">${num(d.totals.kcal)} kcal · ${g_(d.totals.p)} Protein${d.sportKcal ? ` · <span class="sport-tag">${sportIcons(plan, d.day)} +${num(d.sportKcal)} kcal</span>` : ''}</span>
     </button>
     ${
       open
@@ -829,24 +828,25 @@ function viewRecipes() {
   const cf = S.cats.names.includes(S.ui.rCat) ? S.ui.rCat : null;
   const match = (r) => (tf === 'all' || timeClass(r) === tf) && (!cf || catsOf(r.id).includes(cf));
   const hints = { kurz: 'bis 15 Min.', mittel: '15–30 Min.', aufwendig: 'über 30 Min. oder aufwendig' };
-  const list = S.recipes.filter((r) => r.type !== 'addon' && match(r)).sort((a, b) => a.name.localeCompare(b.name, 'de'));
-  return `<header class="top col"><a class="back" href="#/woche">‹ Woche</a><h1>Rezepte</h1></header>
+  const all = S.recipes.filter((r) => r.type !== 'addon');
+  const list = all.filter(match).sort((a, b) => a.name.localeCompare(b.name, 'de'));
+  // Ein Filter: Zeit (Kurz/Mittel/Aufwendig) und Kategorien lassen sich kombinieren, „Alle“ setzt zurück
+  return `<header class="top col"><a class="back" href="#/woche">‹ Woche</a><h1><span class="h-count">${list.length}</span> ${list.length === 1 ? 'Rezept' : 'Rezepte'}</h1></header>
     <section class="card filters">
-      <div class="flt-label">Zeit</div>
-      <div class="chips cats">${TIME_FILTERS.map(([v, l]) => `<button class="chip ${tf === v ? 'on' : ''}" data-action="rfilter-time" data-val="${v}">${l}</button>`).join('')}</div>
-      ${tf !== 'all' ? `<p class="hint">${hints[tf]}</p>` : ''}
-      <div class="flt-label">Kategorie</div>
       <div class="chips cats">
-        <button class="chip ${!cf ? 'on' : ''}" data-action="rfilter-cat" data-val="">Alle</button>
-        ${S.cats.names.map((n) => `<button class="chip ${cf === n ? 'on' : ''}" data-action="rfilter-cat" data-val="${e(n)}">${e(n)} <small>${S.recipes.filter((r) => r.type !== 'addon' && catsOf(r.id).includes(n)).length}</small></button>`).join('')}
+        <button class="chip ${tf === 'all' && !cf ? 'on' : ''}" data-action="rfilter-all">Alle <small>${all.length}</small></button>
+        ${TIME_FILTERS.filter(([v]) => v !== 'all')
+          .map(([v, l]) => `<button class="chip ${tf === v ? 'on' : ''}" data-action="rfilter-time" data-val="${v}" title="${hints[v]}">${l} <small>${all.filter((r) => timeClass(r) === v).length}</small></button>`)
+          .join('')}
+        ${S.cats.names.map((n) => `<button class="chip ${cf === n ? 'on' : ''}" data-action="rfilter-cat" data-val="${e(n)}">${e(n)} <small>${all.filter((r) => catsOf(r.id).includes(n)).length}</small></button>`).join('')}
         <button class="chip add" data-action="cat-new">+ Kategorie</button>
       </div>
+      ${tf !== 'all' ? `<p class="hint">${TIME_FILTERS.find(([v]) => v === tf)[1]}: ${hints[tf]}</p>` : ''}
       ${cf ? `<button class="link danger small" data-action="cat-delete" data-val="${e(cf)}">Kategorie „${e(cf)}“ löschen</button>` : ''}
     </section>
     <section class="card">
       <div class="add-row"><input placeholder="Neues Rezept, z. B. Pilzrisotto" data-new-title="main" value="${e(S.ui.newTitle.main || '')}"><button class="btn pill" data-action="new-recipe" data-type="main">Hinzufügen</button></div>
       <p class="hint">${S.settings.aiKey ? 'Nur den Titel eintragen – die KI erfindet das passende Rezept.' : 'Titel eintragen und Rezept selbst ausfüllen (Frühstück oder Hauptgericht wählst du im Rezept). Mit KI-Schlüssel (Einstellungen) erfindet Mise es für dich.'}</p>
-      <div class="sub list-count">${list.length} ${list.length === 1 ? 'Rezept' : 'Rezepte'}</div>
       ${list.length ? '' : `<p class="sub">${cf ? `Noch keine Rezepte in „${e(cf)}“ – öffne ein Rezept und tippe die Kategorie an.` : 'Keine Rezepte für diesen Filter.'}</p>`}
       <ul class="list">${list
         .map((r) => {
@@ -1251,7 +1251,7 @@ function trendCard(ws) {
       ${progress}
       ${trendText ? `<p class="trend-text">${trendText}</p>` : ''}
     </div>
-    <p class="chart-tip sub" aria-live="polite">Punkt antippen für Details</p>
+    ${has(sat) || has(en) || has(kg) ? `<p class="chart-tip sub" aria-live="polite">Punkt antippen für Details</p>` : ''}
   </section>`;
 }
 
@@ -1643,11 +1643,16 @@ async function onClick(ev) {
       });
       return render();
     }
+    case 'rfilter-all':
+      S.ui.rTime = 'all';
+      S.ui.rCat = null;
+      return render();
     case 'rfilter-time':
-      S.ui.rTime = el.dataset.val;
+      // nochmal antippen hebt den Zeitfilter wieder auf
+      S.ui.rTime = S.ui.rTime === el.dataset.val ? 'all' : el.dataset.val;
       return render();
     case 'rfilter-cat':
-      S.ui.rCat = el.dataset.val || null;
+      S.ui.rCat = S.ui.rCat === el.dataset.val ? null : el.dataset.val || null;
       return render();
     case 'cat-new': {
       const name = (prompt('Name der neuen Kategorie, z. B. „Familienrezepte“') || '').trim().slice(0, 30);
