@@ -222,6 +222,14 @@ body.has-timers .view { padding-bottom: calc(env(safe-area-inset-bottom) + 176px
 .list a { display: flex; flex-direction: column; color: inherit; width: 100%; padding: 2px 0; }
 .macros { display: flex; flex-wrap: wrap; gap: 4px 10px; margin-top: 4px; font-size: 0.8rem; color: var(--muted); font-variant-numeric: tabular-nums; }
 .macros b { color: var(--text); font-weight: 600; }
+.filters .seg .pill { min-width: 0; padding: 0 6px; font-size: 0.9rem; }
+.chips.cats { margin-top: 10px; }
+.chips.cats .chip { border: 1px solid transparent; font: inherit; font-size: 0.9rem; min-height: 36px; padding: 4px 14px; cursor: pointer; color: var(--text); }
+.chips.cats .chip.on { color: var(--accent-text); }
+.chips.cats .chip small { opacity: 0.7; margin-left: 2px; }
+.link.small { font-size: 0.85rem; margin-top: 6px; }
+.rcats { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+.rcats i { font-style: normal; font-size: 0.75rem; padding: 1px 8px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); }
 .steps { padding-left: 1.4rem; margin: 0; }
 .steps li { margin-bottom: 12px; }
 .timer-btn { margin-top: 4px; }
@@ -540,3 +548,4 @@ textarea { font: inherit; color: var(--text); background: var(--field); border: 
 .splash-name { font-size: 1.6rem; font-weight: 700; letter-spacing: 0.02em; color: var(--accent); animation: viewIn 0.5s 0.55s cubic-bezier(0.2, 0.8, 0.2, 1) backwards; }
 #splash.out { opacity: 0; pointer-events: none; }
 #splash.out .leaf { transform: scale(1.6) rotate(-8deg); transition: transform 0.45s cubic-bezier(0.5, 0, 0.75, 0); }
+.chips.cats .chip.add { border: 1px dashed var(--accent); background: transparent; }
