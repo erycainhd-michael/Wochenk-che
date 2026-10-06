@@ -1,14 +1,2876 @@
 {
-  "updated": "2026-10-06T13:54:06.798Z",
+  "updated": "2026-10-06T13:58:21.401Z",
   "sources": {
     "edeka": {
-      "ok": false,
-      "message": "nicht erreichbar (keine Angebote in der Antwort)"
+      "ok": true,
+      "count": 286,
+      "matched": 17
     },
     "lidl": {
       "ok": false,
-      "message": "keine automatische Quelle – bitte manuell eintragen"
+      "message": "keine öffentliche Quelle – es gelten Richtpreise"
     }
   },
-  "offers": []
+  "offers": [
+    {
+      "store": "edeka",
+      "title": "Tchibo Aromatico Classico - 1kg Ganze Bohne",
+      "price": 12.99,
+      "unit": "versch. Sorten. Angebot gilt nur in teilnehmenden Märkten mit Tchibo-Depot., 1kg, (1 kg = 12,99), 1 kg = 12,99",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Kasselernacken/-kamm",
+      "price": 6.66,
+      "unit": "vom Schwein, mit Knochen, goldgelb geräuchert und gepökelt, 1kg",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Portugal / Peru  Driscoll's Himbeeren oder EDEKA Herzstücke Kulturheidelbeeren",
+      "price": 3.33,
+      "unit": "Kl. I, 220g Packung/225g Becher, (1kg = 16,65/14,80), 1kg = 16,65/14,80",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Niederlande, EDEKA Herzstücke Mini-Rispentomaten",
+      "price": 1.99,
+      "unit": "Kl. I, 400g Schale, (1kg = 4,98), 1kg = 4,98",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Exquisa",
+      "price": 0.99,
+      "unit": "Frischkäsezubereitung oder Körniger Frischkäse, versch. Sorten und Fettstufen, 175/200g Becher, (1kg = 5,66/4,95), 1kg = 5,66/4,95",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Iglo Schlemmerfilet oder Filegro",
+      "price": 2.99,
+      "unit": "versch. Sorten, 220/240/250/380g Packung, (1kg = 13,60/12,46/11,96/7,87), 1kg = 13,60/12,46/11,96/7,87",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": "bordelaise",
+      "packPrice": 2.99
+    },
+    {
+      "store": "edeka",
+      "title": "Frosta Fertiggerichte",
+      "price": 2.59,
+      "unit": "versch. Sorten, 400/500g Beutel, (1kg = 6,48/5,18), 1kg = 6,48/5,18",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Ritter Sport** Bunte Vielfalt",
+      "price": 1.11,
+      "unit": "Schokolade, versch. Sorten, *ausgenommen sind die Sorten mit höherem Nuss- und Kakaoanteil, 100g Tafel, (1kg = 11,10), 1kg = 11,10",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Melitta Filterkaffee",
+      "price": 6.49,
+      "unit": "gemahlener Röstkaffee, versch. Sorten, 500g Packung, (1kg = 12,98), 1kg = 12,98",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Jever Pilsener",
+      "price": 11.99,
+      "unit": "versch. Sorten, + 3,42/3,10 Pfand, je nach Verfügbarkeit im Markt \"Mich gibt's auch alkoholfrei\", 24x0,33l/20x0,5l Flasche, (1l = 1,51/1,20), 1l = 1,51/1,20",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Ur-Krostitzer",
+      "price": 9.99,
+      "unit": "versch. Sorten, + 3,10 Pfand \"Mich gibt's auch alkoholfrei\", 20x0,5l Flasche, (1l = 1,00), 1l = 1,00",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Hasseröder",
+      "price": 8.49,
+      "unit": "versch. Sorten, + 3,42/3,10 Pfand, je nach Verfügbarkeit im Markt, 24x0,33l/20x0,5l Flasche, (1l = 1,07/0,85), 1l = 1,07/0,85",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Berliner Pilsner, Mildes Lager oder Natur-Radler*",
+      "price": 9.99,
+      "unit": "+ 3,10 Pfand, * je nach Verfügbarkeit im Markt, 20x0,5l Flasche, (1l = 1,00), 1l = 1,00",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "SodaStream CO2-Füllung* Quick Connect oder Alcojet",
+      "price": 4.99,
+      "unit": "versch. Sorten, Stück",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Ecuador, EDEKA Bio WWF-Bananen",
+      "price": 1.69,
+      "unit": "1kg",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": "banane",
+      "packPrice": 0.2
+    },
+    {
+      "store": "edeka",
+      "title": "Ägypten, GUT&GÜNSTIG Erdnüsse \"Jumbo\"",
+      "price": 2.29,
+      "unit": "400g Beutel, (1kg = 5,73), 1kg = 5,73",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Südafrika, EDEKA Orangen",
+      "price": 2.49,
+      "unit": "Sorte \"Valencia Late\" Kl. I, 1kg",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Südafrika, EDEKA Genussmomente EDEKA Genussmomente  oder San Lucar Mandarinen",
+      "price": 1.99,
+      "unit": "Kl. I, 750g Netz, (1kg = 2,65), 1kg = 2,65",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Italien, EDEKA Herzstücke Tafeltrauben-Mix",
+      "price": 1.99,
+      "unit": "hell und rot, kernlos, Sorte siehe Etikett Kl. I, 500g Schale, (1kg = 3,98), 1kg = 3,98",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Portugal  Mini-Kiwi",
+      "price": 1.49,
+      "unit": "125g Packung, (1kg = 11,92), 1kg = 11,92",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Brasilien, GUT&GÜNSTIG Mango",
+      "price": 0.99,
+      "unit": "Sorte lt. Etikett Kl. I  Aktion : 5 Stück  , 3,00, Stück",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Deutschland, GUT&GÜNSTIG Brokkoli",
+      "price": 1.19,
+      "unit": "Kl. I, 500g Stück, (1kg = 2,38), 1kg = 2,38",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": "brokkoli",
+      "packPrice": 1.19
+    },
+    {
+      "store": "edeka",
+      "title": "Deutschland  Lauchzwiebeln oder Radieschen",
+      "price": 0.49,
+      "unit": "Kl. I, Bund",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": "fruehlingszwiebeln",
+      "packPrice": 0.49
+    },
+    {
+      "store": "edeka",
+      "title": "Italien, EDEKA Bio Rucolasalat",
+      "price": 1.29,
+      "unit": "Kl. II, 100g Schale, (1kg = 12,9), 1kg = 12,9",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Spanien, EDEKA Bio Salatgurken",
+      "price": 0.79,
+      "unit": "Kl. II, Stück",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": "gurke",
+      "packPrice": 0.79
+    },
+    {
+      "store": "edeka",
+      "title": "Deutschland Brandenburg EDEKA Heimatliebe Champignons, braun oder weiß",
+      "price": 1.99,
+      "unit": "Kl. I, 300g Schale, (1kg = 6,63), 1kg = 6,63",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": "champignons",
+      "packPrice": 1.66
+    },
+    {
+      "store": "edeka",
+      "title": "Topfrosen",
+      "price": 2.99,
+      "unit": "zweifarbig, Champagner-Pumple, ca. 28-32cm hoch, 12er Topf",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Strauß Germini oder Chrysanthemen",
+      "price": 2.49,
+      "unit": "in versch. Farben, 9 Stiele, ca. 50cm lang, Strauß",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "EDEKA Herzstücke Christrosen",
+      "price": 3.49,
+      "unit": "Helleborus, ca. 23cm hoch, 10er Topf",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Peru  Spargel, weiß",
+      "price": 2.99,
+      "unit": "16-26mm Kl. I, 400g Bund, (1kg = 7,48), 1kg = 7,48",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": "spargel",
+      "packPrice": 3.74
+    },
+    {
+      "store": "edeka",
+      "title": "Deutschland EDEKA Regional Bio-Speisekartoffeln",
+      "price": 1.79,
+      "unit": "versch. Kocheigenschaften, Sorte siehe Etikett, 1,5kg Netz, (1kg = 1,19), 1kg = 1,19",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Seeberger Soft-Trockenfrüchte",
+      "price": 4.99,
+      "unit": "Feigen, Cranberries, Pflaumen, Aprikosen oder Datteln, 125/140/200g Beutel",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Rama Cremefine, Schlag- oder Kochcreme",
+      "price": 0.99,
+      "unit": "ideal zum Verfeinern oder als Basis für Saucen, Suppen, Aufläufe oder Desserts, versch. Sorten, 200/250ml/g Flasche/Becher, (1l/kg = 4,95/3,96), 1l/kg = 4,95/3,96",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": "kochsahne",
+      "packPrice": 0.79
+    },
+    {
+      "store": "edeka",
+      "title": "GUT&GÜNSTIG Kaffeespezialitäten",
+      "price": 0.75,
+      "unit": "mit viel frischer Vollmilch und 100% Arabica-Kaffeebohnen, versch. Sorten, 250ml Becher, (1l = 3,00), 1l = 3,00",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "GUT&GÜNSTIG Latte Macchiato oder Latte Espresso XXL",
+      "price": 1.15,
+      "unit": "feinster Espresso mit frischer Milch, 100% Arabica-Kaffeebohnen, 370ml Becher, (1l = 3,11), 1l = 3,11",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Danone Activia Joghurt oder Kefir Big Pot",
+      "price": 1.49,
+      "unit": "versch. Sorten, 460g Packung/345g Becher, (1kg = 3,24/4,32), 1kg = 3,24/4,32",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Müller Froop",
+      "price": 0.39,
+      "unit": "Frucht auf Joghurt, versch. Sorten, 150g Becher, (1kg = 2,60), 1kg = 2,60",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Bauer Joghurt",
+      "price": 0.49,
+      "unit": "versch. Sorten und Fettstufen, 225/250g Becher, (1kg = 2,18/1,96), 1kg = 2,18/1,96",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Dr. Oetker Paula oder Marmorette",
+      "price": 1.49,
+      "unit": "Puddingdessert, versch. Sorten, 400/500g Packung, (1kg = 3,73/2,98), 1kg = 3,73/2,98",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Milram Gewürzquark",
+      "price": 0.99,
+      "unit": "versch. Sorten und Fettstufen, 185g Becher, (1kg = 5,35), 1kg = 5,35",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Le Rustique Camembert",
+      "price": 2.79,
+      "unit": "franz. Weichkäse, mild-würziger Geschmack, versch. Sorten und Fettstufen, 240/250g Packung, (1kg = 11,63/11,16), 1kg = 11,63/11,16",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Landliebe Landkäse",
+      "price": 1.69,
+      "unit": "versch. Sorten, 45/48% Fett i. Tr., 150g Packung, (1kg = 11,27), 1kg = 11,27",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Hochland Sandwichscheiben",
+      "price": 1.79,
+      "unit": "Schmelzkäsezubereitung, versch. Sorten und Fettstufen, 150g Packung, (1kg = 11,93), 1kg = 11,93",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Maasdamer",
+      "price": 0.79,
+      "unit": "holl. Schnittkäse, nussiger Geschmack, 45% Fett i. Tr., 100g, (1kg = 7,90), 1kg = 7,90",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Emmi Kaltbach \"Der Cremig-Würzige\"",
+      "price": 1.99,
+      "unit": "Schweizer Schnittkäse, cremig-würziger Geschmack, 56% Fett i. Tr., 100g, (1kg = 19,90), 1kg = 19,90",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Kerrygold extra",
+      "price": 2.19,
+      "unit": "Mischstreichfett, gesalzen oder ungesalzen, 400g Becher, (1kg = 5,48), 1kg = 5,48",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Landliebe Butter",
+      "price": 1.11,
+      "unit": "rahmig-frisch, 250g Stück, (1kg = 4,44), 1kg = 4,44",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": "butter",
+      "packPrice": 1.11
+    },
+    {
+      "store": "edeka",
+      "title": "Sanella",
+      "price": 1.49,
+      "unit": "Margarine, zum Backen oder Braten, 400g Becher, (1kg = 3,73), 1kg = 3,73",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Bertolli Olivenöl",
+      "price": 5.99,
+      "unit": "versch. Sorten, 500ml Flasche, (1l = 11,98), 1l = 11,98",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": "olivenoel",
+      "packPrice": 5.99
+    },
+    {
+      "store": "edeka",
+      "title": "Thomy Les Sauces",
+      "price": 0.99,
+      "unit": "versch. Sorten, 250ml Packung, (1l = 3,96), 1l = 3,96",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Papa Joe's Tomatenketchup oder Mayonnaise",
+      "price": 1.59,
+      "unit": "500ml Flasche, (1l = 3,18), 1l = 3,18",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Sonnen Bassermann Kartoffel mal anders",
+      "price": 1.89,
+      "unit": "Sauce für Kartoffelgratin, versch. Sorten, 405g Glas, (1kg = 4,67), 1kg = 4,67",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Hela Gewürzketchup",
+      "price": 2.29,
+      "unit": "versch. Sorten, 300ml Flasche, (1l = 7,63), 1l = 7,63",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "De Cecco Ital. Teigwaren oder Lasagna",
+      "price": 1.29,
+      "unit": "versch. Ausformungen, 500g Beutel/Packung, (1kg = 2,58), 1kg = 2,58",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Mutti Tomaten, Pizza-Sauce oder Tomatenkonzentrat",
+      "price": 1.49,
+      "unit": "versch. Sorten, 400g Dose/185/200g Tube, (1kg = 3,73/8,05/7,45), 1kg = 3,73/8,05/7,45",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Mutti Italienische Tomaten",
+      "price": 1.49,
+      "unit": "fein gehackt oder geschält, versch. Sorten, 300/400g Dose, (1kg = 5,73/3,73), 1kg = 5,73/3,73",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "GUT&GÜNSTIG Tomaten passiert",
+      "price": 0.65,
+      "unit": "500g Packung, (1kg = 1,30), 1kg = 1,30",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": "passierte_tomaten",
+      "packPrice": 0.65
+    },
+    {
+      "store": "edeka",
+      "title": "GUT&GÜNSTIG Antipasti",
+      "price": 1.99,
+      "unit": "versch. Sorten, z. B.: grüne Peperoni mit Frischkäse, getrocknete Tomaten mariniert mit Kräutern, 150/230g Schale, (1kg = 13,27/8,65), 1kg = 13,27/8,65",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Hilcona Pasta Originale",
+      "price": 3.49,
+      "unit": "versch. Sorten, aus dem Kühlregal, 250g Beutel, (1kg = 13,96), 1kg = 13,96",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "YouCook Fertiggerichte",
+      "price": 3.79,
+      "unit": "versch. Sorten, aus dem Kühlregal, z. B.: Indisches-Butter-Chicken 420g, High Protein Pasta Lemon Chicken 420g, Packung, (1kg = 9,02), 1kg = 9,02",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "GUT&GÜNSTIG Delikatess-Leberwurst mit Kalbfleisch",
+      "price": 0.99,
+      "unit": "fein, Spitzenqualität, 125g Stück, (1kg = 7,92), 1kg = 7,92",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "GUT&GÜNSTIG Delikatess-Bierschinken",
+      "price": 1.59,
+      "unit": "in Scheiben, 200g Packung, (1kg = 7,95), 1kg = 7,95",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Herta Schinken",
+      "price": 1.49,
+      "unit": "in Scheiben, versch. Sorten, 100g Packung, (1kg = 14,90), 1kg = 14,90",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Gutfried Junior Lieblings-Snack-Box",
+      "price": 2.09,
+      "unit": "mit Cracker, Geflügel-Fleischwurst und Schmelzkäse-Scheiben, 75g Packung, (1kg = 27,87), 1kg = 27,87",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Gutfried Geflügel-Fleischwurst",
+      "price": 2.76,
+      "unit": "versch. Sorten, 350/400g Stück, (1kg = 7,89/6,90), 1kg = 7,89/6,90",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "GUT&GÜNSTIG Hähnchenbrust",
+      "price": 1.39,
+      "unit": "Classic oder Jalapeño, gepökelt und gebacken, 80g Packung, (1kg = 17,38), 1kg = 17,38",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Coppenrath & Wiese Cafeteria oder Café Landhaus",
+      "price": 5.99,
+      "unit": "versch. Sorten, z. B.: Mandel-Bienenstich-Schnitte 530g, Erdbeer-Blechkuchen 600g, Packung, (1kg = 11,30/9,98), 1kg = 11,30/9,98",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Wagner Steinofen-Pizza oder Flammkuchen",
+      "price": 1.99,
+      "unit": "versch. Sorten, z. B.: Steinofen-Pizza Salami 320g, Flammkuchen Elsässer Art 300g, Packung, (1kg = 6,22/6,63), 1kg = 6,22/6,63",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Dr. Oetker La Mia Grande, La Mia Familia oder Pizza glutenfrei",
+      "price": 3.49,
+      "unit": "Pizza, versch. Sorten, z. B.: Salame Piccante 380g, Mozzarella glutenfrei 370g, Packung, (1kg = 9,18/9,43), 1kg = 9,18/9,43",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Schöller Multipack-Eis",
+      "price": 2.19,
+      "unit": "versch. Sorten, z. B.: Family-Box 478ml, Pirulo Watermelon 365ml, Packung, (1l = 4,58/6,00), 1l = 4,58/6,00",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "GUT&GÜNSTIG Gemüsetopf mit Fleischbällchen",
+      "price": 2.99,
+      "unit": "800g Dose, (1kg = 3,74), 1kg = 3,74",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Samyang Instant-Nudelgericht",
+      "price": 1.79,
+      "unit": "versch. Sorten, 140g Packung, (1kg = 13,77), 1kg = 13,77",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "GUT&GÜNSTIG Sauerkirschen",
+      "price": 3.69,
+      "unit": "entsteint und leicht gezuckert, 680g Glas, (1kg = 10,54), 1kg = 10,54",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "GUT&GÜNSTIG Pfirsiche",
+      "price": 1.99,
+      "unit": "halbe Frucht, gezuckert, 820g Dose, (1kg = 4,15), 1kg = 4,15",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "GUT&GÜNSTIG Sonnenmais",
+      "price": 0.89,
+      "unit": "zart, jung, natursüß, ohne Zuckerzusatz, 330g Dose, (1kg = 3,12), 1kg = 3,12",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "GUT&GÜNSTIG Junge Erbsen mit Möhrchen",
+      "price": 1.69,
+      "unit": "extra fein, 800g Dose, (1kg = 3,19), 1kg = 3,19",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "GUT&GÜNSTIG Kidneybohnen",
+      "price": 0.69,
+      "unit": "dunkelrot, 400g Dose, (1kg = 2,71), 1kg = 2,71",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Bonduelle Erbsen, Möhrchen oder Erbsen & Möhrchen",
+      "price": 1.79,
+      "unit": "versch. Sorten   Aktion : 12 Dosen 1kg = 3,57, 12,00, 400g Dose, (1kg = 6,39), 1kg = 6,39",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "EDEKA Herzstücke Speisekartoffeln",
+      "price": 1.79,
+      "unit": "Premium-Qualität, geschält, gekocht, 680g Glas, (1kg = 4,21), 1kg = 4,21",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "GUT&GÜNSTIG Champignons",
+      "price": 0.95,
+      "unit": "1.Wahl, in Scheiben, 280g Glas, (1kg = 5,59), 1kg = 5,59",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": "champignons",
+      "packPrice": 0.85
+    },
+    {
+      "store": "edeka",
+      "title": "Hengstenberg Mildessa",
+      "price": 1.49,
+      "unit": "mildes Weinsauerkraut, reich an natürlichem Vitamin C, 810g Dose, (1kg = 1,94), 1kg = 1,94",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Kühne Gurken",
+      "price": 1.79,
+      "unit": "versch. Sorten, 670g Glas, (1kg = 4,97), 1kg = 4,97",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "GUT&GÜNSTIG Delikatess-Gewürzgurken",
+      "price": 1.19,
+      "unit": "knackig-frisch, 670g Glas, (1kg = 3,31), 1kg = 3,31",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "GUT&GÜNSTIG Thunfisch-Filets",
+      "price": 1.29,
+      "unit": "versch. Sorten, 185/195g Dose, (1kg = 8,60/6,97/6,62), 1kg = 8,60/6,97/6,62",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": "thunfisch",
+      "packPrice": 0.99
+    },
+    {
+      "store": "edeka",
+      "title": "Appel Heringsfilets",
+      "price": 1.99,
+      "unit": "in versch. Cremes   Aktion : 10 Dosen 1kg = 6,00, 12,00, 200g Dose, (1kg = 9,95), 1kg = 9,95",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Knorr Salatkrönung",
+      "price": 0.79,
+      "unit": "versch. Sorten, 5er Packung",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "GUT&GÜNSTIG Röstzwiebeln",
+      "price": 1.19,
+      "unit": "150g Becher, (1kg = 7,93), 1kg = 7,93",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "GUT&GÜNSTIG Erdnusscreme",
+      "price": 1.7,
+      "unit": "creamy oder crunchy, mit amerikanischen Erdnüssen, 350g Glas, (1kg = 4,86), 1kg = 4,86",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": "erdnussmus",
+      "packPrice": 1.7
+    },
+    {
+      "store": "edeka",
+      "title": "Bahlsen Comtess-Kuchen",
+      "price": 1.79,
+      "unit": "versch. Sorten, 350g Packung, (1kg = 5,11), 1kg = 5,11",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "GUT&GÜNSTIG Korn an Korn",
+      "price": 1.19,
+      "unit": "Roggenvollkornmischbrot mit Natursauerteig, 500g Packung, (1kg = 2,38), 1kg = 2,38",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Karotten-Krüstchen",
+      "price": 0.29,
+      "unit": "saftiges Weizenbrötchen mit Ölsaaten, Haferflocken und Karotten, kernig-kräftig im Geschmack, Stück",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Kölln Blütenzarte oder kernige Haferflocken",
+      "price": 0.99,
+      "unit": "500g Packung, (1kg = 1,98), 1kg = 1,98",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Ferrero Kinderschokolade oder Yogurette",
+      "price": 1.11,
+      "unit": "100g Tafel, (1kg = 11,10), 1kg = 11,10",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "GUT&GÜNSTIG Crunchy Break Riegel",
+      "price": 1.99,
+      "unit": "Milch-Haselnuss-Riegel, 5x40g = 200g Beutel, (1kg = 9,95), 1kg = 9,95",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Mars Celebrations",
+      "price": 4.49,
+      "unit": "Pralinenmischung, 186g Packung, (1kg = 24,14), 1kg = 24,14",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Storck Toffifee 4+1 gratis",
+      "price": 4.99,
+      "unit": "Haselnuss in Caramel mit Nougatcreme und Schokolade, 625g Packung, (1kg = 7,98), 1kg = 7,98",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Lindt Excellence",
+      "price": 2.99,
+      "unit": "Schokolade, versch. Sorten, 100g Tafel, (1kg = 29,90), 1kg = 29,90",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Milka Pralinen oder Hauchzarte Herzen",
+      "price": 1.79,
+      "unit": "versch. Sorten, 110/130g Packung, (1kg = 16,27/13,77), 1kg = 16,27/13,77",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Storck Nimm 2 Lachgummi",
+      "price": 0.99,
+      "unit": "versch. Sorten, 200/225/250g Beutel, (1kg = 4,40/3,96/3,05), 1kg = 4,40/3,96/3,05",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Pringles",
+      "price": 1.49,
+      "unit": "Stapelchips, versch. Sorten, 185g Dose, (1kg = 8,05), 1kg = 8,05",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Ferrero Kinder-Schokobons",
+      "price": 2.99,
+      "unit": "Vollmilchschokoladeneier mit Milchfüllung und fein gehackten Haselnüssen, 200g Beutel, (1kg = 14,95), 1kg = 14,95",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Dallmayr Kaffeepads",
+      "price": 2.99,
+      "unit": "versch. Sorten   Aktion : 5 Beutel 1kg = 17,86/16,13, 10,00, 112/124g Beutel, (1kg = 26,70/24,11), 1kg = 26,70/24,11",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Nescafé Dolce Gusto oder Starbucks Dolce Gusto",
+      "price": 4.44,
+      "unit": "versch. Sorten, z. B.: Cafe-Au-Lait 160g, Latte Macchiato 183,2g, Packung, (1kg = 27,75/24,24), 1kg = 27,75/24,24",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Lavazza Kaffeekapseln oder -pads",
+      "price": 2.99,
+      "unit": "versch. Sorten, Kaffeekapseln für die meisten Nespresso*-Kaffeemaschinen, 55/56/58,7g Packung/125g Beutel, (1kg = 54,36/53,39/50,94/23,92), 1kg = 54,36/53,39/50,94/23,92",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Lavazza Caffè Crema oder Espresso",
+      "price": 14.99,
+      "unit": "ganze Bohne, ideal für Kaffeevollautomaten, versch. Sorten, 1kg Beutel",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Nescafé Gold",
+      "price": 7.49,
+      "unit": "löslicher Kaffee, versch. Sorten, 200g Glas, (1kg = 37,45), 1kg = 37,45",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Meßmer Tee",
+      "price": 1.49,
+      "unit": "versch. Sorten, Packung",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Nestlé Nesquik",
+      "price": 1.99,
+      "unit": "kakaohaltiges Getränkepulver, 280/350g Dose/Beutel, (1kg = 7,11/5,69), 1kg = 7,11/5,69",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Gerolsteiner Mineralwasser",
+      "price": 0.79,
+      "unit": "Classic, Medium oder Naturell, + 0,25 Pfand, 1,5l PET-DPG-Flasche, (1l = 0,53), 1l = 0,53",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Pepsi, Schwip Schwap oder Seven up",
+      "price": 0.89,
+      "unit": "versch. Sorten, + 0,25 Pfand, 1,25l PET-DPG-Flasche, (1l = 0,71), 1l = 0,71",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "EDEKA Herzstücke Ice Tea",
+      "price": 0.69,
+      "unit": "mit frisch aufgebrühtem Tee, versch. Sorten, + 0,25 Pfand, 1,5l PET-DPG-Flasche, (1l = 0,46), 1l = 0,46",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Volvic Touch oder Tee",
+      "price": 0.99,
+      "unit": "Mineralwasser mit Fruchtgeschmack oder Tee-Extrakt, versch. Sorten, + 0,25 Pfand, 1,5l PET-DPG-Flasche, (1l = 0,66), 1l = 0,66",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Booster Energy-Drink",
+      "price": 0.33,
+      "unit": "taurin- und koffeinhaltig, versch. Sorten, + 0,25 Pfand, 0,33l/0,5l DPG-Dose, (1l = 1,00/0,66), 1l = 1,00/0,66",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Powerade",
+      "price": 0.99,
+      "unit": "isotonisches Sportgetränk, versch. Sorten, + 0,25 Pfand, 0,5l PET-DPG-Flasche, (1l = 1,98), 1l = 1,98",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Volvic Juicy oder Hohes C Vitamin Water",
+      "price": 1.39,
+      "unit": "versch. Sorten, + 0,25 Pfand, 0,75/1l PET-DPG-Flasche, (1l = 1,85/1,39), 1l = 1,85/1,39",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Adelholzener Active O2",
+      "price": 0.99,
+      "unit": "versch. Sorten, + 0,25 Pfand, 0,75l PET-DPG-Flasche, (1l = 1,32), 1l = 1,32",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Spaten Münchner hell",
+      "price": 13.99,
+      "unit": "versch. Sorten, + 3,10 Pfand \"Mich gibt's auch alkoholfrei\", 20x0,5l Flasche, (1l = 1,40), 1l = 1,40",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Karlsberg Mixery",
+      "price": 1.29,
+      "unit": "versch. Sorten, + 0,25 Pfand, 0,5l DPG-Dose, (1l = 2,58), 1l = 2,58",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Corona Extra",
+      "price": 21.49,
+      "unit": "mexikanisches Bier, + 3,10 Pfand \"Mich gibt's auch alkoholfrei\", 20x0,355l Flasche, (1l = 3,03), 1l = 3,03",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Heineken Bier oder San Miguel",
+      "price": 4.99,
+      "unit": "versch. Sorten, + 0,48 Pfand \"Mich gibt's auch alkoholfrei\", 6x0,33l Flasche, (1l = 2,52), 1l = 2,52",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Rheinhessen III Freunde Weine",
+      "price": 7.99,
+      "unit": "versch. Sorten, 0,75l Flasche, (1l = 10,65), 1l = 10,65",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Frankreich Grand Sud Weine",
+      "price": 2.99,
+      "unit": "versch. Sorten \"Mich gibt's auch alkoholfrei\", 1l Flasche",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Jules Mumm Sekt",
+      "price": 3.79,
+      "unit": "versch. Sorten, 0,75l Flasche, (1l = 5,05), 1l = 5,05",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Italien Giolano Prosecco",
+      "price": 3.99,
+      "unit": "Vino Frizzante, 0,75l Flasche, (1l = 5,32), 1l = 5,32",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Bombay Gin",
+      "price": 16.99,
+      "unit": "versch. Sorten, 0,7l Flasche, (1l = 24,27), 1l = 24,27",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Captain Morgan",
+      "price": 9.99,
+      "unit": "versch. Sorten \"Mich gibt's auch alkoholfrei\", 0,7l Flasche, (1l = 14,27), 1l = 14,27",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Kilbeggan",
+      "price": 15.99,
+      "unit": "Irish Whiskey oder Berry Selection, 0,7l Flasche, (1l = 22,84), 1l = 22,84",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Ballantine's",
+      "price": 10.99,
+      "unit": "Scotch Whisky, 40% Vol., 0,7l Flasche, (1l = 15,70), 1l = 15,70",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Nestlé PURINA ONE",
+      "price": 2.99,
+      "unit": "Alleinfuttermittel für ausgewachsene Katzen, versch. Sorten, 750g Beutel, (1kg = 3,99), 1kg = 3,99",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Caneo Hundenahrung",
+      "price": 2.49,
+      "unit": "Alleinfuttermittel für ausgewachsene Hunde, versch. Sorten   Aktion : 6 Dosen 1kg = 1,88, 9,00, 800g Dose, (1kg = 3,11), 1kg = 3,11",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Henkel Spee oder Weißer Riese",
+      "price": 3.59,
+      "unit": "Vollwaschmittel, versch. Varianten, 16/17/20 Waschanwendungen, (1WA = 0,22/0,21/0,18), 1WA = 0,22/0,21/0,18",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Henkel Pril",
+      "price": 1.39,
+      "unit": "Geschirrspülmittel, versch. Varianten, 120/450/675ml Flasche, (1l = 11,59/3,09/2,06), 1l = 11,59/3,09/2,06",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Domestos Power 5",
+      "price": 1.49,
+      "unit": "WC-Duftspülstein mit 5 Kugeln, versch. Varianten, 48/50/53g Stück, (1kg = 31,04/29,80/28,12), 1kg = 31,04/29,80/28,12",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Henkel WC-Frisch Duftspüler oder Kraft Aktiv WC-Reiniger-Gel",
+      "price": 1.39,
+      "unit": "versch. Varianten, 50g Packung/750ml Flasche, (1kg/l = 27,80/1,85), 1kg/l = 27,80/1,85",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Carefree Slipeinlagen",
+      "price": 2.29,
+      "unit": "versch. Varianten und Füllmengen, Packung",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Garnier Wahre Schätze",
+      "price": 1.99,
+      "unit": "Shampoo oder Spülung, versch. Varianten, 250/200ml Flasche, (1l = 7,96/9,95), 1l = 7,96/9,95",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Elmex oder Meridol",
+      "price": 6.99,
+      "unit": "Zahncreme, 2x75ml Packung, (1l = 46,60), 1l = 46,60",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Listerine Mundspülung",
+      "price": 3.99,
+      "unit": "Smart Kidz, Zahnsteinschutz oder Total Care, 500ml Flasche, (1l = 7,98), 1l = 7,98",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Veet Kaltwachsstreifen Beine",
+      "price": 6.49,
+      "unit": "sensible, 20er Packung",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Rexona Nonstop Protection Deospray",
+      "price": 3.25,
+      "unit": "Anti-Transpirant, versch. Varianten, 150ml Flasche, (1l = 21,67), 1l = 21,67",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Fa Duschgel",
+      "price": 1.19,
+      "unit": "versch. Sorten, 250ml Flasche, (1l = 4,76), 1l = 4,76",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "GUT&GÜNSTIG Topf-Reiniger",
+      "price": 0.65,
+      "unit": "für beste Reinigungsergebnisse, extra stark bei Schmutz und Eingebranntem, 6 Stück Packung",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Bärenglas",
+      "price": 4.99,
+      "unit": "versch. Farben, Stück",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Mepal Ess-Schale \"Loom\"",
+      "price": 9.99,
+      "unit": "einhändig und einfach zu halten, Farbe: Nordic Sage, 750ml Fassungsvermögen, bleibt außen kühl und ist innen heiß, innere Glasschüssel auch für die Nutzung im Ofen und Gefrierschrank geeignet, inklusive passendem Mikrowellendeckel, Stück",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Collectors Kit",
+      "price": 1.99,
+      "unit": "Love Yourself oder Santa, Stück",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "GUT&GÜNSTIG Frischhaltefolie",
+      "price": 0.99,
+      "unit": "aromaschützend, selbsthaftend, fett- und wasserdicht, 75m Rolle",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "GUT&GÜNSTIG Kaffeefilter",
+      "price": 0.95,
+      "unit": "naturbraun, Größe 4, 120er Packung",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Kohlrouladen",
+      "price": 1.39,
+      "unit": "in Sauce gegart, für die schnelle Küche, nach Hausfrauen-Art mit Schweinehackfleisch gefüllt, 100g, (1kg = 13,90), 1kg = 13,90",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Bauerngut Schinkenmett",
+      "price": 6.99,
+      "unit": "vom Schwein, besonders mager und vielseitig verwendbar, 1kg",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Bauerngut Vordereisbein",
+      "price": 2.99,
+      "unit": "vom Schwein, bestens zum Kochen oder Schmoren geeignet, auf Wunsch auch mild gepökelt erhältlich, 1kg",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Bauerngut Rinder-Beinscheibe",
+      "price": 9.99,
+      "unit": "das besondere Suppenfleisch mit dem Markknochen, für eine kräftige Bouillon, 1kg",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Bauerngut Schweinefleischpfanne",
+      "price": 8.88,
+      "unit": "küchenfertig vorbereitet, versch. Sorten, z. B: Gyros Art, je nach Verfügbarkeit im Markt, 1kg",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Bauerngut Fleischspieße",
+      "price": 0.99,
+      "unit": "vom Schwein, aus dem mageren Schinken geschnitten, natur oder mariniert, 100g, (1kg = 9,90), 1kg = 9,90",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Duroc Schweinefilet",
+      "price": 1.79,
+      "unit": "das zarte Stück vom Schwein, 100g, (1kg = 17,90), 1kg = 17,90",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Bauerngut Tafelspitz",
+      "price": 1.59,
+      "unit": "vom deutschen Jungbullen, gereifte Markenqualität, das besondere Kochfleisch, 100g, (1kg = 15,90), 1kg = 15,90",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Bauerngut Rinderleber",
+      "price": 4.99,
+      "unit": "in dünnen Scheiben, ideal zum Kurzbraten, mit frischen Zwiebelringen und Apfelscheiben, 1kg",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Irish Angus Steakhüfte",
+      "price": 2.79,
+      "unit": "die besondere Spezialität, im Stück oder in Scheiben, 100g, (1kg = 27,90), 1kg = 27,90",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Charoluxe Französisches Rumpsteak oder Roastbeef",
+      "price": 2.22,
+      "unit": "zart gereift, ein besonderer Hochgenuss, 100g, (1kg = 22,20), 1kg = 22,20",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "GUT&GÜNSTIG Frische Bratwurst",
+      "price": 2.49,
+      "unit": "ideal für die Zubereitung in der Pfanne oder auf dem Grill, SB-verpackt, 400g Packung, (1kg = 6,23), 1kg = 6,23",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "GUT&GÜNSTIG Stielkotelett",
+      "price": 4.29,
+      "unit": "der Klassiker für die Pfanne, SB-verpackt, 700g Packung, (1kg = 6,13), 1kg = 6,13",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Premios Lammlachs mariniert",
+      "price": 7.85,
+      "unit": "fertig mariniert, eine besonders köstliche Spezialität, SB-verpackt, z. B.: 192g Packung, (1kg = 40,90), 1kg = 40,90",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Gut Hesterberg Rindfleischsülze",
+      "price": 2.59,
+      "unit": "herzhaft gewürzt und besonders mager, 100g, (1kg = 25,90), 1kg = 25,90",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Mago Puten-Würstchen",
+      "price": 1.39,
+      "unit": "knackig im Biss und mild abgeschmeckt, 100g, (1kg = 13,90), 1kg = 13,90",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Gut Hesterberg Saftbierschinken",
+      "price": 1.99,
+      "unit": "Bierschinken mit Kapern oder Geflügelbierschinken, der saftige Aufschnitt aus der Region, 100g, (1kg = 19,90), 1kg = 19,90",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Bille Die herzhafte Salami",
+      "price": 1.99,
+      "unit": "traditionell über Buchenholz geräuchert, mit einem Herz aus Cervelatwurst in der Mitte, 100g, (1kg = 19,90), 1kg = 19,90",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Gut Hesterberg Kochschinken",
+      "price": 2.49,
+      "unit": "Scheibe für Scheibe ein Genuss, 100g, (1kg = 24,90), 1kg = 24,90",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Hähnchen-Hackbraten",
+      "price": 2.29,
+      "unit": "saftig, würzig und vielseitig - ideal als warme Mahlzeit, für eine Brotzeit oder den schnellen Genuss zwischendurch, 100g, (1kg = 22,90), 1kg = 22,90",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Hühnernudeltopf",
+      "price": 4.49,
+      "unit": "schmeckt wie hausgemacht, SB-verpackt, 900g Packung, (1kg = 4,99), 1kg = 4,99",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Heidjer Leberwurst",
+      "price": 2.49,
+      "unit": "einzigartiger, herzhafter, aromatischer Geschmack, 125g Stück, (1kg = 19,92), 1kg = 19,92",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Bauerngut Budapester Salat",
+      "price": 1.79,
+      "unit": "ein pikanter Fleischsalat, verfeinert mit Paprika und eingelegten Gurken, 200g Becher, (1kg = 8,95), 1kg = 8,95",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Langewiesche Butterschinken",
+      "price": 2.98,
+      "unit": "aus der Oberschale, mit Butter verfeinert, SB-verpackt, 120g Packung, (1kg = 24,83), 1kg = 24,83",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Bauerngut Berliner Knacker",
+      "price": 1.49,
+      "unit": "mit Kümmel verfeinert und über Buchenholz geräuchert, 100g, (1kg = 14,90), 1kg = 14,90",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Lachsrauchfleisch",
+      "price": 2.49,
+      "unit": "im Buchenrauch goldgelb geräuchert, der extra magere Schinkengenuss, 100g, (1kg = 24,90), 1kg = 24,90",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "GUT&GÜNSTIG Hähnchen-Innenfilet",
+      "price": 4.99,
+      "unit": "in Streifen geschnitten, perfekt zu einem frischen Salat, SB-verpackt, 400g Packung, (1kg = 12,48), 1kg = 12,48",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Wiesenhof Pfannen-Genuss",
+      "price": 3.99,
+      "unit": "versch. Sorten, ideal für die schnelle Küche, SB-verpackt, z. B.: 403g Packung, (1kg = 9,90), 1kg = 9,90",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "EDEKA Bio Hähnchenflügel",
+      "price": 4.99,
+      "unit": "natur, beste Bio-Qualität, SB-verpackt, z. B.: 561g Packung, (1kg = 8,90), 1kg = 8,90",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Freiland Entenbrustfilet mit Haut",
+      "price": 24.9,
+      "unit": "ausgezeichnet in Qualität und Geschmack, SB-verpackt, z. B.: 1kg Packung",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Bauerngut Hähnchenschenkel",
+      "price": 4.44,
+      "unit": "mit Rückenstück, natur oder gewürzt, zart und fleischig, ideal für die Zubereitung im Backofen, 1kg",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Bauerngut Hähnchen-Frischkäse-Röllchen",
+      "price": 1.49,
+      "unit": "der besondere Genuss für die Zubereitung auf dem Grill oder im Backofen, 100g, (1kg = 14,90), 1kg = 14,90",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "MSC Sylter Miesmuscheln",
+      "price": 3.49,
+      "unit": "geputzt, Sortierung \"extra\", 1kg Packung",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Aus der norwegischen See Kabeljaufilet",
+      "price": 2.99,
+      "unit": "dezent salziger Geschmack, ideal zum Braten und Dünsten, 100g, (1kg = 29,90), 1kg = 29,90",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Emder MSC-Brathering",
+      "price": 1.79,
+      "unit": "mildsauer eingelegt, ohne Gräten, 100g, (1kg = 17,90), 1kg = 17,90",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Stremellachs",
+      "price": 3.99,
+      "unit": "versch. Sorten, 100g, (1kg = 39,90), 1kg = 39,90",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Riesengarnelen Dillcreme",
+      "price": 2.99,
+      "unit": "mit einer zarten Dillnote und Joghurt verfeinert, 100g, (1kg = 29,90), 1kg = 29,90",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Räucherlachs-Bagel",
+      "price": 3.5,
+      "unit": "mit Frischkäse, Eierscheiben und Salat, Stück",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Lachsfilet gebraten",
+      "price": 13.5,
+      "unit": "mit Beilage und Sauce nach Wahl, Portion",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Bärenmarke Alpenfrische Schlagsahne",
+      "price": 2.79,
+      "unit": "besonders schlagfähig, mindestens 31% Fett, 500g Packung, (1kg = 5,58), 1kg = 5,58",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "EDEKA Bio Schmand",
+      "price": 0.89,
+      "unit": "24% Fett, 150g Becher, (1kg = 5,93), 1kg = 5,93",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Milram Buttermilch- oder Kefir-Drink",
+      "price": 1.29,
+      "unit": "erfrischend fruchtig, versch. Sorten, 500/750g Packung, (1kg = 2,58/1,72), 1kg = 2,58/1,72",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "7gün Ayran",
+      "price": 1.69,
+      "unit": "Erfrischungsgetränk türkischer Art, 1l Packung",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Weihenstephan Haltbare Milch",
+      "price": 1.49,
+      "unit": "1,5/3,5% Fett   Aktion : 12 Packungen 1l = 1,00, 12,00, 1l Packung",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Lobetaler Bio-Quarkspeise",
+      "price": 1.11,
+      "unit": "mit Joghurt und Sahne, versch. Sorten, 200g Becher, (1kg = 5,55), 1kg = 5,55",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "GUT&GÜNSTIG Ziegenfrischkäsepyramide",
+      "price": 1.99,
+      "unit": "45% Fett i. Tr., 150g Packung, (1kg = 13,27), 1kg = 13,27",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "EDEKA Bio Käseaufschnitt, Bergkäse oder Tilsiter",
+      "price": 2.59,
+      "unit": "in Scheiben, 45% Fett i. Tr., 150g Packung, (1kg = 17,27), 1kg = 17,27",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Winzerkäse Val de Weiss",
+      "price": 1.99,
+      "unit": "franz. Weichkäse, 50% Fett i. Tr., 100g, (1kg = 19,90), 1kg = 19,90",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Selection Tortenbrie",
+      "price": 0.99,
+      "unit": "frz. Weichkäse, mild, 50% Fett i. Tr., 100g, (1kg = 9,90), 1kg = 9,90",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Wildblumenkäse",
+      "price": 2.59,
+      "unit": "dt. Schnittkäse, mit Blütenmischung auf der Rinde, 50% Fett i. Tr., 100g, (1kg = 25,90), 1kg = 25,90",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Schafkäse mit Trüffel",
+      "price": 3.49,
+      "unit": "span. Hartkäse, aromatischer Geschmack, 50% Fett i. Tr., 100g, (1kg = 34,90), 1kg = 34,90",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Gärtnertopf",
+      "price": 1.79,
+      "unit": "Frischkäsezubereitung mit Paprika, Dill, Petersilie und Schnittlauch, Doppelrahmstufe, 100g, (1kg = 17,90), 1kg = 17,90",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Bärlauch-Frischkäse",
+      "price": 1.79,
+      "unit": "Frischkäsezubereitung mit Lauchzwiebeln und Bärlauchwürzung, Doppelrahmstufe, 100g, (1kg = 17,90), 1kg = 17,90",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Bio-Wilder-Bernd",
+      "price": 5.49,
+      "unit": "dt. Schnittkäse, aromatischer Geschmack, 50% Fett i. Tr., aus der Käse-Frischpacktheke, 150g Packung, (1kg = 36,60), 1kg = 36,60",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Moser Roter Knopf",
+      "price": 1.29,
+      "unit": "Schweizer Weichkäse, 55% Fett i. Tr., 35g Stück, (1kg = 36,86), 1kg = 36,86",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Milram  Burlander herzhaft",
+      "price": 2.79,
+      "unit": "dt. Schnittkäse, aromatischer Geschmack, 48% Fett i. Tr., aus der Käse-Frischpacktheke, 150g Packung, (1kg = 18,60), 1kg = 18,60",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "EDEKA Bio Sauerrahm-Butter",
+      "price": 2.69,
+      "unit": "250g Stück, (1kg = 10,76), 1kg = 10,76",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": "butter",
+      "packPrice": 2.69
+    },
+    {
+      "store": "edeka",
+      "title": "Oro di Parma Tomatenmark",
+      "price": 1.99,
+      "unit": "versch. Sorten, 200g Tube, (1kg = 9,95), 1kg = 9,95",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "EDEKA Bio Lachsfilet",
+      "price": 5.79,
+      "unit": "200g Packung, (1kg = 28,95), 1kg = 28,95",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Eberswalder Jagdwurst",
+      "price": 2.49,
+      "unit": "200g Stück, (1kg = 12,45), 1kg = 12,45",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Eberswalder Frischwurst-Aufschnitt",
+      "price": 1.39,
+      "unit": "Bierschinken, Leberkäse, Jagdwurst, Filetrotwurst oder Paprikalyoner, 100/150g Packung, (1kg = 13,90/9,27), 1kg = 13,90/9,27",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Eberswalder Würstchen",
+      "price": 1.99,
+      "unit": "in zarter Eigenhaut, 6 Stück = 200g Packung, (1kg = 9,95), 1kg = 9,95",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Eberswalder Rindswürstchen",
+      "price": 3.49,
+      "unit": "200g Packung, (1kg = 17,45), 1kg = 17,45",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Mago Kalbfleischwürstchen",
+      "price": 2.79,
+      "unit": "200g Packung, (1kg = 13,95), 1kg = 13,95",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "EDEKA Bio Delikatess-Leberwurst",
+      "price": 1.69,
+      "unit": "fein, 125g Becher, (1kg = 13,52), 1kg = 13,52",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Diamond Mangowürfel",
+      "price": 4.49,
+      "unit": "1kg Beutel",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "EDEKA Herzstücke Wirsing",
+      "price": 1.19,
+      "unit": "grob gehackt, mit Zwiebeln fein gewürzt, servierfertig zubereitet, 400g Packung, (1kg = 2,98), 1kg = 2,98",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "EDEKA Herzstücke Mini-Donuts",
+      "price": 2.39,
+      "unit": "9 Stück, 3 Sorten, 273g Packung, (1kg = 8,75), 1kg = 8,75",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "EDEKA Herzstücke Chicken-Tenders",
+      "price": 3.79,
+      "unit": "mit Dip, versch. Sorten, 400g Packung, (1kg = 9,48), 1kg = 9,48",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "EDEKA Herzstücke Elsässer Flammkuchen",
+      "price": 2.29,
+      "unit": "hergestellt in Frankreich, 270g Packung, (1kg = 8,48), 1kg = 8,48",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "EDEKA Herzstücke Ice-Bites",
+      "price": 3.29,
+      "unit": "versch. Sorten, 12x17ml = 204ml Becher, (1l = 16,13), 1l = 16,13",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Spreewaldhof Fix & Fertig Sauerkraut",
+      "price": 1.11,
+      "unit": "fertig zubereitet, versch. Sorten, 400g Beutel, (1kg = 2,78), 1kg = 2,78",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Spreewaldhof Kürbis",
+      "price": 1.69,
+      "unit": "in Stücken, süß-sauer, 670g Glas, (1kg = 4,23), 1kg = 4,23",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "EDEKA Bio Dinkelvollkornmehl",
+      "price": 1.25,
+      "unit": "ideal für vollwertige Brote, 1kg Packung",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Pågen Gifflar Hefe-Röllchen",
+      "price": 1.79,
+      "unit": "mit cremiger Füllung, versch. Sorten, 260g Beutel, (1kg = 6,88), 1kg = 6,88",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Dan Cake Mini Cakes",
+      "price": 1.49,
+      "unit": "versch. Sorten, 4x60g=240g Packung, (1kg = 6,21), 1kg = 6,21",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Smashed Bagels",
+      "price": 1.69,
+      "unit": "vorgeschnitten, versch. Sorten, 4x75g = 300g Beutel, (1kg = 5,63), 1kg = 5,63",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "EDEKA Bio Brotkorb",
+      "price": 2.99,
+      "unit": "5 Sorten Brot in Portionen, 10x50g = 500g Packung, (1kg = 5,98), 1kg = 5,98",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "EDEKA Herzstücke Eiweiß-Held",
+      "price": 1.69,
+      "unit": "Brot in Scheiben, 300g Beutel, (1kg = 5,63), 1kg = 5,63",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Harry Anno 1688",
+      "price": 1.69,
+      "unit": "Dinkel-, Dinkel Saaten oder Weizenvollkornbrot, 400/450/500g Beutel, (1kg = 4,23/3,76/3,38), 1kg = 4,23/3,76/3,38",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Doppelsemmel",
+      "price": 0.29,
+      "unit": "leckere Weizenbrötchen im Doppelpack, mit feiner Krume und knuspriger Kruste, Stück",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Vollkornbrot",
+      "price": 2.29,
+      "unit": "mit klassischem Natursauerteig, kräftig und herzhaft körnig, 1kg Laib",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": "vk_brot",
+      "packPrice": 1.15
+    },
+    {
+      "store": "edeka",
+      "title": "GUT&GÜNSTIG Süßer Knoten",
+      "price": 0.45,
+      "unit": "lockerer Hefeteig-Knoten aus hochwertigem Butter-Hefeteig, Stück",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Dinkelschiffchen",
+      "price": 1.11,
+      "unit": "vegetarischer Dinkelsnack mit fein würziger Sour Cream und Frühlingszwiebeln, Stück",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "GUT&GÜNSTIG Geflügelrolle \"Premium\"",
+      "price": 1.11,
+      "unit": "lockerer Plunderteig, gefüllt mit einer saftigen Hähnchenwurst, Stück",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Börekstick",
+      "price": 0.99,
+      "unit": "versch. Sorten, knuspriger Börekteig gefüllt mit orientalischem Shawarma Fleisch oder würziger Asia-Gemüse-Füllung, Stück",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Schäfer's Walnuss-Kruste",
+      "price": 3.95,
+      "unit": "aromatisches Weizenmischbrot mit Walnüssen und Sonnenblumenkernen, 500g Laib, (1kg = 7,90), 1kg = 7,90",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "TUC Brot-Chips oder Mini-Cracker",
+      "price": 1.49,
+      "unit": "versch. Sorten, 120/150g Beutel, (1kg = 12,42/9,93), 1kg = 12,42/9,93",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Schäfer's Cubes",
+      "price": 2.75,
+      "unit": "Quark-Hefeteig mit Streuseln und versch. Füllungen   Aktion : 2 Stück , 4,00, Stück",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Guten-Morgen-Frühstück*",
+      "price": 5.9,
+      "unit": "2 Brötchen nach Wahl, Aufschnittauswahl, süßer Aufstrich, 1 Ei und 1 Heißgetränk (M), *nur in teilnehmenden Märkten, je Frühstück",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Schäfer's 5er-Tüte Weizenbrötchen",
+      "price": 1.75,
+      "unit": "der Klassiker mit unverwechselbarem Aroma - in der 5er-Tüte besonders günstig, Einzelpreis ab 0,39, Aktionstüte",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Kalle oder Karla Klops",
+      "price": 2.6,
+      "unit": "Schäfer's Bestes wahlweise mit einer würzigen Frikadelle oder Geflügelfrikadelle, Salat & Aufstrich, Stück",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Vitrex Mineralwasser",
+      "price": 0.79,
+      "unit": "versch. Sorten, + 0,25 Pfand/Flasche   Aktion : 6 Flaschen 1l = 0,33, 2,99, 1,5l PET-DPG-Flasche, (1l = 0,53), 1l = 0,53",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Mio Mio Mate",
+      "price": 0.79,
+      "unit": "versch. Sorten, koffeinhaltige Erfrischungsgetränke, + 0,25 Pfand, 0,33l DPG-Dose, (1l = 2,39), 1l = 2,39",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Rheinhessen Rheinberg Kellerei Weine",
+      "price": 4.49,
+      "unit": "Portugieser Weißherbst, Scheurebe, Dornfelder oder Riesling, 1l Flasche",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Rheinhessen/Pfalz Dornfelder Rosé",
+      "price": 4.49,
+      "unit": "halbtrocken, fruchtig und frisch, 0,75l Flasche, (1l = 5,99), 1l = 5,99",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Rheinhessen Grauburgunder",
+      "price": 3.99,
+      "unit": "Weißwein, trocken, 0,75l Flasche, (1l = 5,99), 1l = 5,99",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Baden 1112 Weine",
+      "price": 3.99,
+      "unit": "versch. Sorten, 0,75l Flasche, (1l = 5,32), 1l = 5,32",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Frankreich Blanchet Weine",
+      "price": 2.99,
+      "unit": "versch. Sorten, 0,75l Flasche, (1l = 3,99), 1l = 3,99",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Martini",
+      "price": 7.99,
+      "unit": "versch. Sorten \"Mich gibt's auch alkoholfrei\", 0,75l Flasche, (1l = 10,65), 1l = 10,65",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Rotkäppchen Sekt",
+      "price": 5.49,
+      "unit": "Flaschengärung, versch. Sorten, 0,75l Flasche, (1l = 7,32), 1l = 7,32",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Rheinhessen Riesling oder Müller-Thurgau",
+      "price": 1.79,
+      "unit": "Weißwein, 0,25l Flasche, (1l = 7,16), 1l = 7,16",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Tambovskaya Silver oder Zoladkowa de Luxe",
+      "price": 8.49,
+      "unit": "0,7l Flasche, (1l = 12,13), 1l = 12,13",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Malteserkreuz",
+      "price": 10.99,
+      "unit": "Aquavit, 40% Vol., 0,7l Flasche, (1l = 15,70), 1l = 15,70",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Campari",
+      "price": 11.99,
+      "unit": "Aperitiv, 25% Vol., 0,7l Flasche, (1l = 17,13), 1l = 17,13",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Berliner Luft Glitter Nights, Eisbonbon oder Glitter Erdbeere",
+      "price": 9.99,
+      "unit": "18% Vol., 0,7l Flasche, (1l = 14,27), 1l = 14,27",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Vitakraft Poésie",
+      "price": 0.59,
+      "unit": "Alleinfuttermittel für ausgewachsene Katzen, versch. Sorten, 85g Schale/Beutel, (1kg = 6,94), 1kg = 6,94",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "GUT&GÜNSTIG Hello my cat Zarte Häppchen",
+      "price": 2.55,
+      "unit": "Alleinfuttermittel für ausgewachsene Katzen, versch. Sorten, 12x100g = 1200g Packung, (1kg = 2,13), 1kg = 2,13",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Good Boy Hundesnacks",
+      "price": 1.79,
+      "unit": "Ergänzungsfuttermittel für ausgewachsene Hunde, versch. Sorten, 70/130g Beutel, (1kg = 25,57/13,77), 1kg = 25,57/13,77",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "GUT&GÜNSTIG Scheuermilch",
+      "price": 0.89,
+      "unit": "mit Zitrus-Kraft, oberflächenschonend, 750ml Flasche, (1l = 1,19), 1l = 1,19",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "GUT&GÜNSTIG Multi-Power-Fettlöser",
+      "price": 1.65,
+      "unit": "entfernt effektiv Fett, Öl & Eingebranntes, 1l Sprühflasche",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Curafit Plus Pferdebalsam",
+      "price": 3.99,
+      "unit": "200ml Tube, (1l = 19,95), 1l = 19,95",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Curafit Plus Laktase 12000",
+      "price": 5.69,
+      "unit": "40 Stück Packung",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Curavit Plus Husten-Brausetabletten",
+      "price": 2.79,
+      "unit": "Medizinprodukt, bei Husten und Heiserkeit, zur Linderung von Reizhusten und zur Beruhigung der Schleimhaut, wohlschmeckend heiß und kalt, rein pflanzlicher Wirkstoff, 20 Stück Packung",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Curafit Plus Meerwasser Nasenspray",
+      "price": 1.79,
+      "unit": "20ml Packung, (1l = 89,50), 1l = 89,50",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Curafit Plus Melissengeist EN",
+      "price": 6.99,
+      "unit": "500ml Flasche, (1l = 13,98), 1l = 13,98",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Curafit Plus Magnesium 250mg",
+      "price": 2.45,
+      "unit": "150 Stück Packung",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Curafit Plus Vitamin D3 Perlen",
+      "price": 2.69,
+      "unit": "40 Stück Packung",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "EDEKA elkos VIVEDE Vitamin Brausetabletten",
+      "price": 0.65,
+      "unit": "Nahrungsergänzungsmittel, versch. Sorten, 17 Brausetabletten, Rolle",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Curafit Plus Wärmepflaster",
+      "price": 3.79,
+      "unit": "bei Muskel- und Gelenkschmerzen, selbstwärmende Pflaster, entspannend und tiefenwirksam, besonders weich und hautfreundlich, 2 Stück Packung",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Easymaxx Akku-Handwärmer",
+      "price": 9.99,
+      "unit": "2 wiederaufladbare Handwärmer mit 3 Temperaturstufen bis max. 49?C, für wohlig warme Hände, bis zu 4,5 Stunden Wärme pro Ladung, inkl. USB-C-Ladekabel (Ladedauer 2 Std.), 2 Stück Packung",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Vitalmaxx Massagesitz",
+      "price": 29.99,
+      "unit": "Massagematte mit Wärmefunktion, 5 Vibrations-Massagemotoren für eine Ganzkörpermassage, 3 Massagezonen für Nacken, Rücken und Beine, 2 Intensitätsstufen individuell einstellbar, mit Fernbedienung, 12 Volt, Stück",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Pick'em Zahnstocher",
+      "price": 3.19,
+      "unit": "aromatisiert, mit Vitamin D3, B1 und B6, versch. Geschmacksrichtungen, 20 Stück Packung",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Rekord Kaminbriketts oder Folien-Kaminbriketts",
+      "price": 4.79,
+      "unit": "hoher Heizwert, wenig Asche, langanhaltende Glut, für Kaminofen, Kachelofen, Festbrennstoffkessel, 10kg Tüte, (1kg = 0,48), 1kg = 0,48",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Woodys Anfeuerholz",
+      "price": 2.49,
+      "unit": "aus Kiefernholz, sehr leicht entzündlich, ofenfertig für alle Feuerstellen, sauber und umweltfreundlich, 5dm? Sack, (1l = 0,50), 1l = 0,50",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Peter Brand Kamin-Scheitholz",
+      "price": 3.99,
+      "unit": "25cm, Laubholz-Mix, PEFC-zertifiziert, Produziert in Deutschland aus nachhaltiger Forstwirtschaft, 12,5dm? Sack, (1l = 0,32), 1l = 0,32",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "GUT&GÜNSTIG Öko-Kamin- & -Grillanzünder",
+      "price": 6.99,
+      "unit": "aus reiner Holzwolle und Wachs, 1kg Packung",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Bauerngut Kalbsschnitzel",
+      "price": 2.79,
+      "unit": "nur aus der zarten Oberschale geschnitten, besonders hochwertiges und leckeres Fleisch, 100g, (1kg = 27,90), 1kg = 27,90",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Frankreich Forelle",
+      "price": 1.11,
+      "unit": "auch mariniert erhältlich, küchenfertig ausgenommen, ideal zum Braten, Dünsten und Grillen, 100g, (1kg = 11,10), 1kg = 11,10",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Walnussbaguette",
+      "price": 1.39,
+      "unit": "knuspriges Weizenbaguette mit knackigen Walnüssen und lockerer Krume, 330g Laib, (1kg = 4,21), 1kg = 4,21",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Deutschland, EDEKA Herzstücke Mini-Romanasalat",
+      "price": 0.66,
+      "unit": "Kl. I, 2er Packung",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Ehrmann Almighurt",
+      "price": 1.11,
+      "unit": "Joghurt, versch. Sorten und Fettstufen, + 0,15 Pfand, 470/500g Glas, (1kg = 2,36/2,22), 1kg = 2,36/2,22",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Meica Deutschländer",
+      "price": 3.49,
+      "unit": "Würstchen bester deutscher Art, versch. Sorten, 660/670g Glas, (1kg = 10,58/9,69), 1kg = 10,58/9,69",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Ferrero Kinder Cards",
+      "price": 1.99,
+      "unit": "Waffel-Spezialität, mit Magermilch- und Kakaocreme, 5 Stück = 128g Packung, (1kg = 15,55), 1kg = 15,55",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Havana Club, Pitu Caipirinha oder Gorbatschow Dosen",
+      "price": 1.99,
+      "unit": "10% Vol., versch. Sorten, + 0,25 Pfand, 0,33l DPG-Dose, (1l = 6,03), 1l = 6,03",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Hakle Traumweich",
+      "price": 2.99,
+      "unit": "Toilettenpapier, 4-lagig, 8x130 Blatt Packung",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "EDEKA Bio Lachsfilet",
+      "price": 3.99,
+      "unit": "aus Norwegen, praktisch grätenfrei, 200g Packung, (1kg = 19,95), 1kg = 19,95",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": "lachs_tk",
+      "packPrice": 9.98
+    },
+    {
+      "store": "edeka",
+      "title": "Storck Super Dickmann's",
+      "price": 1.59,
+      "unit": "9 Stück = 250g Packung, (1kg = 6,36), 1kg = 6,36",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Hohes C oder All-in-One",
+      "price": 1.59,
+      "unit": "versch. Sorten, + 0,25 Pfand, 0,85/1l PET-DPG-Flasche, (1l = 1,87/1,59), 1l = 1,87/1,59",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    }
+  ]
 }
