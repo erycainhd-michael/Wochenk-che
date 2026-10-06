@@ -37,5 +37,5 @@ export async function testNotification() {
   const perm = await Notification.requestPermission();
   if (perm !== 'granted') throw new Error('Benachrichtigungen wurden nicht erlaubt.');
   const reg = await navigator.serviceWorker.ready;
-  await reg.showNotification('Michael Food', { body: 'So sieht deine Montags-Nachricht aus 🍽️', icon: 'icons/icon-192.png' });
+  await reg.showNotification('Mise', { body: 'So sieht deine Montags-Nachricht aus 🍽️', icon: 'icons/icon-192.png' });
 }

@@ -17,6 +17,7 @@ export function recipeWeights(history = []) {
       if (fb.again) delta += 0.4;
       weights[id] = (weights[id] || 0) + delta * decay;
       if (fb.tooComplex) tooComplex[id] = (tooComplex[id] || 0) + decay;
+      if (fb.dishes) tooComplex[id] = (tooComplex[id] || 0) + 0.6 * decay;
     }
   });
   const out = {};

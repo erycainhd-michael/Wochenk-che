@@ -1,4 +1,4 @@
-# Michael Food – Wochenküche
+# Mise – Wochenküche
 
 Deine persönliche Ernährungs-App fürs iPhone. Sie plant die Woche so, dass **der Einkauf deine Kalorien- und Proteinziele schon erfüllt** – du kochst nach Plan, hakst ab und musst nichts tracken.
 

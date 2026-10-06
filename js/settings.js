@@ -21,7 +21,7 @@ export const DEFAULT_SETTINGS = {
   fiber: { start: 28, step: 2, max: 40 },
   psyllium: false,
   proteinPowder: true,
-  planHour: 9,
+  planHour: 8,
 };
 
 export function mergeSettings(saved) {

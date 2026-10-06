@@ -14,9 +14,10 @@ export function buildShopping({ plan, idx, pantry = {}, priceOf, recipesById }) 
       if (!meal.items) continue;
       const rname = recipesById?.get(meal.recipeId)?.name || meal.recipeId;
       for (const it of meal.items) {
-        const e = need.get(it.id) || { g: 0, uses: new Set() };
+        const e = need.get(it.id) || { g: 0, uses: new Set(), useIds: new Map() };
         e.g += it.g;
         e.uses.add(rname);
+        e.useIds.set(meal.recipeId, rname);
         need.set(it.id, e);
       }
     }
@@ -33,8 +34,9 @@ export function buildShopping({ plan, idx, pantry = {}, priceOf, recipesById }) 
     const ing = idx.get(id);
     if (!ing) continue;
     const uses = [...e.uses];
+    const useRefs = [...e.useIds].map(([rid, name]) => ({ id: rid, name }));
     if (ing.staple) {
-      staples.push({ id, name: ing.name, g: Math.round(e.g), uses });
+      staples.push({ id, name: ing.name, g: Math.round(e.g), uses, useRefs });
       continue;
     }
     const have = Math.max(0, pantry[id] || 0);
@@ -67,6 +69,7 @@ export function buildShopping({ plan, idx, pantry = {}, priceOf, recipesById }) 
       cost,
       leftover: Math.round(left),
       uses,
+      useRefs,
       note: ing.note,
     });
   }
@@ -80,22 +83,24 @@ export function buildShopping({ plan, idx, pantry = {}, priceOf, recipesById }) 
   return { items, staples, total, leftovers, wasteEuro, stockEuro, effective: total - stockEuro };
 }
 
+const PLURAL = { Ei: 'Eier', Banane: 'Bananen', Apfel: 'Äpfel', Wrap: 'Wraps', Limette: 'Limetten', Zitrone: 'Zitronen', Avocado: 'Avocados', Gurke: 'Gurken', Kürbis: 'Kürbisse' };
+const pieceWord = (name = 'Stück', n) => (n === 1 ? name : PLURAL[name] || name);
+
 /** Menge menschenlesbar, z. B. "2 × 500 g" oder "3 Paprika" */
 export function packText(item) {
   if (item.piece && item.pack === item.piece) {
-    return `${item.packs} ${item.pieceName || 'Stück'}`;
+    return `${item.packs} ${pieceWord(item.pieceName, item.packs)}`;
   }
   return `${item.packs} × ${item.packLabel}`;
 }
 
+/** Zutatenmenge, z. B. "120 g (2 Eier)" oder "110 g" */
 export function amountText(ing, g) {
-  if (ing.piece && ing.piece <= 130 && g >= ing.piece * 0.6 && !ing.staple) {
-    const n = Math.round((g / ing.piece) * 2) / 2;
-    return `${n.toLocaleString('de-DE')} ${ing.pieceName || 'Stück'} (${Math.round(g)} g)`;
+  const grams = `${g < 10 ? (Math.round(g * 2) / 2).toLocaleString('de-DE') : Math.round(g)} g`;
+  if (ing.piece && !ing.staple && g >= ing.piece * 0.6) {
+    const step = ing.piece <= 130 ? 2 : 4;
+    const n = Math.round((g / ing.piece) * step) / step;
+    return `${grams} (${ing.piece > 130 ? '≈ ' : ''}${n.toLocaleString('de-DE')} ${pieceWord(ing.pieceName, n)})`;
   }
-  if (ing.piece && ing.piece > 130 && g >= ing.piece * 0.9) {
-    const n = Math.round((g / ing.piece) * 4) / 4;
-    return `${Math.round(g)} g (≈ ${n.toLocaleString('de-DE')} ${ing.pieceName || 'Stück'})`;
-  }
-  return `${g < 10 ? (Math.round(g * 2) / 2).toLocaleString('de-DE') : Math.round(g)} g`;
+  return grams;
 }

@@ -1,6 +1,6 @@
 // Service Worker: App offline verfügbar machen + Push-Nachrichten anzeigen.
 // Bei Änderungen an App-Dateien VERSION erhöhen, damit iPhones die neue Version laden.
-const VERSION = 'mf-v3';
+const VERSION = 'mf-v4';
 const SHELL = [
   './',
   './index.html',
@@ -83,7 +83,7 @@ self.addEventListener('push', (event) => {
   }
   event.waitUntil(
     self.registration.showNotification(data.title || 'Dein Wochenplan ist da 🍽️', {
-      body: data.body || 'Öffne Michael Food – der Plan für diese Woche wird jetzt erstellt.',
+      body: data.body || 'Öffne Mise – der Plan für diese Woche wird jetzt erstellt.',
       icon: 'icons/icon-192.png',
       badge: 'icons/icon-192.png',
       data: { url: data.url || './#/woche' },

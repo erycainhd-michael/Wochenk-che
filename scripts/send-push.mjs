@@ -23,7 +23,7 @@ if (!Array.isArray(subs)) subs = [subs];
 
 const payload = JSON.stringify({
   title: 'Dein Wochenplan ist da 🍽️',
-  body: 'Öffne Michael Food: Reste eintragen, Plan erstellen, einkaufen.',
+  body: 'Öffne Mise: Reste eintragen, Plan erstellen, einkaufen.',
   url: './#/planen',
 });
 
