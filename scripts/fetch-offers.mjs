@@ -75,8 +75,9 @@ export function mapOffers(raw, store, ingredients) {
       const grams = parseGrams(o.unitText) || parseGrams(o.title);
       if (grams && grams > 0 && Math.abs(grams - ing.pack) / ing.pack > 0.1) packPrice = Math.round((o.price / grams) * ing.pack * 100) / 100;
       else packPrice = o.price;
-      // Plausibilitätsprüfung: offensichtliche Fehlzuordnungen verwerfen
-      if (packPrice > ing.price * 2.5 || packPrice < ing.price * 0.25) packPrice = null;
+      // Plausibilitätsprüfung: Ein Angebot ist nie teurer als der Normalpreis; extrem billig = falsche Einheit
+      const regular = store === 'edeka' ? ing.priceEdeka ?? ing.price * 1.15 : ing.price;
+      if (packPrice > regular * 1.05 || packPrice < ing.price * 0.25) packPrice = null;
     }
     out.push({ store, title: o.title, price: o.price, unit: o.unitText, validFrom: o.validFrom, validTo: o.validTo, ingredientId: packPrice ? ing.id : null, packPrice });
   }

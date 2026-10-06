@@ -93,14 +93,21 @@ const norm = (s) =>
     .replace(/\s+/g, ' ')
     .trim();
 
+// Wörter, die auf verarbeitete Produkte statt der Grundzutat hindeuten
+const EXCLUDE = ['ketchup', 'mayonnaise', 'sauce', 'sosse', 'bagel', 'sandwich', 'brotchen', 'krustchen', 'salat mit', 'aufstrich', 'chips', 'saft', 'smoothie', 'pizza', 'konzentrat', 'gebraten', 'paniert', 'eingelegt', 'gewurzgurken', 'rauchfleisch', 'kuchen', 'riegel', 'drink', 'eis'];
+
 export function matchIngredient(title, ingredients) {
   const t = ' ' + norm(title) + ' ';
+  if (EXCLUDE.some((w) => t.includes(' ' + w))) return null;
   let best = null;
   let bestLen = 0;
   for (const ing of ingredients) {
+    if ((ing.kwNot || []).some((w) => t.includes(norm(w)))) continue;
     for (const kw of ing.kw || []) {
       const k = norm(kw);
-      if (k && t.includes(' ' + k) && k.length > bestLen) {
+      // ganzes Wort (Plural-Endungen erlaubt), nicht nur Wortanfang: „Tomaten“ ≠ „Tomatenketchup“
+      const re = new RegExp(`(^| )${k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(e|n|s|en|er)?( |$)`);
+      if (k && re.test(t) && k.length > bestLen) {
         best = ing;
         bestLen = k.length;
       }
