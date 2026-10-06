@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import { buildIndex, plausibility } from '../js/nutrition.js';
-import { generatePlan, swapMeal } from '../js/planner.js';
+import { generatePlan, refitPlan, swapMeal } from '../js/planner.js';
 import { DEFAULT_SETTINGS } from '../js/settings.js';
 import { makePriceFn, matchIngredient, parseGrams } from '../js/prices.js';
 import { recipeWeights } from '../js/feedback.js';
@@ -77,6 +77,30 @@ test('Gericht tauschen ändert das Rezept und hält die Ziele', () => {
   assert.notEqual(next.cooks[0].recipeId, plan.cooks[0].recipeId);
   const d = next.days[plan.cooks[0].day];
   assert.ok(Math.abs(d.totals.kcal - 2800) / 2800 < 0.08);
+});
+
+test('Neue Tagesziele: gleiche Gerichte, Portionen passen sich an', () => {
+  const s2 = settings();
+  s2.goals = { ...s2.goals, kcal: 3200, carbs: 450 };
+  const next = refitPlan(plan, { recipes, idx, settings: s2, weekStart: '2026-10-05' });
+  assert.deepEqual(next.cooks.map((c) => c.recipeId), plan.cooks.map((c) => c.recipeId));
+  const avgK = next.days.reduce((a, d) => a + d.totals.kcal, 0) / 7;
+  assert.ok(avgK > 3000, `Ø ${Math.round(avgK)} kcal`);
+  assert.equal(next.goals.kcal, 3200);
+});
+
+test('Spezielles nur dort kaufen, wo es das gibt (z. B. grüne Tagliatelle bei Edeka)', () => {
+  const s = settings();
+  s.stores = { lidl: true, edeka: true };
+  s.mainStore = 'lidl';
+  const priceOf = makePriceFn({ idx, settings: s, offers: [], weekStart: '2026-10-05' });
+  assert.equal(priceOf('tagliatelle_verdi').store, 'edeka');
+  assert.equal(priceOf('spaghetti').store, 'lidl');
+  s.stores = { lidl: true };
+  const only = makePriceFn({ idx, settings: s, offers: [], weekStart: '2026-10-05' });
+  const t = only('tagliatelle_verdi');
+  assert.equal(t.store, 'edeka');
+  assert.ok(t.elsewhere);
 });
 
 test('Bewertung in deiner Prioritäten-Reihenfolge, ohne Verbotssprache', () => {

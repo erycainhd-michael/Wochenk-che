@@ -20,6 +20,17 @@
     <link rel="stylesheet" href="css/app.css" />
   </head>
   <body>
+    <div id="splash" aria-hidden="true">
+      <svg class="leaf" viewBox="0 0 120 120">
+        <defs><linearGradient id="leafg" x1="0" y1="1" x2="1" y2="0"><stop offset="0" stop-color="#1f7a4d" /><stop offset="1" stop-color="#4cc488" /></linearGradient></defs>
+        <path class="stem" d="M47 85 L33 101" />
+        <g class="blade">
+          <path class="blade-fill" d="M47 85 C38 58 58 28 97 21 C93 55 77 82 47 85 Z" fill="url(#leafg)" />
+          <path class="vein" d="M47 85 Q70 57 92 27" />
+        </g>
+      </svg>
+      <div class="splash-name">Mise</div>
+    </div>
     <div id="app"><main class="view"><p class="sub center">Lade …</p></main></div>
     <noscript>Diese App braucht JavaScript.</noscript>
     <script>

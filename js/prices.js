@@ -19,7 +19,9 @@ const DRUGSTORE_ITEMS = new Set([
 // Artikel, die es in der Drogerie typischerweise günstiger gibt als im Supermarkt
 const DRUGSTORE_CHEAPER = new Set(['proteinpulver', 'flohsamenschalen', 'leinsamen']);
 
+/** Führt der Laden die Zutat? `onlyAt` in ingredients.json schränkt Spezielles ein (z. B. nur Edeka). */
 export function sells(store, ing) {
+  if (ing.onlyAt) return ing.onlyAt.includes(store);
   if (store === 'dm' || store === 'rossmann') return DRUGSTORE_ITEMS.has(ing.id);
   return true;
 }
@@ -76,8 +78,12 @@ export function makePriceFn({ idx, settings, offers = [], weekStart }) {
       const isOffer = !!(offer && offer.packPrice < regular);
       cands.push({ store, price: isOffer ? offer.packPrice : regular, regular, offer: isOffer, offerTitle: isOffer ? offer.title : '' });
     }
-    // Führt kein ausgewählter Laden den Artikel (z. B. nur Drogerien gewählt): Richtpreis Supermarkt
-    if (!cands.length) cands.push({ store: 'lidl', price: ing.price, regular: ing.price, offer: false, offerTitle: '' });
+    // Führt kein ausgewählter Laden den Artikel: dort kaufen, wo es ihn gibt (Hinweis in der Liste)
+    if (!cands.length) {
+      const store = ing.onlyAt?.[0] || 'lidl';
+      const regular = regularPrice(ing, store);
+      cands.push({ store, price: regular, regular, offer: false, offerTitle: '', elsewhere: true });
+    }
     const main = cands.find((c) => c.store === mainStore);
     const cheapest = cands.reduce((a, b) => (b.price < a.price ? b : a));
     // Hauptladen, außer ein anderer ausgewählter Laden ist mindestens 10 % günstiger
