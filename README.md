@@ -17,7 +17,7 @@ Deine persönliche Ernährungs-App fürs iPhone. Sie plant die Woche so, dass **
 GitHub-Repository (kostenlos)
 ├── GitHub Pages  → liefert die App aus (statische Dateien)
 ├── GitHub Action „Angebote holen“      (Mo 6:00)  → schreibt data/offers.json
-├── GitHub Action „Wochenplan-Benachrichtigung“ (Mo 9:00) → Push aufs iPhone (optional)
+├── Claude-Routine (So abends) → erfindet neue Rezepte und ergänzt data/recipes.json
 └── GitHub Action „Tests“ → prüft Daten und Planer bei jeder Änderung
 
 iPhone (Safari → „Zum Home-Bildschirm“)
@@ -42,12 +42,12 @@ js/shopping.js                            Einkaufsliste, Packungen, Reste
 js/prices.js                              Richtpreise, Angebote, Laden-Auswahl
 js/feedback.js                            Feedback → Rezeptgewichtung
 js/timers.js                              Parallele Timer, Signalton, Wake Lock
-js/push.js                                Push-Einrichtung (Schlüssel werden im Browser erzeugt)
+js/ai.js                                  Optional: Rezept sofort aus einem Titel erfinden (eigener API-Schlüssel)
 js/storage.js                             Lokale Speicherung, Export/Import
 data/ingredients.json                     112 Zutaten: Nährwerte/100 g, Packung, Richtpreis Lidl/Edeka, Haltbarkeit
 data/recipes.json                         51 Rezepte (36 Hauptgerichte, 6 Frühstücke, 9 Snacks)
 data/offers.json                          Angebote (von der Action geschrieben)
-scripts/                                  Angebote holen, Push senden, Daten prüfen
+scripts/                                  Angebote holen, neue Rezepte einfügen, Daten prüfen
 tests/                                    Automatische Tests
 .github/workflows/                        Die drei GitHub Actions
 ```
@@ -119,17 +119,6 @@ Falls Edeka den Abruf blockiert, steht dort „nicht erreichbar“ – die App f
 3. Scrolle runter → **Zum Home-Bildschirm** → **Hinzufügen**.
 4. Öffne die App ab jetzt immer über das Icon auf dem Home-Bildschirm. Sie funktioniert dann auch offline.
 
-### Schritt 6 (optional): Push „Dein Wochenplan ist da“
-1. Öffne die App vom Home-Bildschirm → **Einstellungen → Benachrichtigung**.
-2. **1. Schlüssel erzeugen** → **2. Benachrichtigungen erlauben** (iPhone fragt nach → Erlauben).
-3. Es erscheinen drei Werte mit „Kopieren“-Buttons. Für **jeden** Wert:
-   - Auf github.com: **Settings → Secrets and variables → Actions → Reiter „Secrets“ → New repository secret**.
-   - Name genau so wie in der App (`VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `PUSH_SUBSCRIPTION`), Wert per „Kopieren“ aus der App einfügen → **Add secret**.
-   - Tipp: Am einfachsten öffnest du github.com dafür direkt auf dem iPhone in Safari.
-4. Test: **Actions → Wochenplan-Benachrichtigung → Run workflow**. Nach kurzer Zeit kommt die Nachricht aufs iPhone.
-
-Secrets sind verschlüsselt und auch in öffentlichen Repos für niemanden sichtbar.
-
 ### Updates
 Wenn sich Code ändert, lädt das iPhone die neue Version beim nächsten Öffnen im Hintergrund; spätestens beim zweiten Öffnen ist sie aktiv. Bei Änderungen an App-Dateien in `sw.js` die Zeile `const VERSION = 'mf-v1'` hochzählen.
 
@@ -164,3 +153,9 @@ Lokal testen (für Neugierige): `npm test` und `npm start`, dann http://localhos
 3. **Auswärtsessen:** Vor jeder Planung fragt die App, wann du diese Woche auswärts isst (vorausgefüllt mit deiner Standardwoche). Danach kannst du in der Wochenansicht jede Mahlzeit mit 🍴 auf „auswärts“ oder mit 🏠 zurück auf „zu Hause“ setzen – Portionen und Einkaufsliste passen sich an.
 4. **Edeka-Markt-ID:** wird über Schritt 4 ermittelt; ohne ID gelten Richtpreise.
 5. **Proteinpulver:** als Ergänzung eingeplant (Shake, Protein-Porridge, Skyr-Creme), abschaltbar unter Einstellungen → Gerichte.
+
+## 7. Neue Rezepte jede Woche (kostenlos)
+
+Eine Claude-Routine läuft jeden Sonntagabend über dein Claude-Abo (keine API-Kosten), erfindet 5 neue Gerichte nach deinen Prinzipien und trägt sie mit `node scripts/add-recipes.mjs` geprüft in `data/recipes.json` ein. Neue Rezepte sind in der App mit „neu“ markiert und werden in den ersten zwei Wochen bevorzugt eingeplant. Dein Feedback (😍 👍 👎 🧽 ⏱️) entscheidet danach, wie oft sie wiederkommen.
+
+Läden: Lidl, Aldi Nord, Edeka (Schloßstraße), dm und Rossmann sind auswählbar. Echte Wochenangebote gibt es automatisch nur von Edeka; für die anderen gelten Richtpreise.
