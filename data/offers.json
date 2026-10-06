@@ -1,10 +1,10 @@
 {
-  "updated": "2026-10-06T13:57:15.271Z",
+  "updated": "2026-10-06T13:58:21.401Z",
   "sources": {
     "edeka": {
       "ok": true,
       "count": 286,
-      "matched": 36
+      "matched": 17
     },
     "lidl": {
       "ok": false,
@@ -49,8 +49,8 @@
       "unit": "Kl. I, 400g Schale, (1kg = 4,98), 1kg = 4,98",
       "validFrom": "2026-10-05",
       "validTo": "2026-10-10",
-      "ingredientId": "tomaten",
-      "packPrice": 2.49
+      "ingredientId": null,
+      "packPrice": null
     },
     {
       "store": "edeka",
@@ -189,8 +189,8 @@
       "unit": "Kl. I, 750g Netz, (1kg = 2,65), 1kg = 2,65",
       "validFrom": "2026-10-05",
       "validTo": "2026-10-10",
-      "ingredientId": "mandarinen",
-      "packPrice": 2.65
+      "ingredientId": null,
+      "packPrice": null
     },
     {
       "store": "edeka",
@@ -249,8 +249,8 @@
       "unit": "Kl. II, 100g Schale, (1kg = 12,9), 1kg = 12,9",
       "validFrom": "2026-10-05",
       "validTo": "2026-10-10",
-      "ingredientId": "rucola",
-      "packPrice": 1.61
+      "ingredientId": null,
+      "packPrice": null
     },
     {
       "store": "edeka",
@@ -519,8 +519,8 @@
       "unit": "500ml Flasche, (1l = 3,18), 1l = 3,18",
       "validFrom": "2026-10-05",
       "validTo": "2026-10-10",
-      "ingredientId": "tomaten",
-      "packPrice": 1.59
+      "ingredientId": null,
+      "packPrice": null
     },
     {
       "store": "edeka",
@@ -559,8 +559,8 @@
       "unit": "versch. Sorten, 400g Dose/185/200g Tube, (1kg = 3,73/8,05/7,45), 1kg = 3,73/8,05/7,45",
       "validFrom": "2026-10-05",
       "validTo": "2026-10-10",
-      "ingredientId": "tomaten",
-      "packPrice": 1.86
+      "ingredientId": null,
+      "packPrice": null
     },
     {
       "store": "edeka",
@@ -569,8 +569,8 @@
       "unit": "fein gehackt oder geschält, versch. Sorten, 300/400g Dose, (1kg = 5,73/3,73), 1kg = 5,73/3,73",
       "validFrom": "2026-10-05",
       "validTo": "2026-10-10",
-      "ingredientId": "tomaten",
-      "packPrice": 1.86
+      "ingredientId": null,
+      "packPrice": null
     },
     {
       "store": "edeka",
@@ -579,7 +579,7 @@
       "unit": "500g Packung, (1kg = 1,30), 1kg = 1,30",
       "validFrom": "2026-10-05",
       "validTo": "2026-10-10",
-      "ingredientId": "tomaten",
+      "ingredientId": "passierte_tomaten",
       "packPrice": 0.65
     },
     {
@@ -669,8 +669,8 @@
       "unit": "Classic oder Jalapeño, gepökelt und gebacken, 80g Packung, (1kg = 17,38), 1kg = 17,38",
       "validFrom": "2026-10-05",
       "validTo": "2026-10-10",
-      "ingredientId": "haehnchenbrust",
-      "packPrice": 8.69
+      "ingredientId": null,
+      "packPrice": null
     },
     {
       "store": "edeka",
@@ -769,8 +769,8 @@
       "unit": "extra fein, 800g Dose, (1kg = 3,19), 1kg = 3,19",
       "validFrom": "2026-10-05",
       "validTo": "2026-10-10",
-      "ingredientId": "erbsen_tk",
-      "packPrice": 1.69
+      "ingredientId": null,
+      "packPrice": null
     },
     {
       "store": "edeka",
@@ -789,8 +789,8 @@
       "unit": "versch. Sorten   Aktion : 12 Dosen 1kg = 3,57, 12,00, 400g Dose, (1kg = 6,39), 1kg = 6,39",
       "validFrom": "2026-10-05",
       "validTo": "2026-10-10",
-      "ingredientId": "erbsen_tk",
-      "packPrice": 1.34
+      "ingredientId": null,
+      "packPrice": null
     },
     {
       "store": "edeka",
@@ -829,8 +829,8 @@
       "unit": "versch. Sorten, 670g Glas, (1kg = 4,97), 1kg = 4,97",
       "validFrom": "2026-10-05",
       "validTo": "2026-10-10",
-      "ingredientId": "gurke",
-      "packPrice": 1.07
+      "ingredientId": null,
+      "packPrice": null
     },
     {
       "store": "edeka",
@@ -919,8 +919,8 @@
       "unit": "saftiges Weizenbrötchen mit Ölsaaten, Haferflocken und Karotten, kernig-kräftig im Geschmack, Stück",
       "validFrom": "2026-10-05",
       "validTo": "2026-10-10",
-      "ingredientId": "moehren",
-      "packPrice": 0.29
+      "ingredientId": null,
+      "packPrice": null
     },
     {
       "store": "edeka",
@@ -929,8 +929,8 @@
       "unit": "500g Packung, (1kg = 1,98), 1kg = 1,98",
       "validFrom": "2026-10-05",
       "validTo": "2026-10-10",
-      "ingredientId": "haferflocken",
-      "packPrice": 0.99
+      "ingredientId": null,
+      "packPrice": null
     },
     {
       "store": "edeka",
@@ -1739,8 +1739,8 @@
       "unit": "im Buchenrauch goldgelb geräuchert, der extra magere Schinkengenuss, 100g, (1kg = 24,90), 1kg = 24,90",
       "validFrom": "2026-10-05",
       "validTo": "2026-10-10",
-      "ingredientId": "lachs_tk",
-      "packPrice": 12.45
+      "ingredientId": null,
+      "packPrice": null
     },
     {
       "store": "edeka",
@@ -1859,8 +1859,8 @@
       "unit": "mit Frischkäse, Eierscheiben und Salat, Stück",
       "validFrom": "2026-10-05",
       "validTo": "2026-10-10",
-      "ingredientId": "raeucherlachs",
-      "packPrice": 3.5
+      "ingredientId": null,
+      "packPrice": null
     },
     {
       "store": "edeka",
@@ -1869,8 +1869,8 @@
       "unit": "mit Beilage und Sauce nach Wahl, Portion",
       "validFrom": "2026-10-05",
       "validTo": "2026-10-10",
-      "ingredientId": "lachs_tk",
-      "packPrice": 13.5
+      "ingredientId": null,
+      "packPrice": null
     },
     {
       "store": "edeka",
@@ -1939,8 +1939,8 @@
       "unit": "45% Fett i. Tr., 150g Packung, (1kg = 13,27), 1kg = 13,27",
       "validFrom": "2026-10-05",
       "validTo": "2026-10-10",
-      "ingredientId": "ziegenkaese",
-      "packPrice": 1.99
+      "ingredientId": null,
+      "packPrice": null
     },
     {
       "store": "edeka",
@@ -2069,8 +2069,8 @@
       "unit": "200g Packung, (1kg = 28,95), 1kg = 28,95",
       "validFrom": "2026-10-05",
       "validTo": "2026-10-10",
-      "ingredientId": "lachs_tk",
-      "packPrice": 14.48
+      "ingredientId": null,
+      "packPrice": null
     },
     {
       "store": "edeka",
@@ -2209,8 +2209,8 @@
       "unit": "in Stücken, süß-sauer, 670g Glas, (1kg = 4,23), 1kg = 4,23",
       "validFrom": "2026-10-05",
       "validTo": "2026-10-10",
-      "ingredientId": "hokkaido",
-      "packPrice": 2.52
+      "ingredientId": null,
+      "packPrice": null
     },
     {
       "store": "edeka",
@@ -2789,8 +2789,8 @@
       "unit": "Kl. I, 2er Packung",
       "validFrom": "2026-10-05",
       "validTo": "2026-10-10",
-      "ingredientId": "romana",
-      "packPrice": 0.66
+      "ingredientId": null,
+      "packPrice": null
     },
     {
       "store": "edeka",
