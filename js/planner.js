@@ -12,6 +12,7 @@ import { addMacros, emptyMacros, hasFish, itemsMacros, mainProteinCategory, reci
 import { itemsCost, makePriceFn } from './prices.js';
 import { buildShopping } from './shopping.js';
 import { fiberTargetFor } from './settings.js';
+import { daySportKcal } from './sport.js';
 
 const MAIN_SLOTS = ['mittag', 'abend'];
 
@@ -257,8 +258,14 @@ function addonCombos(addons) {
   return [[], ...addons.map((a) => [a])];
 }
 
-function fitDay({ ctx, fixed, breakfast, mains, combos }) {
-  const g = ctx.settings.goals;
+/** Tagesziele inkl. Sport: Mehrbedarf vor allem über Kohlenhydrate (≈60 %) und etwas Fett (≈25 %) */
+function dayGoals(goals, extra) {
+  if (!extra) return goals;
+  return { ...goals, kcal: goals.kcal + extra, carbs: goals.carbs + (extra * 0.6) / 4, fat: goals.fat + (extra * 0.25) / 9 };
+}
+
+function fitDay({ ctx, fixed, breakfast, mains, combos, extra = 0 }) {
+  const g = dayGoals(ctx.settings.goals, extra);
   const B = breakfast ? ctx.info.get(breakfast).macros : null;
   const M = mains.reduce((a, id) => addMacros(a, ctx.info.get(id).macros), emptyMacros());
   let best = null;
@@ -306,7 +313,6 @@ function absorbLeftovers(days, ctx) {
   const { idx, settings } = ctx;
   const need = new Map();
   for (const d of days) for (const m of d.meals) for (const it of m.items || []) need.set(it.id, (need.get(it.id) || 0) + it.g);
-  const maxK = settings.goals.kcal * 1.02;
   const leftovers = [];
   for (const [id, g] of need) {
     const ing = idx.get(id);
@@ -324,7 +330,7 @@ function absorbLeftovers(days, ctx) {
         if (lo.left <= 5 || m.kind !== 'recipe') continue;
         const it = m.items.find((x) => x.id === lo.ing.id);
         if (!it) continue;
-        const room = (maxK - d.totals.kcal) / (lo.ing.kcal / 100 || 0.01);
+        const room = ((d.goalKcal || settings.goals.kcal) * 1.02 - d.totals.kcal) / (lo.ing.kcal / 100 || 0.01);
         const add = Math.floor(Math.min(lo.left, it.g * 0.4, Math.max(0, room)));
         if (add < 5) continue;
         it.g += add;
@@ -355,7 +361,8 @@ export function finalizePlan(structure, ctx) {
     for (const slot of ['fruehstueck', ...MAIN_SLOTS]) if (eatOut.has(slotKey(d, slot))) fixed = addMacros(fixed, eo);
     const breakfast = structure.breakfasts[d];
     const mains = MAIN_SLOTS.map((s) => slotCook.get(slotKey(d, s))?.recipeId).filter(Boolean);
-    const fit = fitDay({ ctx, fixed, breakfast, mains, combos: breakfast ? addonCombosAll : [[]] });
+    const sportKcal = daySportKcal(structure, d);
+    const fit = fitDay({ ctx, fixed, breakfast, mains, combos: breakfast ? addonCombosAll : [[]], extra: sportKcal });
 
     const meals = [];
     const mk = (slot, recipeId, factor, extra = {}) => {
@@ -393,6 +400,8 @@ export function finalizePlan(structure, ctx) {
       day: d,
       date: addDays(weekStart, d),
       name: DAY_NAMES[d],
+      sportKcal,
+      goalKcal: settings.goals.kcal + sportKcal,
       short: DAY_SHORT[d],
       meals,
       totals,
@@ -452,8 +461,9 @@ export function scorePlan(plan, ctx) {
   const s = {};
 
   // 1. Kalorien (25)
-  const kDev = avg(days, (d) => Math.abs(d.totals.kcal - g.kcal) / g.kcal);
-  const daysInRange = days.filter((d) => Math.abs(d.totals.kcal - g.kcal) / g.kcal <= 0.05).length;
+  const target = (d) => d.goalKcal || g.kcal;
+  const kDev = avg(days, (d) => Math.abs(d.totals.kcal - target(d)) / target(d));
+  const daysInRange = days.filter((d) => Math.abs(d.totals.kcal - target(d)) / target(d) <= 0.05).length;
   s.kcal = 25 * (0.6 * clamp(1 - kDev / 0.1, 0, 1) + 0.4 * (daysInRange / 7));
 
   // 2. Protein inkl. Verteilung (20)

@@ -10,6 +10,7 @@ import { exportAll, importAll, prunePlans, requestPersistence, store } from './s
 import { TimerManager, fmtTime, keepAwake, unlockAudio } from './timers.js';
 import { cleanRecipe, inventRecipe } from './ai.js';
 import { setSoundsEnabled, sound } from './sounds.js';
+import { LEVELS, SPORTS, sportById, sportKcal } from './sport.js';
 
 const S = {
   ingData: null,
@@ -516,11 +517,29 @@ const recipeEmoji = (r) => r?.emoji || DISH_EMOJI.find(([re]) => re.test(r?.name
 /** Überschrift mit kleiner Symbol-Kachel */
 const H2 = (icon, text) => `<h2 class="ih"><span class="hi">${icon}</span>${text}</h2>`;
 
+/** Begrüßung mit wechselndem, passendem Spruch (bleibt pro Tageszeit gleich, damit nichts flackert) */
 function greeting() {
-  const h = berlinNow().hour;
-  const part = h < 11 ? 'Guten Morgen' : h < 17 ? 'Hallo' : 'Guten Abend';
-  const name = (S.settings.name || '').trim();
-  return `${part}${name ? ', ' + e(name) : ''} 👋`;
+  const b = berlinNow();
+  const h = b.hour;
+  const n = (S.settings.name || '').trim();
+  const nm = n ? ', ' + e(n) : '';
+  const plan = displayedPlan();
+  const today = plan?.weekStart === currentWeek() ? plan.structure?.sport?.[b.weekday] : null;
+  let pool;
+  if (today?.length) pool = [`Stark trainiert heute${nm} 💪`, `Sport erledigt${nm} – jetzt gut essen 🍽️`];
+  else if (h < 5) pool = [`Noch wach${nm}? 🌙`, `Gute Nacht${nm} 🌙`];
+  else if (h < 11)
+    pool =
+      b.weekday === 0
+        ? [`Neue Woche, neuer Plan${nm} 🌱`, `Guten Start in die Woche${nm} ☀️`]
+        : [`Guten Morgen${nm} 👋`, `Moin${nm}! Das Frühstück wartet 🥣`, `Guten Start in den Tag${nm} ☀️`];
+  else if (h < 14) pool = [`Mahlzeit${nm}! 🥗`, `Hallo${nm} – Zeit für eine Pause 🌿`];
+  else if (h < 17) pool = [`Schönen Nachmittag${nm} ☕`, `Hallo${nm} 👋`];
+  else if (b.weekday === 4) pool = [`Wochenende in Sicht${nm} 🎉`, `Guten Abend${nm} 👋`];
+  else if (b.weekday >= 5) pool = [`Schönes Wochenende${nm} ☀️`, `Entspannten Abend${nm} 🌙`];
+  else pool = [`Guten Abend${nm} 👋`, `Feierabend${nm}! Was kochen wir? 🍳`, `Schönen Abend${nm} 🌙`];
+  const seed = Number(b.iso.replace(/-/g, '')) + Math.floor(h / 6);
+  return pool[seed % pool.length];
 }
 
 // --- Woche -------------------------------------------------------------------
@@ -528,16 +547,12 @@ function greeting() {
 function viewWelcome() {
   return `<div class="welcome">
       <img class="welcome-icon" src="icons/icon-512.png" alt="">
-      <h1>Willkommen bei Mise!</h1>
-      <p class="sub">Deine Woche – geplant, eingekauft, gekocht.</p>
-      <button class="btn primary block big" data-action="first-plan">🍽️ Wochenplan erstellen</button>
+      <h2>Willkommen bei Mise!</h2>
     </div>
-    <section class="card">
-      <ul class="features">
-        <li><span class="hi">🎯</span><div><b>Ziele ohne Tracking</b><p>Dein Einkauf erfüllt Kalorien und Protein schon – nichts mehr abwiegen oder eintragen.</p></div></li>
-        <li><span class="hi">🛒</span><div><b>Einkauf nach Laden</b><p>Sortiert nach Laden und Regal, mit aktuellen Angeboten.</p></div></li>
-        <li><span class="hi">🌱</span><div><b>Ausgewogen nach deinem Geschmack</b><p>Mise lernt aus deinem Feedback und ergänzt, statt zu verbieten.</p></div></li>
-      </ul>
+    <section class="card center">
+      <button class="btn primary block" data-action="first-plan">🍽️ Wochenplan erstellen</button>
+      <p>Die App plant deine Woche so, dass dein Einkauf deine Kalorien- und Proteinziele schon erfüllt – kein Tracking nötig.</p>
+      <p>Mise hilft dir außerdem bei einer ausgewogeneren Ernährung und bezieht dabei deine Vorlieben ein.</p>
     </section>`;
 }
 
@@ -560,17 +575,20 @@ function viewWeek() {
   const avgP = plan.days.reduce((a, d) => a + d.totals.p, 0) / 7;
   const avgC = plan.days.reduce((a, d) => a + d.totals.c, 0) / 7;
   const avgF = plan.days.reduce((a, d) => a + d.totals.f, 0) / 7;
+  const sportWeek = plan.days.reduce((a, d) => a + (d.sportKcal || 0), 0);
+  const avgGoal = g.kcal + sportWeek / 7;
   // Zahlen zählen beim Öffnen animiert zum neuen Wert, wenn sich Ziele geändert haben
   const cnt = (key, v, fmt) => `<i data-count="${key}" data-to="${v}" data-fmt="${fmt}" data-ease="back">${COUNT_FMT[fmt](v)}</i>`;
   return `
+    <div class="eyebrow greet">${greeting()}</div>
     <header class="top">
-      <div><div class="eyebrow">${greeting()}</div><h1>KW ${isoWeek(plan.weekStart)}</h1><div class="sub">${formatDate(plan.weekStart)} – ${formatDate(addDays(plan.weekStart, 6), { day: 'numeric', month: 'long' })}</div></div>
+      <div><h1>KW ${isoWeek(plan.weekStart)}</h1><div class="sub">${formatDate(plan.weekStart)} – ${formatDate(addDays(plan.weekStart, 6), { day: 'numeric', month: 'long' })}</div></div>
       <a class="btn pill" href="#/rezepte">📖 Rezepte</a>
     </header>
     ${banners.join('')}
     <section class="card hero">
       <div class="hero-top">
-        <div><span class="hero-label">Ø pro Tag</span><b class="hero-big">${cnt('w-k', avgK, 'int')}<small> kcal</small></b><span class="hero-sub">Ziel ${cnt('w-gk', g.kcal, 'int')} kcal</span></div>
+        <div><span class="hero-label">Ø pro Tag</span><b class="hero-big">${cnt('w-k', avgK, 'int')}<small> kcal</small></b><span class="hero-sub">Ziel ${cnt('w-gk', avgGoal, 'int')} kcal${sportWeek ? ' inkl. Sport' : ''}</span></div>
         <div class="hero-right"><span class="hero-label">Einkauf</span><b class="hero-mid">${cnt('w-cost', plan.cost, 'euro')}</b><span class="hero-sub">Budget ${euro(S.settings.budget)}</span></div>
       </div>
       <div class="macro-bars">
@@ -585,13 +603,6 @@ function viewWeek() {
       <button class="link hero-link" data-action="toggle-eval">${S.ui.evalOpen ? '▾' : '▸'} Bewertung des Plans</button>
       ${S.ui.evalOpen ? `<div class="hero-eval">${evaluationHtml(plan)}</div>` : ''}
     </section>
-    <nav class="daystrip">${plan.days
-      .map((d) => {
-        const open = S.ui.openDays[d.day] ?? d.day === Math.max(0, todayIdx);
-        const out = d.meals.some((m) => m.kind === 'eatout');
-        return `<button class="ds ${open ? 'open' : ''} ${d.day === todayIdx ? 'today' : ''}" data-action="jump-day" data-day="${d.day}"><span>${d.short}</span><b>${Number(d.date.slice(8))}</b><i class="${out ? 'eat' : ''}" title="${out ? 'auswärts essen' : ''}"></i></button>`;
-      })
-      .join('')}</nav>
     ${plan.days.map((d) => dayCard(plan, d, S.ui.openDays[d.day] ?? d.day === Math.max(0, todayIdx), d.day === todayIdx)).join('')}`;
 }
 
@@ -601,8 +612,8 @@ function evaluationHtml(plan) {
 
 function mealRow(plan, m) {
   if (m.kind === 'eatout') {
-    return `<li class="meal eatout"><span class="mtile slot-eatout">${ICON.eatout}</span><div class="mt"><div class="ml">${SLOT_LABEL[m.slot]} · auswärts</div>
-      <div class="mn">Auswärtsessen</div><div class="mm">≈ ${num(m.macros.kcal)} kcal · ≈ ${g_(m.macros.p)} Protein</div></div></li>`;
+    return `<li class="meal eatout"><span class="mi">${ICON.eatout}</span><div class="mt"><div class="ml">${SLOT_LABEL[m.slot]} · auswärts</div>
+      <div class="mn">Auswärtsessen</div><div class="mm">≈ ${num(m.macros.kcal)} kcal · ≈ ${g_(m.macros.p)} P</div></div></li>`;
   }
   const r = recipe(m.recipeId);
   const cook = m.cookId ? plan.cooks.find((c) => c.id === m.cookId) : null;
@@ -614,11 +625,10 @@ function mealRow(plan, m) {
   for (const a of m.addons || []) badges.push(`<span class="badge">+ ${e(recipe(a)?.name || a)}</span>`);
   const isSnack = m.slot === 'snack';
   return `<li class="meal" data-key="${m.key}">
-    <a class="mtile slot-${m.slot}" href="#/mahlzeit/${m.key}" aria-hidden="true">${recipeEmoji(r)}</a>
     <a class="mt" href="#/mahlzeit/${m.key}">
-      <div class="ml">${isSnack ? 'Snack' : SLOT_LABEL[m.slot]} · ${r.time} Min.</div>
+      <div class="ml">${ICON[isSnack ? 'snack' : m.slot]} ${isSnack ? 'Snack' : SLOT_LABEL[m.slot]} · ${r.time} Min.</div>
       <div class="mn">${e(r.name)}</div>
-      <div class="mm">${num(m.macros.kcal)} kcal · ${g_(m.macros.p)} Protein</div>
+      <div class="mm">${num(m.macros.kcal)} kcal · ${g_(m.macros.p)} P</div>
       ${badges.length ? `<div class="badges">${badges.join('')}</div>` : ''}
     </a>
     ${
@@ -636,21 +646,64 @@ function dayCard(plan, d, open, isToday) {
   const g = plan.goals;
   return `<section class="card day ${isToday ? 'accent' : ''}" data-day="${d.day}">
     <button class="day-head" data-action="toggle-day" data-day="${d.day}" data-open="${open ? 1 : 0}">
-      <span class="dnum"><small>${d.short}</small><b>${Number(d.date.slice(8))}</b></span>
-      <span class="dtxt"><b>${d.name}${isToday ? ' <em class="today-tag">Heute</em>' : ''}</b><span class="sub">${num(d.totals.kcal)} kcal · ${g_(d.totals.p)} Protein</span></span>
-      <span class="chev ${open ? 'up' : ''}" aria-hidden="true">›</span>
+      <b>${d.name} ${formatDate(d.date)}${isToday ? ' · heute' : ''}</b>
+      <span class="sub">${num(d.totals.kcal)} kcal · ${g_(d.totals.p)} P${d.sportKcal ? ` · <span class="sport-tag">${sportIcons(plan, d.day)} +${num(d.sportKcal)} kcal</span>` : ''}</span>
     </button>
     ${
       open
         ? `<ul class="meals">${d.meals.map((m) => mealRow(plan, m)).join('')}</ul>
       <div class="bars">
-        ${bar(d.totals.kcal, g.kcal, 'Kalorien')}
+        ${bar(d.totals.kcal, d.goalKcal || g.kcal, d.sportKcal ? `Kalorien (inkl. Sport +${num(d.sportKcal)})` : 'Kalorien')}
         ${bar(d.totals.p, g.protein, 'Protein', 'g')}
         <div class="mini">KH ${num(d.totals.c)} / ${g_(g.carbs)} · Fett ${num(d.totals.f)} / ${g_(g.fat)} · Ballaststoffe ${g_(d.totals.fib)} · Gemüse/Obst ${g_(d.totals.veg)} · Warenwert ≈ ${euro(d.cost)}</div>
-      </div>`
+      </div>
+      ${sportBlock(plan, d)}`
         : ''
     }
   </section>`;
+}
+
+// --- Sport ---------------------------------------------------------------------
+
+/** Körpergewicht für die Sport-Berechnung: zuletzt eingetragenes Gewicht, sonst 80 kg */
+function currentKg() {
+  return S.feedback.filter((f) => f.week?.weight > 0).sort((a, b) => a.weekStart.localeCompare(b.weekStart)).pop()?.week.weight || 80;
+}
+const sportIcons = (plan, d) => (plan.structure?.sport?.[d] || []).map((x) => sportById(x.type).icon).join('');
+
+function sportBlock(plan, d) {
+  const list = plan.structure?.sport?.[d.day] || [];
+  const f = S.ui.sport?.day === d.day && S.ui.sport.week === plan.weekStart ? S.ui.sport : null;
+  const rows = list
+    .map(
+      (x, i) => `<li class="sport-row"><span class="sport-ic">${sportById(x.type).icon}</span>
+      <div class="sport-t"><b>${e(sportById(x.type).name)}</b><span class="sub">${x.min} Min. · ${LEVELS[x.level]} · +${num(x.kcal)} kcal</span></div>
+      <button class="round-btn" data-action="sport-del" data-day="${d.day}" data-i="${i}" aria-label="Eintrag löschen">✕</button></li>`
+    )
+    .join('');
+  let form = '';
+  if (f) {
+    const sp = sportById(f.type);
+    const kg = currentKg();
+    form = `<div class="sport-form">
+      <label class="field">Sportart<select data-sport="type">${SPORTS.map((s) => `<option value="${s.id}" ${s.id === f.type ? 'selected' : ''}>${s.icon} ${e(s.name)}</option>`).join('')}</select></label>
+      <div class="field">Intensität<div class="seg">${LEVELS.map((l, i) => `<button class="pill ${f.level === i ? 'on' : ''}" data-action="sport-level" data-val="${i}">${l}</button>`).join('')}</div>
+        <p class="hint">${e(sp.hint[f.level])} · ${String(sp.met[f.level]).replace('.', ',')} MET</p></div>
+      <label class="field">Dauer (Minuten)<input type="number" inputmode="numeric" min="5" step="5" data-sport="min" value="${f.min}"></label>
+      <p class="sport-kcal">≈ <b>+${num(sportKcal(f.type, f.level, f.min, kg))} kcal</b> zusätzlich verbrannt <span class="sub">(bei ${String(kg).replace('.', ',')} kg)</span></p>
+      <div class="grid2"><button class="btn" data-action="sport-cancel">Abbrechen</button><button class="btn primary" data-action="sport-add" data-day="${d.day}">Eintragen</button></div>
+      <p class="hint">Mise erhöht das Kalorienziel dieses Tages um diesen Wert und passt die Portionen an. Richtwerte nach dem Compendium of Physical Activities.</p>
+    </div>`;
+  }
+  return `<div class="sport">${rows ? `<ul class="sport-list">${rows}</ul>` : ''}${form || `<button class="btn small pill sport-btn" data-action="sport-open" data-day="${d.day}">🏃 Sport eintragen</button>`}</div>`;
+}
+
+/** Sport ändern → Tagesziel und Portionen neu berechnen */
+function saveSport(plan, fn) {
+  plan.structure.sport ||= {};
+  fn(plan.structure.sport);
+  S.plans[plan.weekStart] = refitPlan(plan, plannerInput({ weekStart: plan.weekStart }));
+  savePlans();
 }
 
 // --- Mahlzeit / Rezept -------------------------------------------------------
@@ -702,7 +755,35 @@ const TIME_FILTERS = [
   ['aufwendig', 'Aufwendig'],
 ];
 const timeClass = (r) => (r.effort === 3 || r.time > 30 ? 'aufwendig' : r.time <= 15 ? 'kurz' : 'mittel');
-const catsOf = (id) => S.cats.map[id] || [];
+// Automatische Kategorien: ergeben sich aus den Rezeptdaten (Zuordnung im Rezept trotzdem änderbar)
+const AUTO_CATS = {
+  'Wenig Abwasch': (r) => r.dishes <= 1,
+  'Mehr Abwasch': (r) => r.dishes >= 2,
+  Protein: (r, m) => (m.p * 4) / m.kcal >= 0.28,
+  Carbs: (r, m) => (m.c * 4) / m.kcal >= 0.43,
+  Fette: (r, m) => (m.f * 9) / m.kcal >= 0.37,
+  Hauptgerichte: (r) => r.type === 'main',
+  Frühstück: (r) => r.type === 'breakfast',
+  Salat: (r) => /salat|bowl/i.test(r.name) || (r.tags || []).includes('salat'),
+  Kuchen: (r) => /kuchen|cake|muffin|brownie|tarte/i.test(r.name) && !/flammkuchen|pfannkuchen/i.test(r.name),
+  Brot: (r) => /brot|toast|stulle|sandwich/i.test(r.name),
+  Gourmet: (r) => r.effort === 3 || (r.tags || []).includes('gourmet'),
+};
+for (const n of Object.keys(AUTO_CATS)) if (!S.cats.names.includes(n) && !(S.cats.removed || []).includes(n)) S.cats.names.push(n);
+const autoCatsCache = new Map();
+function autoCats(r) {
+  if (!r) return [];
+  if (!autoCatsCache.has(r)) {
+    const m = macrosOf(r.ingredients.filter((l) => !l.opt));
+    autoCatsCache.set(r, Object.entries(AUTO_CATS).filter(([, f]) => m.kcal > 0 && f(r, m)).map(([n]) => n));
+  }
+  return autoCatsCache.get(r);
+}
+/** Kategorien eines Rezepts: eigene Zuordnung + automatische, abzüglich abgewählter */
+const catsOf = (id) => {
+  const off = S.cats.off?.[id] || [];
+  return [...new Set([...(S.cats.map[id] || []), ...autoCats(recipe(id))])].filter((n) => S.cats.names.includes(n) && !off.includes(n));
+};
 const saveCats = () => store.set('recipeCats', S.cats);
 
 function viewRecipes() {
@@ -714,11 +795,13 @@ function viewRecipes() {
   const hints = { kurz: 'bis 15 Min.', mittel: '15–30 Min.', aufwendig: 'über 30 Min. oder aufwendig' };
   return `<header class="top col"><a class="back" href="#/woche">‹ Woche</a><h1>Rezepte</h1></header>
     <section class="card filters">
-      <div class="seg">${TIME_FILTERS.map(([v, l]) => `<button class="pill ${tf === v ? 'on' : ''}" data-action="rfilter-time" data-val="${v}">${l}</button>`).join('')}</div>
+      <div class="flt-label">Zeit</div>
+      <div class="chips cats">${TIME_FILTERS.map(([v, l]) => `<button class="chip ${tf === v ? 'on' : ''}" data-action="rfilter-time" data-val="${v}">${l}</button>`).join('')}</div>
       ${tf !== 'all' ? `<p class="hint">${hints[tf]}</p>` : ''}
+      <div class="flt-label">Kategorie</div>
       <div class="chips cats">
-        <button class="chip ${!cf ? 'on' : ''}" data-action="rfilter-cat" data-val="">Alle Kategorien</button>
-        ${S.cats.names.map((n) => `<button class="chip ${cf === n ? 'on' : ''}" data-action="rfilter-cat" data-val="${e(n)}">${e(n)} <small>${Object.values(S.cats.map).filter((c) => c.includes(n)).length}</small></button>`).join('')}
+        <button class="chip ${!cf ? 'on' : ''}" data-action="rfilter-cat" data-val="">Alle</button>
+        ${S.cats.names.map((n) => `<button class="chip ${cf === n ? 'on' : ''}" data-action="rfilter-cat" data-val="${e(n)}">${e(n)} <small>${S.recipes.filter((r) => r.type !== 'addon' && catsOf(r.id).includes(n)).length}</small></button>`).join('')}
         <button class="chip add" data-action="cat-new">+ Kategorie</button>
       </div>
       ${cf ? `<button class="link danger small" data-action="cat-delete" data-val="${e(cf)}">Kategorie „${e(cf)}“ löschen</button>` : ''}
@@ -735,7 +818,7 @@ function viewRecipes() {
             const w = fbw[r.id]?.weight;
             const tag = r.source === 'ki' ? ' · ✨ KI' : isFresh(r) ? ' · ✨ neu' : r.source === 'eigen' ? ' · eigenes' : '';
             const m = macrosOf(r.ingredients.filter((l) => !l.opt || S.settings[l.opt]));
-            return `<li class="rl"><span class="mtile slot-${r.type === 'breakfast' ? 'fruehstueck' : 'abend'}">${recipeEmoji(r)}</span><a href="#/rezept/${r.id}"><span class="rl-n">${e(r.name)}</span><small>${r.time} Min. · ${dishesText(r.dishes)}${w > 1.15 ? ' · 👍' : w < 0.85 ? ' · 👎' : ''}${r.season ? ' · saisonal' : ''}${tag}</small>
+            return `<li><a href="#/rezept/${r.id}"><span>${e(r.name)}</span><small>${r.time} Min. · ${dishesText(r.dishes)}${w > 1.15 ? ' · 👍' : w < 0.85 ? ' · 👎' : ''}${r.season ? ' · saisonal' : ''}${tag}</small>
               <span class="macros"><b>${num(m.kcal)} kcal</b><span>${g_(m.p)} Protein</span><span>${g_(m.c)} Kohlenhydrate</span><span>${g_(m.f)} Fett</span></span>
               ${catsOf(r.id).length ? `<span class="rcats">${catsOf(r.id).map((c) => `<i>${e(c)}</i>`).join('')}</span>` : ''}</a></li>`;
           })
@@ -923,19 +1006,6 @@ function viewCooking(key) {
 
 // --- Einkaufsliste -----------------------------------------------------------
 
-const CAT_ICON = {
-  'Obst & Gemüse': '🥦',
-  'Brot & Backwaren': '🥖',
-  Kühlregal: '🧀',
-  'Fleisch & Fisch': '🥩',
-  Tiefkühl: '❄️',
-  'Nudeln, Reis & Getreide': '🍝',
-  'Konserven & Gläser': '🥫',
-  'Nüsse & Samen': '🥜',
-  'Süßes & Backen': '🍫',
-  'Vorrat: Öle & Gewürze': '🧂',
-};
-
 /** Kurze Rezeptnamen, damit die Einkaufsliste kompakt bleibt */
 const useLinks = (refs) => refs.map((u) => `<a href="#/rezept/${u.id}">${e(shortName(recipe(u.id) || u.name))}</a>`).join(' · ');
 
@@ -974,11 +1044,11 @@ function viewShopping() {
     .map((st) => {
       const list = toBuy.filter((i) => i.store === st);
       const total = list.reduce((a, i) => a + i.cost, 0);
-      return `<section class="card"><h2 class="store-h"><span class="store-dot">${e((STORES[st]?.short || st).slice(0, 1))}</span>${e(STORES[st]?.short || st)}<span class="store-sum">${euro(total)}</span></h2>
+      return `<section class="card"><h2>${e(STORES[st]?.short || st)} ${euro(total)}</h2>
         ${cats
           .map((c) => {
             const rows = list.filter((i) => i.cat === c).map(itemRow).join('');
-            return rows ? `<h3><span>${CAT_ICON[c] || '•'}</span>${e(c)}</h3><ul class="shop">${rows}</ul>` : '';
+            return rows ? `<h3>${e(c)}</h3><ul class="shop">${rows}</ul>` : '';
           })
           .join('')}</section>`;
     })
@@ -991,10 +1061,8 @@ function viewShopping() {
         <div><b data-count="s-open" data-to="${openCost}" data-fmt="euro">${euro(openCost)}</b><span>noch offen</span></div>
         <div><b><i data-count="s-done" data-to="${toBuy.filter((i) => checks[i.id]).length}" data-fmt="int">${toBuy.filter((i) => checks[i.id]).length}</i>/${toBuy.length}</b><span>erledigt</span></div>
       </div>
-      <div class="sprog"><i style="width:${toBuy.length ? ((toBuy.filter((i) => checks[i.id]).length / toBuy.length) * 100).toFixed(1) : 0}%"></i></div>
     </section>
-    ${toBuy.length && toBuy.every((i) => checks[i.id]) ? `<section class="card all-done"><span>🎉</span><div><b>Alles im Korb!</b><p class="sub">Gut gemacht – die Woche kann kommen.</p></div></section>` : ''}
-    ${staples ? `<section class="card">${H2('🫙', 'Vorrat prüfen')}<ul class="shop">${staples}</ul></section>` : ''}
+    ${staples ? `<section class="card"><h2>Vorrat prüfen</h2><ul class="shop">${staples}</ul></section>` : ''}
     ${storeBlocks}`;
 }
 
@@ -1201,11 +1269,11 @@ function viewReview(weekArg) {
   const guesses = leftoverGuesses(draft);
   const guessIds = new Set(guesses.map((x) => x.id));
   const planningCards = `
-    <section class="card">${H2('🍴', 'Wann isst du auswärts?')}
+    <section class="card"><h2>Wann isst du auswärts?</h2>
       <p class="sub">Tippe die Tage an (KW ${isoWeek(draft.week)}). Sie werden mit ca. ${num(S.settings.eatOutKcal)} kcal eingerechnet; an diesen Tagen wird entsprechend weniger gekocht. Den Standard änderst du in den Einstellungen.</p>
       ${dayPills(draft.days, 'draft-day')}
     </section>
-    <section class="card">${H2('🧺', 'Was ist übrig geblieben?')}
+    <section class="card"><h2>Was ist übrig geblieben?</h2>
       <p class="sub">Trag ein, was noch da ist – Mise plant es in der nächsten Woche ein.</p>
       ${
         draft.items.length
@@ -1287,7 +1355,7 @@ function viewReview(weekArg) {
     ${trendCard(ws)}
     ${weekPager(ws, maxWeek)}
     ${hints.length ? `<section class="card tip">${hints.map((h) => `<p>💡 ${e(h)}</p>`).join('')}</section>` : ''}
-    <section class="card">${H2('🙂', 'Wie war die Woche?')}
+    <section class="card"><h2>Wie war die Woche?</h2>
       ${scale('satiety', 'Sättigung (1 = hungrig, 5 = sehr satt)')}
       ${scale('energy', 'Energie (1 = schlapp, 5 = top)')}
       <div class="grid2">
@@ -1359,7 +1427,7 @@ function viewSettings() {
   };
   return `<header class="top"><h1>Einstellungen</h1></header>
 
-  <section class="card accent">${H2('🎯', 'Tagesziele')}
+  <section class="card accent"><h2>Tagesziele</h2>
     <div class="grid2">
       ${field('goals.kcal', 'Kalorien (kcal)', 'step="50"')}
       ${field('goals.protein', 'Protein (g)', 'step="5"')}
@@ -1370,17 +1438,17 @@ function viewSettings() {
     ${!pl.ok && pl.suggestedCarbs > 0 ? `<button class="btn small pill" data-action="fix-carbs" data-val="${pl.suggestedCarbs}">Kohlenhydrate auf ${pl.suggestedCarbs} g setzen</button>` : ''}
   </section>
 
-  <section class="card">${H2('🎛️', 'Feineinstellungen')}
+  <section class="card"><h2>Feineinstellungen</h2>
     <div class="field">Zubereitung${seg(PREP, 'simple')}</div>
     <div class="field">Abwasch${seg(DISHES, 'dishes')}</div>
   </section>
 
-  <section class="card">${H2('🍴', 'Wann isst du auswärts?')}
+  <section class="card"><h2>Wann isst du auswärts?</h2>
     <p class="sub">Tippe die Tage an. Sie werden mit ca. ${num(st.eatOutKcal)} kcal eingerechnet; an diesen Tagen wird entsprechend weniger gekocht. Du kannst das im Rückblick für jede Woche ändern.</p>
     ${dayPills(eatOutDays(st.eatOut), 'eatout-day')}
   </section>
 
-  <section class="card">${H2('🛒', 'Einkauf')}
+  <section class="card"><h2>Einkauf</h2>
     ${STORE_IDS.map((id) => `<label class="row"><input type="checkbox" data-set="stores.${id}" ${st.stores[id] ? 'checked' : ''}> ${e(id === 'edeka' ? 'Edeka No1 Center Schloßstraße (Berlin)' : STORES[id].name)}</label>`).join('')}
     <label class="field">Hauptladen<select data-set="mainStore">${STORE_IDS
       .map((id) => `<option value="${id}" ${st.mainStore === id ? 'selected' : ''}>${e(STORES[id].short)}</option>`)
@@ -1389,7 +1457,7 @@ function viewSettings() {
     ${field('budget', 'Wochenbudget (€)', 'step="1"')}
   </section>
 
-  <section class="card">${H2('🍽️', 'Gerichte')}
+  <section class="card"><h2>Gerichte</h2>
     ${field('complexPerWeek', 'Aufwendige Gerichte pro Woche', 'min="0" max="3"')}
     <div class="field">Abneigungen (werden nicht eingeplant)
       <div class="chips">${st.dislikes.map((d, i) => `<span class="chip soft">${e(d)} <button data-action="del-dislike" data-i="${i}" aria-label="entfernen">×</button></span>`).join('')}</div>
@@ -1397,20 +1465,20 @@ function viewSettings() {
     </div>
   </section>
 
-  <section class="card">${H2('🎨', 'Darstellung')}
+  <section class="card"><h2>Darstellung</h2>
     <label class="field">Design<select data-set="theme"><option value="auto" ${!st.theme || st.theme === 'auto' ? 'selected' : ''}>Automatisch</option><option value="dark" ${st.theme === 'dark' ? 'selected' : ''}>Dunkel</option><option value="light" ${st.theme === 'light' ? 'selected' : ''}>Hell</option></select></label>
     <label class="field">Dein Name (für die Begrüßung)<input type="text" autocomplete="given-name" data-set="name" value="${e(st.name || '')}" placeholder="z. B. Michael"></label>
     ${field('planHour', 'Neuer Plan montags ab (Uhr)', 'min="0" max="23"')}
     <label class="row"><input type="checkbox" data-set="sounds" ${st.sounds !== false ? 'checked' : ''}> Töne (nur wenn das iPhone nicht lautlos ist)</label>
   </section>
 
-  <section class="card">${H2('✨', 'KI-Rezepte <span class="sub">(optional, kostenpflichtig)</span>')}
+  <section class="card"><h2>KI-Rezepte <span class="sub">(optional, kostenpflichtig)</span></h2>
     <p class="sub">Mit einem eigenen Claude-API-Schlüssel erfindet Mise neue Gerichte: jeden Montag eines für deinen Plan, bei ↻ in der Woche und wenn du unter „Rezepte“ nur einen Titel einträgst. Kosten: ca. 3–5 Cent pro Rezept auf deinem Anthropic-Konto. Der Schlüssel bleibt nur auf diesem Gerät.</p>
     <label class="field">API-Schlüssel<input type="password" autocomplete="off" placeholder="sk-ant-…" data-set="aiKey" value="${e(st.aiKey || '')}"></label>
     <p class="hint">${st.aiKey ? '✓ KI-Rezepte sind aktiv.' : 'Ohne Schlüssel schlägt Mise nur Rezepte aus der Sammlung vor.'} Schlüssel erstellen: console.anthropic.com → API Keys.</p>
   </section>
 
-  <section class="card">${H2('💾', 'Datensicherung')}
+  <section class="card"><h2>Datensicherung</h2>
     <p class="sub">Alle Daten liegen nur auf diesem Gerät. Exportiere ab und zu eine Sicherung (z. B. in iCloud Drive).</p>
     <div class="grid2"><button class="btn" data-action="export">Exportieren</button>
     <label class="btn">Importieren<input type="file" accept="application/json,.json" id="import-file" hidden></label></div>
@@ -1472,20 +1540,40 @@ async function onClick(ev) {
   const a = el.dataset.action;
   const plan = displayedPlan();
   switch (a) {
-    case 'jump-day': {
-      const d = Number(el.dataset.day);
-      S.ui.openDays[d] = true;
-      render();
-      const card = document.querySelector(`.day[data-day="${d}"]`);
-      if (card) window.scrollTo({ top: card.getBoundingClientRect().top + scrollY - 12, behavior: reducedMotion() ? 'auto' : 'smooth' });
-      return;
-    }
     case 'mep': {
       S.ui.mep ||= {};
       const on = (S.ui.mep[el.dataset.k] = !S.ui.mep[el.dataset.k]);
       el.classList.toggle('on', on);
       if (on) sound.check();
       return;
+    }
+    case 'sport-open':
+      S.ui.sport = { week: plan.weekStart, day: Number(el.dataset.day), type: S.ui.lastSport || 'laufen', level: 1, min: 45 };
+      return render();
+    case 'sport-level':
+      S.ui.sport.level = Number(el.dataset.val);
+      return render();
+    case 'sport-cancel':
+      S.ui.sport = null;
+      return render();
+    case 'sport-add': {
+      const f = S.ui.sport;
+      if (!f || !(f.min > 0)) return toast('Bitte eine Dauer eintragen', { icon: '⏱️', kind: 'warn' });
+      const kcal = sportKcal(f.type, f.level, f.min, currentKg());
+      saveSport(plan, (sp) => (sp[f.day] ||= []).push({ type: f.type, level: f.level, min: f.min, kcal }));
+      S.ui.lastSport = f.type;
+      S.ui.sport = null;
+      sound.check();
+      toast(`+${num(kcal)} kcal am ${DAY_NAMES[f.day]}`, { icon: sportById(f.type).icon, sub: 'Kalorienziel und Portionen angepasst' });
+      return render();
+    }
+    case 'sport-del': {
+      const d = Number(el.dataset.day);
+      saveSport(plan, (sp) => {
+        sp[d].splice(Number(el.dataset.i), 1);
+        if (!sp[d].length) delete sp[d];
+      });
+      return render();
     }
     case 'rfilter-time':
       S.ui.rTime = el.dataset.val;
@@ -1506,6 +1594,7 @@ async function onClick(ev) {
       const name = el.dataset.val;
       if (!confirm(`Kategorie „${name}“ löschen? Die Rezepte selbst bleiben erhalten.`)) return;
       S.cats.names = S.cats.names.filter((n) => n !== name);
+      if (AUTO_CATS[name]) S.cats.removed = [...new Set([...(S.cats.removed || []), name])];
       for (const id of Object.keys(S.cats.map)) {
         S.cats.map[id] = S.cats.map[id].filter((n) => n !== name);
         if (!S.cats.map[id].length) delete S.cats.map[id];
@@ -1516,9 +1605,17 @@ async function onClick(ev) {
     }
     case 'rcat-toggle': {
       const { id, val } = el.dataset;
-      const cur = catsOf(id);
-      S.cats.map[id] = cur.includes(val) ? cur.filter((n) => n !== val) : [...cur, val];
-      if (!S.cats.map[id].length) delete S.cats.map[id];
+      const has = catsOf(id).includes(val);
+      const manual = S.cats.map[id] || [];
+      const off = S.cats.off?.[id] || [];
+      if (has) {
+        S.cats.map[id] = manual.filter((n) => n !== val);
+        // automatische Kategorie abwählen
+        if (autoCats(recipe(id)).includes(val)) (S.cats.off ||= {})[id] = [...new Set([...off, val])];
+      } else if (off.includes(val)) S.cats.off[id] = off.filter((n) => n !== val);
+      else S.cats.map[id] = [...manual, val];
+      if (!S.cats.map[id]?.length) delete S.cats.map[id];
+      if (S.cats.off && !S.cats.off[id]?.length) delete S.cats.off[id];
       saveCats();
       return render();
     }
@@ -1786,6 +1883,12 @@ function onChange(ev) {
     render();
     return;
   }
+  if (el.dataset.sport && S.ui.sport) {
+    // Dauer wird schon beim Tippen übernommen – kein Neuzeichnen, sonst geht der Tipp auf „Eintragen“ verloren
+    if (el.dataset.sport === 'min') return;
+    S.ui.sport[el.dataset.sport] = el.value;
+    return render();
+  }
   if (el.dataset.pantryG !== undefined) {
     nextDraft().items[Number(el.dataset.pantryG)].g = Number(el.value);
     saveNext();
@@ -1844,6 +1947,13 @@ function onInput(ev) {
       again?.focus();
       again?.setSelectionRange?.(pos, pos);
     }, 250);
+    return;
+  }
+  if (el.dataset.sport === 'min' && S.ui.sport) {
+    // Vorschau live aktualisieren, ohne das Feld neu zu zeichnen
+    S.ui.sport.min = Number(el.value);
+    const b = document.querySelector('.sport-kcal b');
+    if (b) b.textContent = `+${num(sportKcal(S.ui.sport.type, S.ui.sport.level, S.ui.sport.min, currentKg()))} kcal`;
     return;
   }
   if (el.dataset.newTitle) {
