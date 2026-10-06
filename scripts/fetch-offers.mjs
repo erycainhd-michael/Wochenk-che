@@ -86,6 +86,7 @@ export function mapOffers(raw, store, ingredients) {
 async function fetchEdeka(marketId) {
   const urls = [
     `https://www.edeka.de/api/offers?limit=999&marketId=${encodeURIComponent(marketId)}`,
+    `https://www.edeka.de/eh/service/eh/offers?marketId=${encodeURIComponent(marketId)}&limit=999&rows=999&size=999`,
     `https://www.edeka.de/eh/service/eh/offers?marketId=${encodeURIComponent(marketId)}`,
   ];
   let lastErr;
@@ -93,6 +94,7 @@ async function fetchEdeka(marketId) {
     try {
       const json = await getJSON(u);
       const raw = normalizeEdeka(json);
+      console.log(`${u.split('?')[0]}: ${raw.length} Angebote${json?.anzahl ? ` (laut Edeka insgesamt ${json.anzahl})` : ''}`);
       if (raw.length) return raw;
       // Diagnose: Struktur der Antwort ausgeben (öffentliche Angebotsdaten)
       console.log('Antwort von', u.split('?')[0], '– Schlüssel:', Object.keys(json || {}).join(', '));
