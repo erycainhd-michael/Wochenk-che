@@ -50,15 +50,41 @@ export function roundAmount(ing, g) {
 }
 
 /** Zutaten eines Rezepts für einen Portionsfaktor */
-export function recipeItems(recipe, factor, settings, idx) {
+// Bausteine eines Gerichts, die der Planer getrennt anpassen darf (z. B. mehr Reis, etwas weniger Hähnchen)
+const STARCH_CATS = new Set(['Nudeln, Reis & Getreide', 'Brot & Backwaren']);
+const STARCH_IDS = new Set(['kartoffeln', 'suesskartoffel', 'gnocchi', 'roesti_tk', 'pizzateig', 'flammkuchenteig']);
+/** 's' = Sättigungsbeilage (Kohlenhydrate), 'q' = magere Proteinquelle, 'r' = Rest */
+export function partOf(ing) {
+  if (!ing || ing.staple || ing.id === 'linsen_rot') return 'r';
+  if (STARCH_CATS.has(ing.cat) || STARCH_IDS.has(ing.id)) return 's';
+  if (ing.protein && ing.p >= 10 && ing.f <= 12) return 'q';
+  return 'r';
+}
+
+/** mix = { s, q }: Faktoren für Beilage und Proteinquelle (1 = wie im Rezept) */
+export function recipeItems(recipe, factor, settings, idx, mix = null) {
   const out = [];
   for (const line of recipe.ingredients) {
     if (line.opt && !settings?.[line.opt]) continue;
     const ing = idx.get(line.id);
     if (!ing) continue;
-    out.push({ id: line.id, g: roundAmount(ing, line.g * factor), note: line.note });
+    const part = mix ? partOf(ing) : 'r';
+    const m = part === 's' ? mix.s : part === 'q' ? mix.q : 1;
+    out.push({ id: line.id, g: roundAmount(ing, line.g * factor * m), note: line.note });
   }
   return out;
+}
+
+/** Makros eines Rezepts (Faktor 1) getrennt nach Baustein */
+export function recipeParts(recipe, idx, settings) {
+  const parts = { s: [], q: [], r: [] };
+  for (const line of recipe.ingredients) {
+    if (line.opt && !settings?.[line.opt]) continue;
+    const ing = idx.get(line.id);
+    if (!ing) continue;
+    parts[partOf(ing)].push({ id: line.id, g: line.g });
+  }
+  return { s: itemsMacros(parts.s, idx), q: itemsMacros(parts.q, idx), r: itemsMacros(parts.r, idx) };
 }
 
 export function recipeMacros(recipe, idx, settings, factor = 1) {
