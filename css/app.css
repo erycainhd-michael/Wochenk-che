@@ -91,9 +91,9 @@ small, .sub { color: var(--muted); font-size: 0.85rem; }
 .view {
   max-width: 680px;
   margin: 0 auto;
-  padding: calc(env(safe-area-inset-top) + 16px) 16px calc(env(safe-area-inset-bottom) + 110px);
+  padding: calc(env(safe-area-inset-top) + 16px) 16px calc(env(safe-area-inset-bottom) + 96px);
 }
-body.has-timers .view { padding-bottom: calc(env(safe-area-inset-bottom) + 190px); }
+body.has-timers .view { padding-bottom: calc(env(safe-area-inset-bottom) + 176px); }
 
 .top { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 8px 0 14px; min-height: 44px; }
 .top.col { flex-direction: column; align-items: flex-start; gap: 6px; }
@@ -158,7 +158,7 @@ body.has-timers .view { padding-bottom: calc(env(safe-area-inset-bottom) + 190px
 .day-head { width: 100%; display: flex; flex-direction: column; gap: 2px; padding: 0; background: none; border: 0; color: inherit; font: inherit; text-align: left; cursor: pointer; }
 .meals { list-style: none; margin: 12px 0 0; padding: 0; border-top: 1px solid var(--line); }
 .meal { display: flex; align-items: center; gap: 10px; padding: 12px 0; border-bottom: 1px solid var(--line); }
-.meal .mt { flex: 1; min-width: 0; }
+.meal .mt { flex: 1; min-width: 0; color: inherit; }
 .meal .ml { font-size: 0.85rem; color: var(--muted); }
 .meal .mn { font-weight: 600; font-size: 1.05rem; line-height: 1.3; }
 .meal .mm { font-size: 0.85rem; color: var(--muted); }
@@ -270,7 +270,8 @@ input[type='checkbox']:checked::after { content: '✓'; color: var(--accent-text
 /* Schwebende Tab-Leiste, nur Symbole */
 .tabbar {
   position: fixed; left: 16px; right: 16px; z-index: 20;
-  bottom: calc(env(safe-area-inset-bottom) + 10px);
+  /* tief unten wie bei nativen Apps: halb im Bereich des Home-Indikators */
+  bottom: max(8px, calc(env(safe-area-inset-bottom) - 14px));
   max-width: 648px; margin: 0 auto;
   display: grid; grid-template-columns: repeat(4, 1fr);
   background: var(--card); border: 1px solid var(--line); border-radius: 999px; box-shadow: var(--shadow);
@@ -280,7 +281,7 @@ input[type='checkbox']:checked::after { content: '✓'; color: var(--accent-text
 
 #timer-dock {
   position: fixed; left: 16px; right: 16px; z-index: 19; max-width: 648px; margin: 0 auto;
-  bottom: calc(env(safe-area-inset-bottom) + 84px);
+  bottom: calc(max(8px, calc(env(safe-area-inset-bottom) - 14px)) + 74px);
   display: flex; flex-direction: column; gap: 8px;
 }
 .timer {
@@ -301,3 +302,27 @@ input[type='checkbox']:checked::after { content: '✓'; color: var(--accent-text
 }
 .toast.show { opacity: 1; transform: translate(-50%, 0); }
 details summary { cursor: pointer; min-height: 28px; }
+
+/* Rezept: Kopf mit „Ändern“ */
+.card-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.badge.new { background: #fef3c7; color: #92400e; }
+.hint { font-size: 0.8rem; color: var(--muted); margin: 4px 0 8px; }
+.list-btn { width: 100%; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; background: none; border: 0; color: inherit; font: inherit; text-align: left; padding: 2px 0; cursor: pointer; }
+.list-btn small { color: var(--muted); }
+
+/* Rezept-Editor */
+textarea { font: inherit; color: var(--text); background: var(--field); border: 1px solid transparent; border-radius: 16px; padding: 10px 14px; width: 100%; resize: vertical; }
+.edit-list { list-style: none; margin: 0 0 10px; padding: 0; }
+.edit-list li { display: flex; align-items: center; gap: 8px; padding: 6px 0; }
+.edit-list select { flex: 1; min-width: 0; }
+.edit-steps { padding-left: 1.3rem; margin: 0 0 10px; }
+.edit-steps li { margin-bottom: 14px; }
+.step-meta { display: flex; align-items: center; gap: 8px; margin-top: 6px; }
+.step-meta input:not([type='number']) { flex: 1; min-width: 0; }
+.step-meta .qty input { width: 70px; }
+
+/* KI arbeitet */
+#busy { position: fixed; inset: 0; z-index: 60; background: rgba(0, 0, 0, 0.35); display: grid; place-items: center; padding: 24px; }
+.busy-box { background: var(--card); border-radius: var(--radius); padding: 24px; text-align: center; max-width: 320px; box-shadow: var(--shadow); }
+.spinner { width: 36px; height: 36px; margin: 0 auto 10px; border-radius: 50%; border: 4px solid var(--line); border-top-color: var(--accent); animation: spin 0.9s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }

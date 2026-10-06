@@ -17,11 +17,13 @@ export const DEFAULT_SETTINGS = {
   eatOutProtein: 35,
   complexPerWeek: 1,
   dislikes: ['gekochter Kohlrabi', 'gekochte Möhren', 'Sellerie', 'klassische gekochte Bohnen'],
-  // Ballaststoffe in g/Tag: Start, Steigerung pro Woche, Obergrenze
-  fiber: { start: 28, step: 2, max: 40 },
+  // Ballaststoffe: ausgewogenes Tagesziel in g
+  fiber: { target: 32 },
   psyllium: false,
   proteinPowder: true,
   planHour: 8,
+  // Optional: eigener Claude-API-Schlüssel für KI-Rezepte (bleibt nur auf diesem Gerät)
+  aiKey: '',
 };
 
 export function mergeSettings(saved) {
@@ -37,7 +39,6 @@ export function mergeSettings(saved) {
   return s;
 }
 
-export function fiberTargetFor(settings, weekNo) {
-  const f = settings.fiber;
-  return Math.min(f.max, f.start + f.step * Math.max(0, weekNo));
+export function fiberTargetFor(settings) {
+  return settings.fiber?.target || 32;
 }

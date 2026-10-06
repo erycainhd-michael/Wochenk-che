@@ -12,12 +12,13 @@ export function buildShopping({ plan, idx, pantry = {}, priceOf, recipesById }) 
   for (const day of plan.days) {
     for (const meal of day.meals) {
       if (!meal.items) continue;
-      const rname = recipesById?.get(meal.recipeId)?.name || meal.recipeId;
       for (const it of meal.items) {
+        const rid = it.addon || meal.recipeId;
+        const rname = recipesById?.get(rid)?.name || rid;
         const e = need.get(it.id) || { g: 0, uses: new Set(), useIds: new Map() };
         e.g += it.g;
         e.uses.add(rname);
-        e.useIds.set(meal.recipeId, rname);
+        e.useIds.set(rid, rname);
         need.set(it.id, e);
       }
     }

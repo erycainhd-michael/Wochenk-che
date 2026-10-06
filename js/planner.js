@@ -3,7 +3,7 @@
 // Ablauf:
 //  1. buildStructure: wählt Frühstücke und Hauptgerichte (inkl. Meal-Prep, aufwendigem Gericht,
 //     Resteverwertung, Angeboten, Vielfalt, Feedback) per gewichtetem Zufall.
-//  2. finalizePlan: wählt pro Tag Snacks und skaliert Portionen, sodass das Tagesziel ±5 % erreicht wird.
+//  2. finalizePlan: ergänzt bei Bedarf einen Proteinshake zum Frühstück und skaliert Portionen, sodass das Tagesziel ±5 % erreicht wird.
 //  3. scorePlan: bewertet den Plan nach deinen Prioritäten (Kalorien > Protein > Gemüse/Ballaststoffe >
 //     Vielfalt > Geschmack/Alltag > Feinschliff). Aus vielen Kandidaten gewinnt der beste.
 
@@ -66,9 +66,9 @@ export function prepareContext(input) {
     recipesById: new Map(recipes.map((r) => [r.id, r])),
     mains,
     breakfasts: byType('breakfast'),
-    snacks: byType('snack'),
+    addons: byType('addon'),
     avgMainCost: avg(mains, (r) => info.get(r.id).cost) || 3,
-    fiberTarget: fiberTargetFor(settings, input.weekNo || 0),
+    fiberTarget: fiberTargetFor(settings),
     pantry: input.pantry || {},
     recentRecipes: input.recentRecipes || {},
   };
@@ -164,7 +164,11 @@ export function buildStructure(ctx, rng, mode = {}) {
     let w = inf.weight;
     if (inf.tooComplex) w *= 1 / (1 + inf.tooComplex * (0.5 + simple));
     if (!isComplex) {
-      w *= 1 - 0.6 * simple * clamp((r.time - 15) / 25, 0, 1);
+      // Feineinstellungen gelten für den Großteil der Gerichte, nicht für die aufwendigen
+      const maxTime = simple >= 0.9 ? 15 : simple >= 0.5 ? 30 : 999;
+      if (r.time > maxTime) w *= 0.25;
+      w *= 1 - 0.4 * simple * clamp((r.time - 15) / 25, 0, 1);
+      if (dishes >= 0.8 && r.dishes > 2) w *= 0.4;
       w *= 1 - 0.5 * dishes * clamp((r.dishes - 1) / 2, 0, 1);
     }
     if (isLunch) w *= 1 - 0.5 * clamp((r.time - 20) / 15, 0, 1);
@@ -177,7 +181,7 @@ export function buildStructure(ctx, rng, mode = {}) {
     const ev = stock.evaluate(baseItems(r, settings));
     w *= 1 + (mode.cheap ? 4 : 2) * ev.coverage;
     w *= 1 / (1 + 0.25 * ev.waste);
-    // Ballaststoffe langsam steigern: sehr ballaststoffreiche Gerichte erst, wenn das Wochenziel es zulässt
+    // Ballaststoffe ausgewogen: sehr ballaststoffreiche Gerichte nicht gehäuft
     w *= Math.exp(-Math.max(0, inf.macros.fib - ctx.fiberTarget * 0.38) / 4);
     // Abwechslung über Wochen: kürzlich gekochte Gerichte seltener (außer mit „nochmal“-Feedback)
     const ago = ctx.recentRecipes[r.id];
@@ -248,16 +252,12 @@ function eatOutMacros(settings) {
   return { kcal, p, c: (rest * 0.55) / 4, f: (rest * 0.45) / 9, fib: 6, veg: 100 };
 }
 
-function snackCombos(snacks) {
-  const combos = [[]];
-  for (let i = 0; i < snacks.length; i++) {
-    combos.push([snacks[i]]);
-    for (let j = i + 1; j < snacks.length; j++) combos.push([snacks[i], snacks[j]]);
-  }
-  return combos;
+/** Ergänzungen zum Frühstück (z. B. Proteinshake): keine oder eine */
+function addonCombos(addons) {
+  return [[], ...addons.map((a) => [a])];
 }
 
-function fitDay({ ctx, fixed, breakfast, mains, snackUsage, combos }) {
+function fitDay({ ctx, fixed, breakfast, mains, combos }) {
   const g = ctx.settings.goals;
   const B = breakfast ? ctx.info.get(breakfast).macros : null;
   const M = mains.reduce((a, id) => addMacros(a, ctx.info.get(id).macros), emptyMacros());
@@ -268,8 +268,8 @@ function fitDay({ ctx, fixed, breakfast, mains, snackUsage, combos }) {
     for (const s of combo) {
       const inf = ctx.info.get(s.id);
       S = addMacros(S, inf.macros);
-      pref += 0.08 * (1 - Math.min(inf.weight, 1.5)) + 0.08 * Math.max(0, (snackUsage[s.id] || 0) - 1) + 0.03 * inf.cost;
-      if (s.effort > 1) pref += 0.05 + 0.25 * (snackUsage[s.id] || 0);
+      // Proteinpulver nur, wenn es wirklich hilft – Ergänzung, keine Grundlage
+      pref += 0.04 + 0.03 * inf.cost;
     }
     const R = g.kcal - fixed.kcal - S.kcal;
     let fb = 1;
@@ -292,7 +292,7 @@ function fitDay({ ctx, fixed, breakfast, mains, snackUsage, combos }) {
     const fErr = Math.abs(T.f - g.fat) / g.fat;
     const fibOver = Math.max(0, T.fib - ctx.fiberTarget - 3) / ctx.fiberTarget;
     const cost = 5 * Math.max(0, kErr - 0.03) + kErr + 4 * pShort + 3 * pOver + 0.6 * cErr + 0.6 * fErr + 3 * fibOver + 0.03 * combo.length + pref;
-    if (!best || cost < best.cost) best = { cost, fb, fm, snacks: combo.map((s) => s.id) };
+    if (!best || cost < best.cost) best = { cost, fb, fm, addons: combo.map((s) => s.id) };
   }
   return best;
 }
@@ -347,8 +347,7 @@ export function finalizePlan(structure, ctx) {
   const eo = eatOutMacros(settings);
   const slotCook = new Map();
   for (const c of structure.cooks) for (const p of c.portions) slotCook.set(p, c);
-  const combos = snackCombos(ctx.snacks);
-  const snackUsage = {};
+  const addonCombosAll = addonCombos(ctx.addons);
 
   const days = [];
   for (let d = 0; d < 7; d++) {
@@ -356,8 +355,7 @@ export function finalizePlan(structure, ctx) {
     for (const slot of ['fruehstueck', ...MAIN_SLOTS]) if (eatOut.has(slotKey(d, slot))) fixed = addMacros(fixed, eo);
     const breakfast = structure.breakfasts[d];
     const mains = MAIN_SLOTS.map((s) => slotCook.get(slotKey(d, s))?.recipeId).filter(Boolean);
-    const fit = fitDay({ ctx, fixed, breakfast, mains, snackUsage, combos });
-    fit.snacks.forEach((s) => (snackUsage[s] = (snackUsage[s] || 0) + 1));
+    const fit = fitDay({ ctx, fixed, breakfast, mains, combos: breakfast ? addonCombosAll : [[]] });
 
     const meals = [];
     const mk = (slot, recipeId, factor, extra = {}) => {
@@ -370,7 +368,17 @@ export function finalizePlan(structure, ctx) {
     const eatOutMeal = (slot) => ({ key: slotKey(d, slot), slot, kind: 'eatout', macros: { ...eo }, cost: 0 });
 
     if (eatOut.has(slotKey(d, 'fruehstueck'))) meals.push(eatOutMeal('fruehstueck'));
-    else if (breakfast) meals.push(mk('fruehstueck', breakfast, fit.fb));
+    else if (breakfast) {
+      const m = mk('fruehstueck', breakfast, fit.fb);
+      for (const a of fit.addons) {
+        const items = recipeItems(ctx.recipesById.get(a), 1, settings, idx);
+        m.items = [...m.items, ...items.map((it) => ({ ...it, addon: a }))];
+        m.macros = addMacros(m.macros, itemsMacros(items, idx));
+        m.cost += itemsCost(items, idx, ctx.priceOf).cost;
+        (m.addons ||= []).push(a);
+      }
+      meals.push(m);
+    }
     for (const slot of MAIN_SLOTS) {
       const key = slotKey(d, slot);
       if (eatOut.has(key)) meals.push(eatOutMeal(slot));
@@ -379,7 +387,6 @@ export function finalizePlan(structure, ctx) {
         if (c) meals.push(mk(slot, c.recipeId, fit.fm, { cookId: c.id, leftover: c.portions[0] !== key }));
       }
     }
-    fit.snacks.forEach((s, i) => meals.push({ ...mk('snack', s, 1), key: `${d}-snack${i}` }));
 
     const totals = meals.reduce((a, m) => addMacros(a, m.macros), emptyMacros());
     days.push({
@@ -595,7 +602,7 @@ export function setEatOut(plan, mealKey, on, input) {
 }
 
 /** Ersetzt ein Gericht (Hauptgericht-Kochvorgang oder Frühstück) und berechnet den Plan neu. */
-export function swapMeal(plan, mealKey, input) {
+export function swapMeal(plan, mealKey, input, chosenId = null) {
   const ctx = prepareContext({ ...input, pantry: plan.pantryUsed || input.pantry, weekNo: plan.weekNo });
   const structure = structuredClone(plan.structure);
   const rng = mulberry32((Date.now() & 0xffff) + mealKey.length);
@@ -604,8 +611,9 @@ export function swapMeal(plan, mealKey, input) {
   if (slot === 'fruehstueck') {
     const current = structure.breakfasts[d];
     const pool = ctx.breakfasts.filter((r) => r.id !== current);
-    if (!pool.length) return plan;
-    structure.breakfasts[d] = pickWeighted(pool, pool.map((r) => ctx.info.get(r.id).weight), rng).id;
+    if (chosenId) structure.breakfasts[d] = chosenId;
+    else if (!pool.length) return plan;
+    else structure.breakfasts[d] = pickWeighted(pool, pool.map((r) => ctx.info.get(r.id).weight), rng).id;
   } else {
     const cook = structure.cooks.find((c) => c.portions.includes(mealKey));
     if (!cook) return plan;
@@ -613,8 +621,9 @@ export function swapMeal(plan, mealKey, input) {
     const usedIds = new Set(structure.cooks.map((c) => c.recipeId));
     let pool = ctx.mains.filter((r) => !usedIds.has(r.id) && (old.effort === 3 ? r.effort === 3 : r.effort < 3) && (cook.portions.length === 1 || r.mealPrep));
     if (!pool.length) pool = ctx.mains.filter((r) => r.id !== old.id && (cook.portions.length === 1 || r.mealPrep));
-    if (!pool.length) return plan;
-    cook.recipeId = pickWeighted(pool, pool.map((r) => Math.pow(ctx.info.get(r.id).weight, 1.5)), rng).id;
+    if (chosenId) cook.recipeId = chosenId;
+    else if (!pool.length) return plan;
+    else cook.recipeId = pickWeighted(pool, pool.map((r) => Math.pow(ctx.info.get(r.id).weight, 1.5)), rng).id;
   }
   const next = finalizePlan(structure, ctx);
   next.seed = plan.seed;
@@ -645,7 +654,7 @@ export function evaluatePlan(plan, ctx) {
     text:
       st.daysInRange >= 6
         ? `Ziel ${num(g.kcal)} kcal – ${st.daysInRange} von 7 Tagen liegen im Bereich ±5 %. Genug Energie für Muskelaufbau.`
-        : `${st.daysInRange} von 7 Tagen liegen im Bereich ±5 %. An den anderen Tagen hilft ein zusätzlicher Snack (z. B. Banane mit Erdnussmus oder ein Quark-Shake).`,
+        : `${st.daysInRange} von 7 Tagen liegen im Bereich ±5 %. An den anderen Tagen hilft eine etwas größere Portion oder eine Banane mit Erdnussmus zwischendurch.`,
   });
 
   // 2. Protein
@@ -654,7 +663,7 @@ export function evaluatePlan(plan, ctx) {
     level: st.pRatio >= 0.97 ? 'ok' : 'hint',
     title: `Protein: Ø ${num(avgP)} g/Tag`,
     text:
-      (st.pRatio >= 0.97 ? `Ziel ${g.protein} g erreicht. ` : `Etwas unter dem Ziel von ${g.protein} g – ein Skyr- oder Hüttenkäse-Snack gleicht das leicht aus. `) +
+      (st.pRatio >= 0.97 ? `Ziel ${g.protein} g erreicht. ` : `Etwas unter dem Ziel von ${g.protein} g – ein Proteinshake oder Skyr zum Frühstück gleicht das leicht aus. `) +
       (lowMeals.length ? `Mahlzeiten mit weniger als 25 g: ${lowMeals.slice(0, 3).join(', ')}${lowMeals.length > 3 ? ' …' : ''}.` : 'Jede Hauptmahlzeit hat mindestens 25 g – gut über den Tag verteilt.'),
   });
 
@@ -663,9 +672,9 @@ export function evaluatePlan(plan, ctx) {
     level: st.veg >= 380 && Math.abs(st.fib - st.fiberTarget) <= 6 ? 'ok' : 'hint',
     title: `Gemüse & Obst: Ø ${num(st.veg)} g/Tag · Ballaststoffe Ø ${num(st.fib)} g`,
     text:
-      (st.veg >= 380 ? 'Gute Menge an Gemüse und Obst. ' : 'Ergänzen lässt sich leicht: eine Handvoll Cherrytomaten zum Abendessen oder ein Apfel als Snack. ') +
-      `Ballaststoff-Ziel diese Woche: ${st.fiberTarget} g (steigt langsam, damit dein Bauch sich gewöhnen kann).` +
-      (st.fib > st.fiberTarget + 6 ? ' Diese Woche liegt etwas darüber – viel trinken hilft.' : ''),
+      (st.veg >= 380 ? 'Gute Menge an Gemüse und Obst. ' : 'Ergänzen lässt sich leicht: eine Handvoll Cherrytomaten zum Abendessen oder ein Apfel zum Frühstück. ') +
+      `Ballaststoffe: ausgewogen um ca. ${st.fiberTarget} g pro Tag – über die Woche verteilt, nicht gehäuft.` +
+      (st.fib > st.fiberTarget + 6 ? ' Diese Woche etwas mehr – viel trinken hilft.' : ''),
   });
 
   // 4. Vielfalt
