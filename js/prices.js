@@ -1,12 +1,35 @@
 // Preise & Angebote. Fällt immer still auf Richtpreise zurück.
 
 export const STORES = {
-  lidl: { id: 'lidl', name: 'Lidl' },
-  edeka: { id: 'edeka', name: 'Edeka No1 Center Schloßstraße' },
+  lidl: { id: 'lidl', name: 'Lidl', short: 'Lidl' },
+  aldi: { id: 'aldi', name: 'Aldi Nord', short: 'Aldi' },
+  edeka: { id: 'edeka', name: 'Edeka No1 Center Schloßstraße', short: 'Edeka' },
+  dm: { id: 'dm', name: 'dm', short: 'dm' },
+  rossmann: { id: 'rossmann', name: 'Rossmann', short: 'Rossmann' },
 };
+export const STORE_IDS = Object.keys(STORES);
 
+// Drogerien führen nur einen Teil der Lebensmittel (v. a. Trockenware, Nüsse, Bio-Basics)
+const DRUGSTORE_ITEMS = new Set([
+  'haferflocken', 'vk_pasta', 'spaghetti', 'reis', 'vk_reis', 'bulgur', 'linsen_rot', 'kichererbsen', 'kokosmilch',
+  'passierte_tomaten', 'gehackte_tomaten', 'tomatenmark', 'mandeln', 'walnuesse', 'kuerbiskerne', 'nussmix', 'erdnussmus',
+  'sesam', 'leinsamen', 'flohsamenschalen', 'proteinpulver', 'zartbitter', 'kakao', 'honig', 'olivenoel', 'rapsoel',
+  'sojasauce', 'gewuerze', 'gemuesebruehe', 'senf', 'balsamico', 'pesto', 'curry_paste', 'mais', 'thunfisch',
+]);
+// Artikel, die es in der Drogerie typischerweise günstiger gibt als im Supermarkt
+const DRUGSTORE_CHEAPER = new Set(['proteinpulver', 'flohsamenschalen', 'leinsamen']);
+
+export function sells(store, ing) {
+  if (store === 'dm' || store === 'rossmann') return DRUGSTORE_ITEMS.has(ing.id);
+  return true;
+}
+
+/** Richtpreis je Laden (Lidl = Basis; Aldi ≈ Lidl; Edeka ≈ +15 %; Drogerie ≈ +10 % bzw. günstiger bei Spezialartikeln) */
 export function regularPrice(ing, store) {
-  if (store === 'edeka') return ing.priceEdeka ?? Math.round(ing.price * 1.15 * 100) / 100;
+  const r = (x) => Math.round(x * 100) / 100;
+  if (store === 'edeka') return ing.priceEdeka ?? r(ing.price * 1.15);
+  if (store === 'aldi') return ing.priceAldi ?? ing.price;
+  if (store === 'dm' || store === 'rossmann') return r(ing.price * (DRUGSTORE_CHEAPER.has(ing.id) ? 0.9 : 1.1));
   return ing.price;
 }
 
@@ -37,7 +60,7 @@ export function mergeOffers(remote, manual) {
  * Einkauf standardmäßig im Hauptladen; Wechsel nur, wenn ein Angebot im anderen Laden ≥ 10 % spart.
  */
 export function makePriceFn({ idx, settings, offers = [], weekStart }) {
-  const subscribed = ['lidl', 'edeka'].filter((s) => settings.stores?.[s]);
+  const subscribed = STORE_IDS.filter((s) => settings.stores?.[s]);
   const stores = subscribed.length ? subscribed : ['lidl'];
   const mainStore = stores.includes(settings.mainStore) ? settings.mainStore : stores[0];
   const valid = offers.filter((o) => offerValidFor(o, weekStart) && stores.includes(o.store));
@@ -45,22 +68,20 @@ export function makePriceFn({ idx, settings, offers = [], weekStart }) {
   return function priceOf(id) {
     if (cache.has(id)) return cache.get(id);
     const ing = idx.get(id);
-    let best = null;
+    const cands = [];
     for (const store of stores) {
+      if (!sells(store, ing)) continue;
       const regular = regularPrice(ing, store);
-      const offer = valid
-        .filter((o) => o.store === store && o.ingredientId === id)
-        .sort((a, b) => a.packPrice - b.packPrice)[0];
-      const price = offer && offer.packPrice < regular ? offer.packPrice : regular;
-      const cand = { store, price, regular, offer: !!(offer && offer.packPrice < regular), offerTitle: offer?.title || '' };
-      if (!best) best = cand;
-      else {
-        const mainCand = best.store === mainStore ? best : cand;
-        const other = best.store === mainStore ? cand : best;
-        best = other.price <= mainCand.price * 0.9 ? other : mainCand;
-      }
+      const offer = valid.filter((o) => o.store === store && o.ingredientId === id).sort((a, b) => a.packPrice - b.packPrice)[0];
+      const isOffer = !!(offer && offer.packPrice < regular);
+      cands.push({ store, price: isOffer ? offer.packPrice : regular, regular, offer: isOffer, offerTitle: isOffer ? offer.title : '' });
     }
-    if (!subscribed.length) best = { ...best, store: 'lidl', offer: false };
+    // Führt kein ausgewählter Laden den Artikel (z. B. nur Drogerien gewählt): Richtpreis Supermarkt
+    if (!cands.length) cands.push({ store: 'lidl', price: ing.price, regular: ing.price, offer: false, offerTitle: '' });
+    const main = cands.find((c) => c.store === mainStore);
+    const cheapest = cands.reduce((a, b) => (b.price < a.price ? b : a));
+    // Hauptladen, außer ein anderer ausgewählter Laden ist mindestens 10 % günstiger
+    const best = main && !(cheapest.price <= main.price * 0.9) ? main : cheapest;
     cache.set(id, best);
     return best;
   };

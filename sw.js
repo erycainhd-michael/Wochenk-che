@@ -1,6 +1,6 @@
-// Service Worker: App offline verfügbar machen + Push-Nachrichten anzeigen.
+// Service Worker: App offline verfügbar machen.
 // Bei Änderungen an App-Dateien VERSION erhöhen, damit iPhones die neue Version laden.
-const VERSION = 'mf-v6';
+const VERSION = 'mf-v7';
 const SHELL = [
   './',
   './index.html',
@@ -16,7 +16,6 @@ const SHELL = [
   './js/settings.js',
   './js/storage.js',
   './js/timers.js',
-  './js/push.js',
   './js/ai.js',
   './data/ingredients.json',
   './data/recipes.json',
@@ -24,6 +23,10 @@ const SHELL = [
   './icons/icon-192.png',
   './icons/icon-512.png',
   './icons/apple-touch-icon.png',
+  './icons/nav/woche.png',
+  './icons/nav/einkauf.png',
+  './icons/nav/rueckblick.png',
+  './icons/nav/einstellungen.png',
 ];
 
 self.addEventListener('install', (event) => {
@@ -83,39 +86,6 @@ self.addEventListener('fetch', (event) => {
             }
           })
         );
-    })
-  );
-});
-
-self.addEventListener('push', (event) => {
-  let data = {};
-  try {
-    data = event.data ? event.data.json() : {};
-  } catch {
-    data = { body: event.data?.text() };
-  }
-  event.waitUntil(
-    self.registration.showNotification(data.title || 'Dein Wochenplan ist da 🍽️', {
-      body: data.body || 'Öffne Mise – der Plan für diese Woche wird jetzt erstellt.',
-      icon: 'icons/icon-192.png',
-      badge: 'icons/icon-192.png',
-      data: { url: data.url || './#/woche' },
-    })
-  );
-});
-
-self.addEventListener('notificationclick', (event) => {
-  event.notification.close();
-  const url = new URL(event.notification.data?.url || './', self.registration.scope).href;
-  event.waitUntil(
-    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((list) => {
-      for (const c of list) {
-        if (c.url.startsWith(self.registration.scope) && 'focus' in c) {
-          c.navigate?.(url);
-          return c.focus();
-        }
-      }
-      return self.clients.openWindow(url);
     })
   );
 });

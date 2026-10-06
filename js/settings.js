@@ -7,7 +7,7 @@ export const DEFAULT_SETTINGS = {
   goals: { kcal: 2800, protein: 140, carbs: 350, fat: 90 },
   // 0–100 %
   sliders: { simple: 70, dishes: 70, offers: 50, variety: 60 },
-  stores: { lidl: true, edeka: true },
+  stores: { lidl: true, aldi: false, edeka: true, dm: false, rossmann: false },
   mainStore: 'lidl',
   budget: 60,
   // day: 0 = Montag … 6 = Sonntag; slot: fruehstueck | mittag | abend
@@ -24,7 +24,7 @@ export const DEFAULT_SETTINGS = {
   psyllium: false,
   proteinPowder: true,
   planHour: 8,
-  // Optional: eigener Claude-API-Schlüssel für KI-Rezepte (bleibt nur auf diesem Gerät)
+  // Optional: eigener Claude-API-Schlüssel, um ein Rezept sofort aus einem Titel zu erfinden
   aiKey: '',
 };
 

@@ -2,6 +2,7 @@
 :root {
   --bg: #f3f5f3;
   --card: #ffffff;
+  --tabbar: #f6f9f6;
   --field: #f1f3f1;
   --text: #17201b;
   --muted: #66736b;
@@ -26,6 +27,7 @@
   :root:not([data-theme='light']) {
     --bg: #0f1512;
     --card: #18211c;
+    --tabbar: #18211c;
     --field: #222d27;
     --text: #e8efe9;
     --muted: #9aaba0;
@@ -49,6 +51,7 @@
 :root[data-theme='dark'] {
   --bg: #0f1512;
   --card: #18211c;
+  --tabbar: #18211c;
   --field: #222d27;
   --text: #e8efe9;
   --muted: #9aaba0;
@@ -75,7 +78,7 @@ body {
   margin: 0;
   background: var(--bg);
   color: var(--text);
-  font: 17px/1.45 Inter, -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', Roboto, sans-serif;
+  font: 17px/1.45 'Google Sans Flex', 'Google Sans', 'Google Sans Text', -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', Roboto, sans-serif;
   -webkit-tap-highlight-color: transparent;
 }
 a { color: var(--accent); text-decoration: none; }
@@ -274,9 +277,10 @@ input[type='checkbox']:checked::after { content: '✓'; color: var(--accent-text
   bottom: max(8px, calc(env(safe-area-inset-bottom) - 14px));
   max-width: 648px; margin: 0 auto;
   display: grid; grid-template-columns: repeat(4, 1fr);
-  background: var(--card); border: 1px solid var(--line); border-radius: 999px; box-shadow: var(--shadow);
+  background: var(--tabbar); border: 1px solid var(--line); border-radius: 999px; box-shadow: var(--shadow);
 }
-.tab { display: flex; align-items: center; justify-content: center; height: 64px; font-size: 1.7rem; opacity: 0.45; filter: grayscale(0.6); }
+.tab { display: flex; align-items: center; justify-content: center; height: 64px; opacity: 0.5; filter: grayscale(0.5); transition: opacity 0.15s; }
+.tab img { width: 44px; height: 44px; border-radius: 12px; display: block; }
 .tab.active { opacity: 1; filter: none; }
 
 #timer-dock {

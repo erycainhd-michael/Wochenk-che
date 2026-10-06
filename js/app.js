@@ -2,7 +2,7 @@
 import { DAY_NAMES, DAY_SHORT, SLOT_LABEL, addDays, clone, berlinNow, escapeHtml as e, euro, formatDate, isoWeek, mondayOf, num } from './util.js';
 import { buildIndex, plausibility } from './nutrition.js';
 import { budgetCost, generatePlan, swapMeal } from './planner.js';
-import { mergeOffers, STORES } from './prices.js';
+import { mergeOffers, STORES, STORE_IDS } from './prices.js';
 import { amountText, packText } from './shopping.js';
 import { recipeWeights, weekHints } from './feedback.js';
 import { DEFAULT_SETTINGS, mergeSettings } from './settings.js';
@@ -164,7 +164,7 @@ function plannerInput(extra = {}) {
     settings: S.settings,
     weekStart: ws,
     offers: mergeOffers(S.offers, S.manualOffers),
-    feedbackWeights: { ...recipeWeights(S.feedback), ...(extra.boost || {}) },
+    feedbackWeights: { ...freshBoost(), ...recipeWeights(S.feedback), ...(extra.boost || {}) },
     weekNo: prevWeeks.length,
     recentRecipes,
     ...extra,
@@ -191,6 +191,13 @@ function nextDraft() {
     saveNext();
   }
   return S.next;
+}
+
+/** Neue Rezepte (z. B. von der wöchentlichen Rezept-Routine) werden in den ersten 2 Wochen bevorzugt */
+function freshBoost() {
+  const out = {};
+  for (const r of S.recipes) if (isFresh(r)) out[r.id] = { weight: 2.5, tooComplex: 0 };
+  return out;
 }
 
 function createPlan({ pantry, eatOut, boost } = {}) {
@@ -316,17 +323,20 @@ function render() {
     <main class="view" id="view">${fn(...r.args)}</main>
     <div id="timer-dock"></div>
     <nav class="tabbar">
-      ${tabBtn('woche', '🗓️', 'Woche', tab)}
-      ${tabBtn('einkauf', '🛒', 'Einkauf', tab)}
-      ${tabBtn('rueckblick', '💬', 'Rückblick', tab)}
-      ${tabBtn('einstellungen', '⚙️', 'Einstellungen', tab)}
+      ${tabBtn('woche', 'Wochenübersicht', tab)}
+      ${tabBtn('einkauf', 'Einkaufsliste', tab)}
+      ${tabBtn('rueckblick', 'Feedback', tab)}
+      ${tabBtn('einstellungen', 'Einstellungen', tab)}
     </nav>`;
   renderTimerDock();
   if (changed) window.scrollTo(0, 0);
 }
 
-const tabBtn = (id, icon, label, active) =>
-  `<a href="#/${id}" class="tab ${active === id ? 'active' : ''}" aria-label="${label}">${icon}</a>`;
+const tabBtn = (id, label, active) =>
+  `<a href="#/${id}" class="tab ${active === id ? 'active' : ''}" aria-label="${label}"><img src="icons/nav/${id}.png" alt="${label}" width="44" height="44"></a>`;
+
+/** In den letzten 14 Tagen neu hinzugekommenes Rezept (z. B. von der wöchentlichen Rezept-Routine) */
+const isFresh = (r) => r.addedAt && Date.now() - new Date(r.addedAt).getTime() < 14 * 864e5;
 
 function bar(value, target, label, unit = '') {
   const pct = Math.min(100, (value / target) * 100);
@@ -394,7 +404,6 @@ function evaluationHtml(plan) {
 }
 
 function mealRow(plan, m) {
-  const done = plan.done?.[m.key];
   if (m.kind === 'eatout') {
     return `<li class="meal eatout"><span class="mi">${ICON.eatout}</span><div class="mt"><div class="ml">${SLOT_LABEL[m.slot]} · auswärts</div>
       <div class="mn">Auswärtsessen</div><div class="mm">≈ ${num(m.macros.kcal)} kcal · ≈ ${g_(m.macros.p)} P</div></div></li>`;
@@ -405,11 +414,10 @@ function mealRow(plan, m) {
   if (m.leftover) badges.push('<span class="badge">Portion von gestern</span>');
   else if (cook && cook.portions.length > 1) badges.push('<span class="badge">+ Portion für morgen</span>');
   if (r.effort === 3) badges.push('<span class="badge fancy">aufwendig</span>');
-  if (r.source === 'ki') badges.push('<span class="badge new">neu</span>');
+  if (r.source === 'ki' || isFresh(r)) badges.push('<span class="badge new">neu</span>');
   for (const a of m.addons || []) badges.push(`<span class="badge">+ ${e(recipe(a)?.name || a)}</span>`);
   const isSnack = m.slot === 'snack';
-  return `<li class="meal ${done ? 'done' : ''}">
-    <button class="check ${done ? 'on' : ''}" data-action="toggle-done" data-key="${m.key}" aria-label="erledigt">${done ? '✓' : ''}</button>
+  return `<li class="meal">
     <a class="mt" href="#/mahlzeit/${m.key}">
       <div class="ml">${ICON[isSnack ? 'snack' : m.slot]} ${isSnack ? 'Snack' : SLOT_LABEL[m.slot]} · ${r.time} Min.</div>
       <div class="mn">${e(r.name)}</div>
@@ -417,7 +425,7 @@ function mealRow(plan, m) {
       ${badges.length ? `<div class="badges">${badges.join('')}</div>` : ''}
     </a>
     ${
-      !isSnack && !m.leftover
+      !isSnack
         ? `<div class="meal-btns">
       <button class="round-btn" data-action="swap" data-key="${m.key}" aria-label="Neues Rezept vorschlagen">↻</button>
       <a class="round-btn" href="#/waehlen/${m.key}" aria-label="Rezept aus der Sammlung wählen">🔎</a>
@@ -498,7 +506,7 @@ function viewRecipes() {
         <ul class="list">${list
           .map((r) => {
             const w = fbw[r.id]?.weight;
-            const tag = r.source === 'ki' ? ' · ✨ KI' : r.source ? ' · eigenes' : '';
+            const tag = r.source === 'ki' ? ' · ✨ KI' : isFresh(r) ? ' · ✨ neu' : r.source === 'eigen' ? ' · eigenes' : '';
             return `<li><a href="#/rezept/${r.id}"><span>${e(r.name)}</span><small>${r.time} Min. · ${'🧽'.repeat(Math.max(1, r.dishes))}${w > 1.15 ? ' · 👍' : w < 0.85 ? ' · 👎' : ''}${r.season ? ' · saisonal' : ''}${tag}</small></a></li>`;
           })
           .join('')}</ul></section>`;
@@ -705,7 +713,7 @@ function viewShopping() {
     .map((st) => {
       const list = toBuy.filter((i) => i.store === st);
       const total = list.reduce((a, i) => a + i.cost, 0);
-      return `<section class="card"><h2>${e(STORES[st]?.name.split(' ')[0] || st)} ${euro(total)}</h2>
+      return `<section class="card"><h2>${e(STORES[st]?.short || st)} ${euro(total)}</h2>
         ${cats
           .map((c) => {
             const rows = list.filter((i) => i.cat === c).map(itemRow).join('');
@@ -871,10 +879,11 @@ function viewSettings() {
   </section>
 
   <section class="card"><h2>Einkauf</h2>
-    <label class="row"><input type="checkbox" data-set="stores.lidl" ${st.stores.lidl ? 'checked' : ''}> Lidl</label>
-    <label class="row"><input type="checkbox" data-set="stores.edeka" ${st.stores.edeka ? 'checked' : ''}> Edeka No1 Center Schloßstraße (Berlin)</label>
-    <label class="field">Hauptladen<select data-set="mainStore"><option value="lidl" ${st.mainStore === 'lidl' ? 'selected' : ''}>Lidl</option><option value="edeka" ${st.mainStore === 'edeka' ? 'selected' : ''}>Edeka</option></select></label>
-    <p class="sub">Gekauft wird im Hauptladen; nur wenn ein Angebot im anderen Laden mindestens 10 % günstiger ist, landet der Artikel dort.</p>
+    ${STORE_IDS.map((id) => `<label class="row"><input type="checkbox" data-set="stores.${id}" ${st.stores[id] ? 'checked' : ''}> ${e(id === 'edeka' ? 'Edeka No1 Center Schloßstraße (Berlin)' : STORES[id].name)}</label>`).join('')}
+    <label class="field">Hauptladen<select data-set="mainStore">${STORE_IDS.filter((id) => st.stores[id])
+      .map((id) => `<option value="${id}" ${st.mainStore === id ? 'selected' : ''}>${e(STORES[id].short)}</option>`)
+      .join('')}</select></label>
+    <p class="sub">Gekauft wird im Hauptladen. Nur wenn ein anderer ausgewählter Laden mindestens 10 % günstiger ist (z. B. durch ein Angebot), landet der Artikel dort. dm und Rossmann führen nur Trockenware, Nüsse & Co.</p>
     ${field('budget', 'Wochenbudget (€)', 'step="1"')}
   </section>
 
@@ -1180,8 +1189,8 @@ function onChange(ev) {
     let v = el.type === 'checkbox' ? el.checked : el.value;
     if (el.type === 'number') v = Number(v);
     setPath(S.settings, el.dataset.set, v);
-    if (!S.settings.stores.lidl && !S.settings.stores.edeka) S.settings.stores.lidl = true;
-    if (!S.settings.stores[S.settings.mainStore]) S.settings.mainStore = S.settings.stores.lidl ? 'lidl' : 'edeka';
+    if (!STORE_IDS.some((id) => S.settings.stores[id])) S.settings.stores.lidl = true;
+    if (!S.settings.stores[S.settings.mainStore]) S.settings.mainStore = STORE_IDS.find((id) => S.settings.stores[id]);
     saveSettings();
     if (el.dataset.set === 'theme') applyTheme();
     render();
