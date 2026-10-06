@@ -1,14 +1,116 @@
 {
-  "updated": "2026-10-06T13:55:31.974Z",
+  "updated": "2026-10-06T13:56:28.422Z",
   "sources": {
     "edeka": {
-      "ok": false,
-      "message": "nicht erreichbar (keine Angebote in der Antwort)"
+      "ok": true,
+      "count": 10,
+      "matched": 2
     },
     "lidl": {
       "ok": false,
       "message": "keine automatische Quelle – bitte manuell eintragen"
     }
   },
-  "offers": []
+  "offers": [
+    {
+      "store": "edeka",
+      "title": "Tchibo Aromatico Classico - 1kg Ganze Bohne",
+      "price": 12.99,
+      "unit": "versch. Sorten. Angebot gilt nur in teilnehmenden Märkten mit Tchibo-Depot., 1kg, (1 kg = 12,99), 1 kg = 12,99",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Kasselernacken/-kamm",
+      "price": 6.66,
+      "unit": "vom Schwein, mit Knochen, goldgelb geräuchert und gepökelt, 1kg",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Portugal / Peru  Driscoll's Himbeeren oder EDEKA Herzstücke Kulturheidelbeeren",
+      "price": 3.33,
+      "unit": "Kl. I, 220g Packung/225g Becher, (1kg = 16,65/14,80), 1kg = 16,65/14,80",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Niederlande, EDEKA Herzstücke Mini-Rispentomaten",
+      "price": 1.99,
+      "unit": "Kl. I, 400g Schale, (1kg = 4,98), 1kg = 4,98",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": "tomaten",
+      "packPrice": 2.49
+    },
+    {
+      "store": "edeka",
+      "title": "Exquisa",
+      "price": 0.99,
+      "unit": "Frischkäsezubereitung oder Körniger Frischkäse, versch. Sorten und Fettstufen, 175/200g Becher, (1kg = 5,66/4,95), 1kg = 5,66/4,95",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Iglo Schlemmerfilet oder Filegro",
+      "price": 2.99,
+      "unit": "versch. Sorten, 220/240/250/380g Packung, (1kg = 13,60/12,46/11,96/7,87), 1kg = 13,60/12,46/11,96/7,87",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": "bordelaise",
+      "packPrice": 2.99
+    },
+    {
+      "store": "edeka",
+      "title": "Frosta Fertiggerichte",
+      "price": 2.59,
+      "unit": "versch. Sorten, 400/500g Beutel, (1kg = 6,48/5,18), 1kg = 6,48/5,18",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Ritter Sport** Bunte Vielfalt",
+      "price": 1.11,
+      "unit": "Schokolade, versch. Sorten, *ausgenommen sind die Sorten mit höherem Nuss- und Kakaoanteil, 100g Tafel, (1kg = 11,10), 1kg = 11,10",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Melitta Filterkaffee",
+      "price": 6.49,
+      "unit": "gemahlener Röstkaffee, versch. Sorten, 500g Packung, (1kg = 12,98), 1kg = 12,98",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Jever Pilsener",
+      "price": 11.99,
+      "unit": "versch. Sorten, + 3,42/3,10 Pfand, je nach Verfügbarkeit im Markt \"Mich gibt's auch alkoholfrei\", 24x0,33l/20x0,5l Flasche, (1l = 1,51/1,20), 1l = 1,51/1,20",
+      "validFrom": "2026-10-05",
+      "validTo": "2026-10-10",
+      "ingredientId": null,
+      "packPrice": null
+    }
+  ]
 }
