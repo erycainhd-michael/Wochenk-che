@@ -150,11 +150,12 @@ export class TimerManager {
   }
 }
 
-export function fmtTime(sec) {
+export function fmtTime(sec, padMinutes = false) {
   const h = Math.floor(sec / 3600);
   const m = Math.floor((sec % 3600) / 60);
   const s = sec % 60;
-  return (h ? h + ':' + String(m).padStart(2, '0') : m) + ':' + String(s).padStart(2, '0');
+  const mm = h || padMinutes ? String(m).padStart(2, '0') : m;
+  return (h ? h + ':' : '') + mm + ':' + String(s).padStart(2, '0');
 }
 
 // --- Bildschirm anlassen (Kochmodus) -----------------------------------------
