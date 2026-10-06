@@ -397,6 +397,8 @@ function render() {
   const view = document.getElementById('view');
   view.innerHTML = fn(...r.args);
   for (const t of app.querySelectorAll('.tab')) t.classList.toggle('active', t.dataset.tab === tab);
+  // Willkommensbildschirm beim allerersten Start: noch ohne Menü
+  document.body.classList.toggle('no-nav', fn === viewWeek && !displayedPlan() && !store.get('welcomed'));
   if (changed) {
     view.classList.remove('enter');
     void view.offsetWidth; // Animation neu starten
@@ -526,13 +528,13 @@ function viewWeek() {
     </header>
     ${banners.join('')}
     <section class="card hero">
-      <div class="kpis">
+      <div class="kpis two">
         <div><b>${cnt('w-k', avgK, 'int')}</b><span>Ø kcal / ${cnt('w-gk', g.kcal, 'int')}</span></div>
-        <div><b>${cnt('w-p', avgP, 'g')}</b><span>Ø Protein / ${cnt('w-gp', g.protein, 'g')}</span></div>
         <div><b>${cnt('w-cost', plan.cost, 'euro')}</b><span>Einkauf / ${euro(S.settings.budget)}</span></div>
       </div>
       <div class="kpis small">
-        <div><b>${cnt('w-c', avgC, 'g')}</b><span>Ø Kohlenhydrate / ${cnt('w-gc', g.carbs, 'g')}</span></div>
+        <div><b>${cnt('w-c', avgC, 'g')}</b><span>Ø Kohlenhydr. / ${cnt('w-gc', g.carbs, 'g')}</span></div>
+        <div><b>${cnt('w-p', avgP, 'g')}</b><span>Ø Protein / ${cnt('w-gp', g.protein, 'g')}</span></div>
         <div><b>${cnt('w-f', avgF, 'g')}</b><span>Ø Fett / ${cnt('w-gf', g.fat, 'g')}</span></div>
       </div>
       <div class="divider"></div>
@@ -570,7 +572,7 @@ function mealRow(plan, m) {
     ${
       !isSnack
         ? `<div class="meal-btns">
-      <button class="round-btn" data-action="swap" data-key="${m.key}" aria-label="Neues Rezept vorschlagen">↻</button>
+      <button class="round-btn" data-action="swap" data-key="${m.key}" aria-label="Neues Rezept vorschlagen">🔄</button>
       <a class="round-btn" href="#/waehlen/${m.key}" aria-label="Rezept aus der Sammlung wählen">🔎</a>
     </div>`
         : ''

@@ -65,23 +65,19 @@ export const sound = {
   uncheck: () => play(() => tone([700, 480], 0, 0.08, { vol: 0.08 })),
   /** Timer gestartet: zwei helle Töne aufwärts */
   timerStart: () => play(() => [C6, G6].forEach((f, i) => tone(f, i * 0.09, 0.14, { vol: 0.12 }))),
-  /** Kochmodus beginnt: Kochlöffel klopft dreimal an den Topf, dann ein kleines „Los geht's“ */
+  /** Kochmodus beginnt: zwei sanfte Löffel-Klopfer, dann der weiche Dreiklang */
   cookStart: () =>
     play(() => {
-      [0, 0.12, 0.24].forEach((t, i) => {
-        tone([1100 - i * 60, 380], t, 0.07, { type: 'triangle', vol: 0.32 }); // Holz-„Tok“
-        tone([2600, 2400], t, 0.03, { type: 'square', vol: 0.025 }); // kurzer Anschlag
-      });
-      tone([1318, 1325], 0.27, 0.35, { vol: 0.05 }); // leises Nachklingen vom Topf
-      [C6, E6, G6].forEach((f, i) => tone(f, 0.46 + i * 0.07, 0.11, { type: 'square', vol: 0.045 }));
+      [0, 0.11].forEach((t) => tone([720, 420], t, 0.08, { vol: 0.14 })); // weiches Holz-„Tok“
+      [C5, E5, G5].forEach((f, i) => tone(f, 0.26 + i * 0.1, 0.32, { type: 'triangle', vol: 0.13 }));
     }),
-  /** Gericht fertig: Eieruhr rasselt kurz, dann ein Mikrowellen-„Ding!“ */
+  /** Gericht fertig: nur die Eieruhr – helles Rasseln, das langsam ausklingt */
   cookDone: () =>
     play(() => {
-      for (let i = 0; i < 12; i++) tone(i % 2 ? 2349 : 2093, i * 0.042, 0.05, { type: 'square', vol: 0.05 });
-      tone(1760, 0.62, 1.4, { vol: 0.24 }); // Ding
-      tone(4430, 0.62, 0.5, { vol: 0.035 }); // heller Glockenanteil
-      tone(2637, 0.66, 0.9, { type: 'triangle', vol: 0.05 });
+      for (let i = 0; i < 22; i++) {
+        const fade = 1 - i / 26;
+        tone(i % 2 ? 2349 : 2093, i * 0.038, 0.07, { type: 'triangle', vol: 0.11 * fade });
+      }
     }),
   /** Start-Jingle zur Blatt-Animation: kurzes, helles Arpeggio */
   jingle: () =>
