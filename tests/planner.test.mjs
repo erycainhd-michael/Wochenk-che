@@ -121,6 +121,12 @@ test('Angebote: Zuordnung und Umrechnung auf Packungsgröße', () => {
   assert.equal(mapped[0].ingredientId, 'haehnchenbrust');
   assert.equal(mapped[0].packPrice, 4.5);
   assert.equal(mapped[1].ingredientId, null);
+  // Echtes Edeka-Format (docs/titel/preis/beschreibung/gueltig_bis)
+  const real = normalizeEdeka({ docs: [{ titel: 'Frische Hähnchenbrustfilets', preis: 4.99, beschreibung: 'Teilstück, 500g', basicPrice: '1 kg = 9,98', gueltig_bis: 1791590400000 }], gueltig_von: 1791072000000 });
+  const m2 = mapOffers(real, 'edeka', ingData.items);
+  assert.equal(m2[0].ingredientId, 'haehnchenbrust');
+  assert.equal(m2[0].packPrice, 4.99);
+  assert.ok(m2[0].validTo.startsWith('2026-10'));
   const s = settings();
   const priceOf = makePriceFn({ idx, settings: s, offers: [{ store: 'edeka', ingredientId: 'haehnchenbrust', packPrice: 3.5, validTo: '2026-10-10' }], weekStart: '2026-10-05' });
   assert.equal(priceOf('haehnchenbrust').store, 'edeka');
