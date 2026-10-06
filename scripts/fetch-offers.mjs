@@ -138,7 +138,7 @@ async function main() {
       result.sources.edeka = { ok: false, message: `nicht erreichbar (${e.message})` };
     }
   }
-  result.sources.lidl = { ok: false, message: 'keine automatische Quelle – bitte manuell eintragen' };
+  result.sources.lidl = { ok: false, message: 'keine öffentliche Quelle – es gelten Richtpreise' };
 
   // Nie eine funktionierende Datei durch eine leere ersetzen: Bei komplettem Fehlschlag alte Angebote behalten,
   // sofern sie noch gültig sind.

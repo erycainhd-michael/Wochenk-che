@@ -8,7 +8,7 @@
     },
     "lidl": {
       "ok": false,
-      "message": "keine automatische Quelle – bitte manuell eintragen"
+      "message": "keine öffentliche Quelle – es gelten Richtpreise"
     }
   },
   "offers": [
