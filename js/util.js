@@ -4,6 +4,9 @@ export const DAY_NAMES = ['Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freit
 export const DAY_SHORT = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
 export const SLOT_LABEL = { fruehstueck: 'Frühstück', mittag: 'Mittag', abend: 'Abend', snack: 'Snack' };
 
+/** Tiefe Kopie (ohne structuredClone, damit auch ältere iPhones mitspielen) */
+export const clone = (x) => JSON.parse(JSON.stringify(x));
+
 export const clamp = (x, lo, hi) => Math.min(hi, Math.max(lo, x));
 export const round = (x, step = 1) => Number((Math.round(x / step) * step).toFixed(6));
 export const sum = (arr, fn = (x) => x) => arr.reduce((a, b) => a + fn(b), 0);

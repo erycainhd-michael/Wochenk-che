@@ -1,5 +1,5 @@
 // Mise – App-Oberfläche (Vanilla JS, kein Build-Schritt). Design nach Figma-Vorlage.
-import { DAY_NAMES, DAY_SHORT, SLOT_LABEL, addDays, berlinNow, escapeHtml as e, euro, formatDate, isoWeek, mondayOf, num } from './util.js';
+import { DAY_NAMES, DAY_SHORT, SLOT_LABEL, addDays, clone, berlinNow, escapeHtml as e, euro, formatDate, isoWeek, mondayOf, num } from './util.js';
 import { buildIndex, plausibility } from './nutrition.js';
 import { budgetCost, generatePlan, swapMeal } from './planner.js';
 import { mergeOffers, STORES } from './prices.js';
@@ -42,6 +42,7 @@ async function loadJSON(url) {
 }
 
 async function init() {
+  window.__miseStarted = true;
   applyTheme();
   try {
     const [ing, rec] = await Promise.all([loadJSON('data/ingredients.json'), loadJSON('data/recipes.json')]);
@@ -233,7 +234,7 @@ function setPath(obj, path, value) {
   const keys = path.split('.');
   let o = obj;
   for (const k of keys.slice(0, -1)) o = o[k] ??= {};
-  o[keys.at(-1)] = value;
+  o[keys[keys.length - 1]] = value;
 }
 function getPath(obj, path) {
   return path.split('.').reduce((o, k) => o?.[k], obj);
@@ -536,7 +537,7 @@ function viewEdit(id) {
   if (!S.ui.edit || S.ui.edit.id !== id) {
     const r = recipe(id);
     if (!r) return `<div class="card">Rezept nicht gefunden. <a href="#/rezepte">Zu den Rezepten</a></div>`;
-    S.ui.edit = structuredClone(r);
+    S.ui.edit = clone(r);
   }
   const r = S.ui.edit;
   const opts = (sel) =>
@@ -1163,7 +1164,7 @@ async function onClick(ev) {
       return doExport();
     case 'reset-settings':
       if (confirm('Alle Einstellungen auf Standard zurücksetzen? Pläne und Feedback bleiben erhalten.')) {
-        S.settings = structuredClone(DEFAULT_SETTINGS);
+        S.settings = clone(DEFAULT_SETTINGS);
         saveSettings();
         applyTheme();
         render();

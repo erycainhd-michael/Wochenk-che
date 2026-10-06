@@ -1,6 +1,6 @@
 // Service Worker: App offline verfügbar machen + Push-Nachrichten anzeigen.
 // Bei Änderungen an App-Dateien VERSION erhöhen, damit iPhones die neue Version laden.
-const VERSION = 'mf-v5';
+const VERSION = 'mf-v6';
 const SHELL = [
   './',
   './index.html',
@@ -27,7 +27,13 @@ const SHELL = [
 ];
 
 self.addEventListener('install', (event) => {
-  event.waitUntil(caches.open(VERSION).then((c) => c.addAll(SHELL)).then(() => self.skipWaiting()));
+  // cache: 'reload' umgeht den Browser-Cache, damit nie alte und neue Dateien gemischt werden
+  event.waitUntil(
+    caches
+      .open(VERSION)
+      .then((c) => c.addAll(SHELL.map((u) => new Request(u, { cache: 'reload' }))))
+      .then(() => self.skipWaiting())
+  );
 });
 
 self.addEventListener('activate', (event) => {
@@ -39,38 +45,44 @@ self.addEventListener('activate', (event) => {
   );
 });
 
+// Netz zuerst (immer die aktuelle Version), bei Funkloch nach 4 s der Offline-Zwischenspeicher
 self.addEventListener('fetch', (event) => {
   const req = event.request;
   if (req.method !== 'GET' || new URL(req.url).origin !== self.location.origin) return;
-  const isData = new URL(req.url).pathname.includes('/data/');
-  if (isData) {
-    // Daten: erst Netz (aktuelle Angebote), sonst Cache
-    event.respondWith(
-      fetch(req)
-        .then((res) => {
-          if (res.ok) {
-            const copy = res.clone();
-            caches.open(VERSION).then((c) => c.put(req, copy));
-          }
-          return res;
-        })
-        .catch(() => caches.match(req, { ignoreSearch: true }))
-    );
-    return;
-  }
-  // App-Dateien: Cache zuerst, im Hintergrund aktualisieren
   event.respondWith(
-    caches.match(req, { ignoreSearch: true }).then((cached) => {
-      const network = fetch(req)
+    new Promise((resolve) => {
+      let done = false;
+      const fromCache = () =>
+        caches.match(req, { ignoreSearch: true }).then((hit) => hit || (req.mode === 'navigate' ? caches.match('./index.html') : undefined));
+      const timer = setTimeout(() => {
+        fromCache().then((hit) => {
+          if (hit && !done) {
+            done = true;
+            resolve(hit);
+          }
+        });
+      }, 4000);
+      fetch(req, { cache: 'no-cache' })
         .then((res) => {
           if (res.ok) {
             const copy = res.clone();
             caches.open(VERSION).then((c) => c.put(req, copy));
           }
-          return res;
+          if (!done) {
+            done = true;
+            clearTimeout(timer);
+            resolve(res);
+          }
         })
-        .catch(() => cached || caches.match('./index.html'));
-      return cached || network;
+        .catch(() =>
+          fromCache().then((hit) => {
+            if (!done) {
+              done = true;
+              clearTimeout(timer);
+              resolve(hit || Response.error());
+            }
+          })
+        );
     })
   );
 });
