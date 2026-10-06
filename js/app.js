@@ -24,6 +24,8 @@ const S = {
   checks: store.get('checks', {}),
   feedback: store.get('feedback', []),
   manualOffers: store.get('manualOffers', []),
+  // Eigene Rezept-Kategorien (z. B. „Familienrezepte“): Namen + Zuordnung Rezept-ID → Kategorien
+  cats: store.get('recipeCats', { names: ['Familienrezepte'], map: {} }),
   // Eingaben für die nächste Planung (Auswärtstage + Reste), im Rückblick gepflegt
   next: store.get('nextWeek', null),
   ui: { fx: null, hideChecked: false, cookStep: 0, openDays: {}, evalOpen: false, servings: 1, search: '', newTitle: {}, edit: null },
@@ -641,23 +643,50 @@ function viewMeal(key) {
   return recipeHtml(r, items, meal.macros, `${DAY_NAMES[meal.key.split('-')[0]]} · ${slot} · ${cook && cook.portions.length > 1 ? `${cook.portions.length} Portionen` : '1 Portion'}`, `<a class="back" href="#/woche">‹ Woche</a>`, info, key, false);
 }
 
+// Zeit-Filter der Rezeptliste
+const TIME_FILTERS = [
+  ['all', 'Alle'],
+  ['kurz', 'Kurz'],
+  ['mittel', 'Mittel'],
+  ['aufwendig', 'Aufwendig'],
+];
+const timeClass = (r) => (r.effort === 3 || r.time > 30 ? 'aufwendig' : r.time <= 15 ? 'kurz' : 'mittel');
+const catsOf = (id) => S.cats.map[id] || [];
+const saveCats = () => store.set('recipeCats', S.cats);
+
 function viewRecipes() {
   const groups = { main: 'Hauptgerichte', breakfast: 'Frühstück' };
   const fbw = recipeWeights(S.feedback);
+  const tf = S.ui.rTime || 'all';
+  const cf = S.cats.names.includes(S.ui.rCat) ? S.ui.rCat : null;
+  const match = (r) => (tf === 'all' || timeClass(r) === tf) && (!cf || catsOf(r.id).includes(cf));
+  const hints = { kurz: 'bis 15 Min.', mittel: '15–30 Min.', aufwendig: 'über 30 Min. oder aufwendig' };
   return `<header class="top col"><a class="back" href="#/woche">‹ Woche</a><h1>Rezepte</h1></header>
+    <section class="card filters">
+      <div class="seg">${TIME_FILTERS.map(([v, l]) => `<button class="pill ${tf === v ? 'on' : ''}" data-action="rfilter-time" data-val="${v}">${l}</button>`).join('')}</div>
+      ${tf !== 'all' ? `<p class="hint">${hints[tf]}</p>` : ''}
+      <div class="chips cats">
+        <button class="chip ${!cf ? 'on' : ''}" data-action="rfilter-cat" data-val="">Alle Kategorien</button>
+        ${S.cats.names.map((n) => `<button class="chip ${cf === n ? 'on' : ''}" data-action="rfilter-cat" data-val="${e(n)}">${e(n)} <small>${Object.values(S.cats.map).filter((c) => c.includes(n)).length}</small></button>`).join('')}
+        <button class="chip add" data-action="cat-new">+ Kategorie</button>
+      </div>
+      ${cf ? `<button class="link danger small" data-action="cat-delete" data-val="${e(cf)}">Kategorie „${e(cf)}“ löschen</button>` : ''}
+    </section>
     ${Object.entries(groups)
       .map(([t, label]) => {
-        const list = S.recipes.filter((r) => r.type === t);
+        const list = S.recipes.filter((r) => r.type === t && match(r));
         return `<section class="card"><h2>${label}</h2>
         <div class="add-row"><input placeholder="Neues Rezept, z. B. Pilzrisotto" data-new-title="${t}" value="${e(S.ui.newTitle[t] || '')}"><button class="btn pill" data-action="new-recipe" data-type="${t}">Hinzufügen</button></div>
         <p class="hint">${S.settings.aiKey ? 'Nur den Titel eintragen – die KI erfindet das passende Rezept.' : 'Titel eintragen und Rezept selbst ausfüllen. Mit KI-Schlüssel (Einstellungen) erfindet Mise es für dich.'}</p>
+        ${list.length ? '' : `<p class="sub">${cf ? `Noch keine ${label} in „${e(cf)}“ – öffne ein Rezept und tippe die Kategorie an.` : 'Keine Rezepte für diesen Filter.'}</p>`}
         <ul class="list">${list
           .map((r) => {
             const w = fbw[r.id]?.weight;
             const tag = r.source === 'ki' ? ' · ✨ KI' : isFresh(r) ? ' · ✨ neu' : r.source === 'eigen' ? ' · eigenes' : '';
             const m = macrosOf(r.ingredients.filter((l) => !l.opt || S.settings[l.opt]));
             return `<li><a href="#/rezept/${r.id}"><span>${e(r.name)}</span><small>${r.time} Min. · ${dishesText(r.dishes)}${w > 1.15 ? ' · 👍' : w < 0.85 ? ' · 👎' : ''}${r.season ? ' · saisonal' : ''}${tag}</small>
-              <span class="macros"><b>${num(m.kcal)} kcal</b><span>${g_(m.p)} P</span><span>${g_(m.c)} KH</span><span>${g_(m.f)} F</span></span></a></li>`;
+              <span class="macros"><b>${num(m.kcal)} kcal</b><span>${g_(m.p)} Protein</span><span>${g_(m.c)} Kohlenhydrate</span><span>${g_(m.f)} Fett</span></span>
+              ${catsOf(r.id).length ? `<span class="rcats">${catsOf(r.id).map((c) => `<i>${e(c)}</i>`).join('')}</span>` : ''}</a></li>`;
           })
           .join('')}</ul></section>`;
       })
@@ -777,7 +806,12 @@ function recipeHtml(r, items, macros, subtitle, back, info, cookKey, withServing
       <h1 class="rtitle">${e(r.name)}</h1>
       <div class="chips"><span class="chip on">⏱️ ${r.time} Min.</span><span class="chip">Abwasch ${r.dishes}</span><span class="chip">${['', 'einfach', 'normal', 'aufwendig'][r.effort]}</span><span class="chip">${e(r.protein)}</span></div>
       <div class="divider accent"></div>
-      <div class="sub">${num(macros.kcal)} kcal · ${g_(macros.p)} P · ${g_(macros.c)} Kh · ${g_(macros.f)} F</div>
+      <div class="sub">${num(macros.kcal)} kcal · ${g_(macros.p)} Protein · ${g_(macros.c)} Kohlenhydrate · ${g_(macros.f)} Fett</div>
+    </section>
+    <section class="card"><h2>Kategorien</h2>
+      <div class="chips cats">${S.cats.names
+        .map((n) => `<button class="chip ${catsOf(r.id).includes(n) ? 'on' : ''}" data-action="rcat-toggle" data-id="${r.id}" data-val="${e(n)}">${catsOf(r.id).includes(n) ? '✓ ' : ''}${e(n)}</button>`)
+        .join('')}<button class="chip add" data-action="cat-new" data-id="${r.id}">+ Neue Kategorie</button></div>
     </section>
     ${info}
     ${servings}
@@ -1364,6 +1398,41 @@ async function onClick(ev) {
   const a = el.dataset.action;
   const plan = displayedPlan();
   switch (a) {
+    case 'rfilter-time':
+      S.ui.rTime = el.dataset.val;
+      return render();
+    case 'rfilter-cat':
+      S.ui.rCat = el.dataset.val || null;
+      return render();
+    case 'cat-new': {
+      const name = (prompt('Name der neuen Kategorie, z. B. „Familienrezepte“') || '').trim().slice(0, 30);
+      if (!name) return;
+      if (!S.cats.names.includes(name)) S.cats.names.push(name);
+      if (el.dataset.id) S.cats.map[el.dataset.id] = [...new Set([...catsOf(el.dataset.id), name])];
+      saveCats();
+      toast('Kategorie angelegt', { icon: '🏷️', sub: name });
+      return render();
+    }
+    case 'cat-delete': {
+      const name = el.dataset.val;
+      if (!confirm(`Kategorie „${name}“ löschen? Die Rezepte selbst bleiben erhalten.`)) return;
+      S.cats.names = S.cats.names.filter((n) => n !== name);
+      for (const id of Object.keys(S.cats.map)) {
+        S.cats.map[id] = S.cats.map[id].filter((n) => n !== name);
+        if (!S.cats.map[id].length) delete S.cats.map[id];
+      }
+      saveCats();
+      S.ui.rCat = null;
+      return render();
+    }
+    case 'rcat-toggle': {
+      const { id, val } = el.dataset;
+      const cur = catsOf(id);
+      S.cats.map[id] = cur.includes(val) ? cur.filter((n) => n !== val) : [...cur, val];
+      if (!S.cats.map[id].length) delete S.cats.map[id];
+      saveCats();
+      return render();
+    }
     case 'toggle-eval':
       S.ui.evalOpen = !S.ui.evalOpen;
       return render();
