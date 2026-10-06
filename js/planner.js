@@ -27,6 +27,8 @@ export function prepareContext(input) {
   const priceOf = input.priceOf || makePriceFn({ idx, settings, offers: input.offers || [], weekStart });
   const fbw = input.feedbackWeights || {};
   const exclude = new Set(input.exclude || []);
+  // Tage, an denen man noch unterwegs ist (z. B. Urlaub bis Dienstag): kein Plan, kein Einkauf
+  const away = [...new Set(input.away || [])].filter((d) => d >= 0 && d < 7).sort();
 
   const isDisliked = (r) => {
     const texts = [r.name, ...(r.contains || []), ...r.ingredients.map((l) => idx.get(l.id)?.name || '')].map((t) => t.toLowerCase());
@@ -61,6 +63,7 @@ export function prepareContext(input) {
   const mains = byType('main');
   return {
     ...input,
+    away,
     month,
     priceOf,
     info,
@@ -151,6 +154,7 @@ export function buildStructure(ctx, rng, mode = {}) {
   const offersW = sl.offers / 100;
   const variety = sl.variety / 100;
   const eatOut = eatOutSet(settings);
+  for (const d of ctx.away || []) for (const slot of ['fruehstueck', ...MAIN_SLOTS]) eatOut.add(slotKey(d, slot));
   const complex = complexSlots(settings, eatOut);
   const stock = new Stock(ctx.pantry, idx, ctx.priceOf);
   const used = new Set();
@@ -239,7 +243,7 @@ export function buildStructure(ctx, rng, mode = {}) {
   }
   const breakfasts = Array.from({ length: 7 }, (_, d) => (eatOut.has(slotKey(d, 'fruehstueck')) ? null : chosen[d % chosen.length]));
 
-  return { cooks, breakfasts, eatOut: [...eatOut], complex: [...complex] };
+  return { cooks, breakfasts, eatOut: [...eatOut], complex: [...complex], away: [...(ctx.away || [])] };
 }
 
 // ---------------------------------------------------------------------------
@@ -355,8 +359,13 @@ export function finalizePlan(structure, ctx) {
   for (const c of structure.cooks) for (const p of c.portions) slotCook.set(p, c);
   const addonCombosAll = addonCombos(ctx.addons);
 
+  const away = new Set(structure.away || []);
   const days = [];
   for (let d = 0; d < 7; d++) {
+    if (away.has(d)) {
+      days.push({ day: d, date: addDays(weekStart, d), name: DAY_NAMES[d], short: DAY_SHORT[d], away: true, sportKcal: 0, goalKcal: 0, meals: [], totals: emptyMacros(), cost: 0 });
+      continue;
+    }
     let fixed = emptyMacros();
     for (const slot of ['fruehstueck', ...MAIN_SLOTS]) if (eatOut.has(slotKey(d, slot))) fixed = addMacros(fixed, eo);
     const breakfast = structure.breakfasts[d];
@@ -457,14 +466,15 @@ export function finalizePlan(structure, ctx) {
 export function scorePlan(plan, ctx) {
   const { settings, idx } = ctx;
   const g = settings.goals;
-  const days = plan.days;
+  // Nur Tage mit Plan zählen (Tage „unterwegs“ bleiben außen vor)
+  const days = plan.days.filter((d) => !d.away);
   const s = {};
 
   // 1. Kalorien (25)
   const target = (d) => d.goalKcal || g.kcal;
   const kDev = avg(days, (d) => Math.abs(d.totals.kcal - target(d)) / target(d));
   const daysInRange = days.filter((d) => Math.abs(d.totals.kcal - target(d)) / target(d) <= 0.05).length;
-  s.kcal = 25 * (0.6 * clamp(1 - kDev / 0.1, 0, 1) + 0.4 * (daysInRange / 7));
+  s.kcal = 25 * (0.6 * clamp(1 - kDev / 0.1, 0, 1) + 0.4 * (daysInRange / days.length));
 
   // 2. Protein inkl. Verteilung (20)
   const pRatio = avg(days, (d) => Math.min(1, d.totals.p / g.protein));
@@ -664,19 +674,21 @@ export function evaluatePlan(plan, ctx) {
   const g = ctx.settings.goals;
   const st = plan.score.stats;
   const out = [];
-  const avgK = avg(plan.days, (d) => d.totals.kcal);
-  const avgP = avg(plan.days, (d) => d.totals.p);
-  const avgC = avg(plan.days, (d) => d.totals.c);
-  const avgF = avg(plan.days, (d) => d.totals.f);
+  const active = plan.days.filter((d) => !d.away);
+  const nDays = active.length;
+  const avgK = avg(active, (d) => d.totals.kcal);
+  const avgP = avg(active, (d) => d.totals.p);
+  const avgC = avg(active, (d) => d.totals.c);
+  const avgF = avg(active, (d) => d.totals.f);
 
   // 1. Kalorien
   out.push({
-    level: st.daysInRange >= 6 ? 'ok' : 'hint',
+    level: st.daysInRange >= nDays - 1 ? 'ok' : 'hint',
     title: `Energie: Ø ${num(avgK)} kcal/Tag`,
     text:
-      st.daysInRange >= 6
-        ? `Ziel ${num(g.kcal)} kcal – ${st.daysInRange} von 7 Tagen liegen im Bereich ±5 %. Genug Energie für Muskelaufbau.`
-        : `${st.daysInRange} von 7 Tagen liegen im Bereich ±5 %. An den anderen Tagen hilft eine etwas größere Portion oder eine Banane mit Erdnussmus zwischendurch.`,
+      st.daysInRange >= nDays - 1
+        ? `Ziel ${num(g.kcal)} kcal – ${st.daysInRange} von ${nDays} Tagen liegen im Bereich ±5 %. Genug Energie für Muskelaufbau.`
+        : `${st.daysInRange} von ${nDays} Tagen liegen im Bereich ±5 %. An den anderen Tagen hilft eine etwas größere Portion oder eine Banane mit Erdnussmus zwischendurch.`,
   });
 
   // 2. Protein

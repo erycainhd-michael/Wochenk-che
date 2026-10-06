@@ -644,3 +644,25 @@ textarea { font: inherit; color: var(--text); background: var(--field); border: 
 .sport-form .grid2 .btn { margin: 0; }
 .sport-form .grid2 .btn:not(.primary) { background: var(--card); }
 .eyebrow.greet { margin: 14px 0 -10px; }
+
+/* Gewählte Kategorie: Anzahl gut lesbar */
+.chips.cats .chip.on small { color: inherit; opacity: 0.85; }
+/* Rezeptliste: alles in einer Zeile */
+.rmeta { display: block; font-size: 0.8rem; color: var(--muted); margin-top: 2px; line-height: 1.4; font-variant-numeric: tabular-nums; }
+.rmeta b { color: var(--text); font-weight: 600; }
+.rl-n { font-weight: 600; }
+.list-count { margin: 6px 0 2px; }
+/* Rückblick: wann gegessen */
+.fb-when { font-size: 0.8rem; color: var(--muted); margin: -4px 0 8px; }
+/* Woche später starten */
+.later-link { display: block; margin: -2px 0 12px; font-size: 0.9rem; font-weight: 600; }
+.card.later .pills.days { margin: 10px 0 12px; }
+.card.later .pill:disabled { opacity: 0.3; }
+.card.later .grid2 .btn { margin: 0; }
+.card.day.away { opacity: 0.7; }
+.card.day.away .day-head { cursor: default; }
+
+/* Menü-Symbole als Vektorgrafik */
+.tab svg { width: 44px; height: 44px; display: block; overflow: visible; filter: grayscale(1) contrast(0.9) drop-shadow(0 1px 1.5px rgba(0, 0, 0, 0.12)); opacity: 0.5; transition: opacity 0.2s, filter 0.2s; }
+.tab.active svg { filter: drop-shadow(0 1.5px 2px rgba(0, 0, 0, 0.15)); opacity: 1; }
+.tab:active svg { opacity: 0.7; }
