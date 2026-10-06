@@ -88,8 +88,12 @@ async function fetchEdeka(marketId) {
   let lastErr;
   for (const u of urls) {
     try {
-      const raw = normalizeEdeka(await getJSON(u));
+      const json = await getJSON(u);
+      const raw = normalizeEdeka(json);
       if (raw.length) return raw;
+      // Diagnose: Struktur der Antwort ausgeben (öffentliche Angebotsdaten)
+      console.log('Antwort von', u.split('?')[0], '– Schlüssel:', Object.keys(json || {}).join(', '));
+      console.log(JSON.stringify(json).slice(0, 2500));
       lastErr = new Error('keine Angebote in der Antwort');
     } catch (e) {
       lastErr = e;
