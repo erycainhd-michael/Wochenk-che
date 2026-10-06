@@ -1,3 +1,5 @@
+import { clone } from './util.js';
+
 // Standard-Einstellungen. Werden mit gespeicherten Einstellungen zusammengeführt.
 
 export const DEFAULT_SETTINGS = {
@@ -27,7 +29,7 @@ export const DEFAULT_SETTINGS = {
 };
 
 export function mergeSettings(saved) {
-  const s = structuredClone(DEFAULT_SETTINGS);
+  const s = clone(DEFAULT_SETTINGS);
   if (!saved) return s;
   for (const [k, v] of Object.entries(saved)) {
     if (v && typeof v === 'object' && !Array.isArray(v) && s[k] && typeof s[k] === 'object' && !Array.isArray(s[k])) {

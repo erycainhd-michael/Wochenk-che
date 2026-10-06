@@ -7,7 +7,7 @@
 //  3. scorePlan: bewertet den Plan nach deinen Prioritäten (Kalorien > Protein > Gemüse/Ballaststoffe >
 //     Vielfalt > Geschmack/Alltag > Feinschliff). Aus vielen Kandidaten gewinnt der beste.
 
-import { DAY_NAMES, DAY_SHORT, SLOT_LABEL, addDays, avg, clamp, mulberry32, pickWeighted, round, sum, euro, num } from './util.js';
+import { DAY_NAMES, DAY_SHORT, SLOT_LABEL, addDays, avg, clamp, clone, mulberry32, pickWeighted, round, sum, euro, num } from './util.js';
 import { addMacros, emptyMacros, hasFish, itemsMacros, mainProteinCategory, recipeItems, recipeMacros } from './nutrition.js';
 import { itemsCost, makePriceFn } from './prices.js';
 import { buildShopping } from './shopping.js';
@@ -567,7 +567,7 @@ export function generatePlan(input) {
  */
 export function setEatOut(plan, mealKey, on, input) {
   const ctx = prepareContext({ ...input, pantry: plan.pantryUsed || input.pantry, weekNo: plan.weekNo });
-  const structure = structuredClone(plan.structure);
+  const structure = clone(plan.structure);
   const [dStr, slot] = mealKey.split('-');
   const d = Number(dStr);
   const eat = new Set(structure.eatOut);
@@ -604,7 +604,7 @@ export function setEatOut(plan, mealKey, on, input) {
 /** Ersetzt ein Gericht (Hauptgericht-Kochvorgang oder Frühstück) und berechnet den Plan neu. */
 export function swapMeal(plan, mealKey, input, chosenId = null) {
   const ctx = prepareContext({ ...input, pantry: plan.pantryUsed || input.pantry, weekNo: plan.weekNo });
-  const structure = structuredClone(plan.structure);
+  const structure = clone(plan.structure);
   const rng = mulberry32((Date.now() & 0xffff) + mealKey.length);
   const [dStr, slot] = mealKey.split('-');
   const d = Number(dStr);
