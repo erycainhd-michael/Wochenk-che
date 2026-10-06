@@ -11,6 +11,7 @@ import { TimerManager, fmtTime, keepAwake, unlockAudio } from './timers.js';
 import { cleanRecipe, inventRecipe } from './ai.js';
 import { setSoundsEnabled, sound } from './sounds.js';
 import { LEVELS, SPORTS, sportById, sportKcal } from './sport.js';
+import { NAV_ICONS } from './navicons.js';
 
 const S = {
   ingData: null,
@@ -200,7 +201,7 @@ function nextDraft() {
   const ws = currentWeek();
   const target = S.plans[ws] ? addDays(ws, 7) : ws;
   if (!S.next || S.next.week !== target || S.next.v !== 2) {
-    S.next = { v: 2, week: target, days: eatOutDays(S.settings.eatOut), items: [] };
+    S.next = { v: 2, week: target, days: eatOutDays(S.settings.eatOut), items: [], start: 0 };
     saveNext();
   }
   return S.next;
@@ -213,9 +214,11 @@ function freshBoost() {
   return out;
 }
 
-function createPlan({ pantry, eatOut, boost } = {}) {
+/** start = erster Tag mit Plan (0 = Montag). Davor ist man noch unterwegs: kein Plan, kein Einkauf. */
+function createPlan({ pantry, eatOut, boost, start = 0 } = {}) {
   const ws = currentWeek();
-  const plan = generatePlan(plannerInput({ pantry: pantry || {}, boost, settings: { ...S.settings, eatOut: eatOut || S.settings.eatOut } }));
+  const away = Array.from({ length: start }, (_, i) => i);
+  const plan = generatePlan(plannerInput({ pantry: pantry || {}, boost, away, settings: { ...S.settings, eatOut: eatOut || S.settings.eatOut } }));
   plan.done = {};
   S.plans[ws] = plan;
   savePlans();
@@ -244,7 +247,7 @@ async function createPlanFromDraft() {
       busy(null);
     }
   }
-  const plan = createPlan({ pantry, boost, eatOut: d ? daysToEatOut(d.days) : S.settings.eatOut });
+  const plan = createPlan({ pantry, boost, eatOut: d ? daysToEatOut(d.days) : S.settings.eatOut, start: d?.start || 0 });
   S.next = null;
   saveNext();
   return plan;
@@ -476,7 +479,7 @@ function celebrate(kg) {
 
 
 const tabBtn = (id, label) =>
-  `<a href="#/${id}" class="tab" data-tab="${id}" aria-label="${label}"><img src="icons/nav/${id}.png" alt="${label}" width="44" height="44"></a>`;
+  `<a href="#/${id}" class="tab" data-tab="${id}" aria-label="${label}">${NAV_ICONS[id]}</a>`;
 
 /** In den letzten 14 Tagen neu hinzugekommenes Rezept (z. B. von der wöchentlichen Rezept-Routine) */
 const isFresh = (r) => r.addedAt && Date.now() - new Date(r.addedAt).getTime() < 14 * 864e5;
@@ -571,12 +574,16 @@ function viewWeek() {
   }
   const todayIdx = isCurrent ? b.weekday : -1;
   const g = plan.goals;
-  const avgK = plan.days.reduce((a, d) => a + d.totals.kcal, 0) / 7;
-  const avgP = plan.days.reduce((a, d) => a + d.totals.p, 0) / 7;
-  const avgC = plan.days.reduce((a, d) => a + d.totals.c, 0) / 7;
-  const avgF = plan.days.reduce((a, d) => a + d.totals.f, 0) / 7;
-  const sportWeek = plan.days.reduce((a, d) => a + (d.sportKcal || 0), 0);
-  const avgGoal = g.kcal + sportWeek / 7;
+  // Durchschnitt nur über Tage mit Plan (nicht über Tage „unterwegs“)
+  const active = plan.days.filter((d) => !d.away);
+  const nD = Math.max(1, active.length);
+  const avgK = active.reduce((a, d) => a + d.totals.kcal, 0) / nD;
+  const avgP = active.reduce((a, d) => a + d.totals.p, 0) / nD;
+  const avgC = active.reduce((a, d) => a + d.totals.c, 0) / nD;
+  const avgF = active.reduce((a, d) => a + d.totals.f, 0) / nD;
+  const sportWeek = active.reduce((a, d) => a + (d.sportKcal || 0), 0);
+  const avgGoal = g.kcal + sportWeek / nD;
+  const firstDay = active[0]?.day ?? 0;
   // Zahlen zählen beim Öffnen animiert zum neuen Wert, wenn sich Ziele geändert haben
   const cnt = (key, v, fmt) => `<i data-count="${key}" data-to="${v}" data-fmt="${fmt}" data-ease="back">${COUNT_FMT[fmt](v)}</i>`;
   return `
@@ -603,7 +610,23 @@ function viewWeek() {
       <button class="link hero-link" data-action="toggle-eval">${S.ui.evalOpen ? '▾' : '▸'} Bewertung des Plans</button>
       ${S.ui.evalOpen ? `<div class="hero-eval">${evaluationHtml(plan)}</div>` : ''}
     </section>
-    ${plan.days.map((d) => dayCard(plan, d, S.ui.openDays[d.day] ?? d.day === Math.max(0, todayIdx), d.day === todayIdx)).join('')}`;
+    ${isCurrent ? laterStart(plan, todayIdx, firstDay) : ''}
+    ${plan.days.map((d) => dayCard(plan, d, S.ui.openDays[d.day] ?? d.day === Math.max(firstDay, todayIdx), d.day === todayIdx)).join('')}`;
+}
+
+/** „Woche später starten“: Plan ab einem gewählten Tag neu erstellen (z. B. nach dem Urlaub) */
+function laterStart(plan, todayIdx, firstDay) {
+  if (!S.ui.laterOpen) {
+    return `<button class="link later-link" data-action="later-open">📅 ${firstDay ? `Plan startet am ${DAY_NAMES[firstDay]} – ändern` : 'Erst später in die Woche starten?'}</button>`;
+  }
+  const from = Math.max(0, todayIdx);
+  const sel = S.ui.laterDay ?? Math.max(firstDay, from);
+  return `<section class="card later">
+    <h2>Ab wann bist du da?</h2>
+    <p class="sub">Mise plant die Woche ab diesem Tag neu und du kaufst nur für die restlichen Tage ein. Haken auf der Einkaufsliste werden zurückgesetzt.</p>
+    <div class="pills days">${DAY_SHORT.map((d, i) => `<button class="pill circle ${sel === i ? 'on' : ''}" data-action="later-day" data-day="${i}" ${i < from ? 'disabled' : ''}>${d}</button>`).join('')}</div>
+    <div class="grid2"><button class="btn" data-action="later-cancel">Abbrechen</button><button class="btn primary" data-action="later-go" data-day="${sel}">Ab ${DAY_SHORT[sel]} planen</button></div>
+  </section>`;
 }
 
 function evaluationHtml(plan) {
@@ -644,6 +667,9 @@ function mealRow(plan, m) {
 
 function dayCard(plan, d, open, isToday) {
   const g = plan.goals;
+  if (d.away) {
+    return `<section class="card day away" data-day="${d.day}"><div class="day-head"><b>${d.name} ${formatDate(d.date)}${isToday ? ' · heute' : ''}</b><span class="sub">✈️ Noch unterwegs – kein Plan, kein Einkauf</span></div></section>`;
+  }
   return `<section class="card day ${isToday ? 'accent' : ''}" data-day="${d.day}">
     <button class="day-head" data-action="toggle-day" data-day="${d.day}" data-open="${open ? 1 : 0}">
       <b>${d.name} ${formatDate(d.date)}${isToday ? ' · heute' : ''}</b>
@@ -665,9 +691,16 @@ function dayCard(plan, d, open, isToday) {
 
 // --- Sport ---------------------------------------------------------------------
 
-/** Körpergewicht für die Sport-Berechnung: zuletzt eingetragenes Gewicht, sonst 80 kg */
+/**
+ * Körpergewicht für die Sport-Berechnung (kcal wachsen anteilig mit dem Gewicht):
+ * im Sport-Formular geändert > zuletzt im Rückblick eingetragen > Einstellung > 80 kg
+ */
 function currentKg() {
-  return S.feedback.filter((f) => f.week?.weight > 0).sort((a, b) => a.weekStart.localeCompare(b.weekStart)).pop()?.week.weight || 80;
+  const fb = S.feedback.filter((f) => f.week?.weight > 0).sort((a, b) => a.weekStart.localeCompare(b.weekStart)).pop();
+  const set = S.settings.bodyWeight;
+  // Das zuletzt geänderte gewinnt
+  if (set && (!fb || (S.settings.bodyWeightAt || '') >= (fb.updatedAt || ''))) return set;
+  return fb?.week.weight || set || 80;
 }
 const sportIcons = (plan, d) => (plan.structure?.sport?.[d] || []).map((x) => sportById(x.type).icon).join('');
 
@@ -689,8 +722,11 @@ function sportBlock(plan, d) {
       <label class="field">Sportart<select data-sport="type">${SPORTS.map((s) => `<option value="${s.id}" ${s.id === f.type ? 'selected' : ''}>${s.icon} ${e(s.name)}</option>`).join('')}</select></label>
       <div class="field">Intensität<div class="seg">${LEVELS.map((l, i) => `<button class="pill ${f.level === i ? 'on' : ''}" data-action="sport-level" data-val="${i}">${l}</button>`).join('')}</div>
         <p class="hint">${e(sp.hint[f.level])} · ${String(sp.met[f.level]).replace('.', ',')} MET</p></div>
-      <label class="field">Dauer (Minuten)<input type="number" inputmode="numeric" min="5" step="5" data-sport="min" value="${f.min}"></label>
-      <p class="sport-kcal">≈ <b>+${num(sportKcal(f.type, f.level, f.min, kg))} kcal</b> zusätzlich verbrannt <span class="sub">(bei ${String(kg).replace('.', ',')} kg)</span></p>
+      <div class="grid2">
+        <label class="field">Dauer (Min.)<input type="number" inputmode="numeric" min="5" step="5" data-sport="min" value="${f.min}"></label>
+        <label class="field">Dein Gewicht (kg)<input type="text" inputmode="decimal" data-sport="kg" value="${fmtKg(kg)}"></label>
+      </div>
+      <p class="sport-kcal">≈ <b>+${num(sportKcal(f.type, f.level, f.min, kg))} kcal</b> zusätzlich verbrannt</p>
       <div class="grid2"><button class="btn" data-action="sport-cancel">Abbrechen</button><button class="btn primary" data-action="sport-add" data-day="${d.day}">Eintragen</button></div>
       <p class="hint">Mise erhöht das Kalorienziel dieses Tages um diesen Wert und passt die Portionen an. Richtwerte nach dem Compendium of Physical Activities.</p>
     </div>`;
@@ -786,13 +822,14 @@ const catsOf = (id) => {
 };
 const saveCats = () => store.set('recipeCats', S.cats);
 
+/** Alle Rezepte in einer Liste – Frühstück, Hauptgericht & Co. sind Kategorien zum Filtern */
 function viewRecipes() {
-  const groups = { main: 'Hauptgerichte', breakfast: 'Frühstück' };
   const fbw = recipeWeights(S.feedback);
   const tf = S.ui.rTime || 'all';
   const cf = S.cats.names.includes(S.ui.rCat) ? S.ui.rCat : null;
   const match = (r) => (tf === 'all' || timeClass(r) === tf) && (!cf || catsOf(r.id).includes(cf));
   const hints = { kurz: 'bis 15 Min.', mittel: '15–30 Min.', aufwendig: 'über 30 Min. oder aufwendig' };
+  const list = S.recipes.filter((r) => r.type !== 'addon' && match(r)).sort((a, b) => a.name.localeCompare(b.name, 'de'));
   return `<header class="top col"><a class="back" href="#/woche">‹ Woche</a><h1>Rezepte</h1></header>
     <section class="card filters">
       <div class="flt-label">Zeit</div>
@@ -806,25 +843,23 @@ function viewRecipes() {
       </div>
       ${cf ? `<button class="link danger small" data-action="cat-delete" data-val="${e(cf)}">Kategorie „${e(cf)}“ löschen</button>` : ''}
     </section>
-    ${Object.entries(groups)
-      .map(([t, label]) => {
-        const list = S.recipes.filter((r) => r.type === t && match(r));
-        return `<section class="card"><h2>${label}</h2>
-        <div class="add-row"><input placeholder="Neues Rezept, z. B. Pilzrisotto" data-new-title="${t}" value="${e(S.ui.newTitle[t] || '')}"><button class="btn pill" data-action="new-recipe" data-type="${t}">Hinzufügen</button></div>
-        <p class="hint">${S.settings.aiKey ? 'Nur den Titel eintragen – die KI erfindet das passende Rezept.' : 'Titel eintragen und Rezept selbst ausfüllen. Mit KI-Schlüssel (Einstellungen) erfindet Mise es für dich.'}</p>
-        ${list.length ? '' : `<p class="sub">${cf ? `Noch keine ${label} in „${e(cf)}“ – öffne ein Rezept und tippe die Kategorie an.` : 'Keine Rezepte für diesen Filter.'}</p>`}
-        <ul class="list">${list
-          .map((r) => {
-            const w = fbw[r.id]?.weight;
-            const tag = r.source === 'ki' ? ' · ✨ KI' : isFresh(r) ? ' · ✨ neu' : r.source === 'eigen' ? ' · eigenes' : '';
-            const m = macrosOf(r.ingredients.filter((l) => !l.opt || S.settings[l.opt]));
-            return `<li><a href="#/rezept/${r.id}"><span>${e(r.name)}</span><small>${r.time} Min. · ${dishesText(r.dishes)}${w > 1.15 ? ' · 👍' : w < 0.85 ? ' · 👎' : ''}${r.season ? ' · saisonal' : ''}${tag}</small>
-              <span class="macros"><b>${num(m.kcal)} kcal</b><span>${g_(m.p)} Protein</span><span>${g_(m.c)} Kohlenhydrate</span><span>${g_(m.f)} Fett</span></span>
-              ${catsOf(r.id).length ? `<span class="rcats">${catsOf(r.id).map((c) => `<i>${e(c)}</i>`).join('')}</span>` : ''}</a></li>`;
-          })
-          .join('')}</ul></section>`;
-      })
-      .join('')}`;
+    <section class="card">
+      <div class="add-row"><input placeholder="Neues Rezept, z. B. Pilzrisotto" data-new-title="main" value="${e(S.ui.newTitle.main || '')}"><button class="btn pill" data-action="new-recipe" data-type="main">Hinzufügen</button></div>
+      <p class="hint">${S.settings.aiKey ? 'Nur den Titel eintragen – die KI erfindet das passende Rezept.' : 'Titel eintragen und Rezept selbst ausfüllen (Frühstück oder Hauptgericht wählst du im Rezept). Mit KI-Schlüssel (Einstellungen) erfindet Mise es für dich.'}</p>
+      <div class="sub list-count">${list.length} ${list.length === 1 ? 'Rezept' : 'Rezepte'}</div>
+      ${list.length ? '' : `<p class="sub">${cf ? `Noch keine Rezepte in „${e(cf)}“ – öffne ein Rezept und tippe die Kategorie an.` : 'Keine Rezepte für diesen Filter.'}</p>`}
+      <ul class="list">${list
+        .map((r) => {
+          const w = fbw[r.id]?.weight;
+          const tag = r.source === 'ki' ? ' · ✨ KI' : isFresh(r) ? ' · ✨ neu' : r.source === 'eigen' ? ' · eigenes' : '';
+          const m = macrosOf(r.ingredients.filter((l) => !l.opt || S.settings[l.opt]));
+          const tags = catsOf(r.id).filter((c) => !/Abwasch/.test(c));
+          return `<li><a href="#/rezept/${r.id}"><span class="rl-n">${e(r.name)}${w > 1.15 ? ' 👍' : w < 0.85 ? ' 👎' : ''}</span>
+            <span class="rmeta">${r.time} Min. · ${dishesText(r.dishes)} · <b>${num(m.kcal)} kcal</b> · ${g_(m.p)} Protein · ${g_(m.c)} Kohlenhydrate · ${g_(m.f)} Fett${r.season ? ' · saisonal' : ''}${tag}</span>
+            ${tags.length ? `<span class="rcats">${tags.map((c) => `<i>${e(c)}</i>`).join('')}</span>` : ''}</a></li>`;
+        })
+        .join('')}</ul>
+    </section>`;
 }
 
 /** 🔎 Rezept aus der Sammlung für eine Mahlzeit auswählen */
@@ -1269,6 +1304,10 @@ function viewReview(weekArg) {
   const guesses = leftoverGuesses(draft);
   const guessIds = new Set(guesses.map((x) => x.id));
   const planningCards = `
+    <section class="card"><h2>Ab wann planen?</h2>
+      <p class="sub">Kommst du erst später in der Woche zurück (KW ${isoWeek(draft.week)})? Dann plant Mise erst ab diesem Tag und du kaufst nur für die restlichen Tage ein.</p>
+      <div class="pills days">${DAY_SHORT.map((d, i) => `<button class="pill circle ${(draft.start || 0) === i ? 'on' : ''}" data-action="draft-start" data-day="${i}">${d}</button>`).join('')}</div>
+    </section>
     <section class="card"><h2>Wann isst du auswärts?</h2>
       <p class="sub">Tippe die Tage an (KW ${isoWeek(draft.week)}). Sie werden mit ca. ${num(S.settings.eatOutKcal)} kcal eingerechnet; an diesen Tagen wird entsprechend weniger gekocht. Den Standard änderst du in den Einstellungen.</p>
       ${dayPills(draft.days, 'draft-day')}
@@ -1320,13 +1359,17 @@ function viewReview(weekArg) {
   }
   const fb = feedbackFor(ws) || { weekStart: ws, recipes: {}, week: {} };
   const hints = weekHints(S.feedback, S.settings.goals, S.settings.goalWeight);
-  const groups = { fruehstueck: [], mittag: [], abend: [] };
-  const seen = new Set();
+  // Gerichte in der Reihenfolge der Woche, mit den Tagen, an denen sie gekocht/gegessen wurden
+  const order = [];
+  const when = new Map();
   for (const d of plan?.days || [])
     for (const m of d.meals) {
-      if (m.kind !== 'recipe' || m.leftover || seen.has(m.recipeId)) continue;
-      seen.add(m.recipeId);
-      groups[m.slot]?.push(m.recipeId);
+      if (m.kind !== 'recipe') continue;
+      if (!when.has(m.recipeId)) {
+        when.set(m.recipeId, []);
+        order.push(m.recipeId);
+      }
+      when.get(m.recipeId).push(`${d.short} ${SLOT_LABEL[m.slot]}${m.leftover ? ' (Rest)' : ''}`);
     }
   const icon = (id, field, val, emoji, label) => {
     const cur = fb.recipes[id]?.[field];
@@ -1337,11 +1380,11 @@ function viewReview(weekArg) {
     `<div class="scale"><span>${label}</span><div class="pills">${[1, 2, 3, 4, 5]
       .map((v) => `<button class="pill circle ${fb.week?.[field] === v ? 'on' : ''}" data-action="fbw" data-week="${ws}" data-field="${field}" data-val="${v}">${v}</button>`)
       .join('')}</div></div>`;
-  const groupCard = (key, title) =>
-    groups[key].length
-      ? `<section class="card"><h2>${title}</h2><ul class="fb-list">${groups[key]
+  const dishesCard = () =>
+    order.length
+      ? `<section class="card"><h2>Gerichte der Woche</h2><ul class="fb-list">${order
           .map(
-            (id) => `<li><div class="fb-name">${e(recipe(id).name)}</div><div class="pills">
+            (id) => `<li><div class="fb-name">${e(recipe(id).name)}</div><div class="fb-when">${e(when.get(id).join(' · '))}</div><div class="pills">
           ${icon(id, 'rating', 2, '😍', 'Ich liebe das')}${icon(id, 'rating', 1, '👍', 'War gut')}${icon(id, 'rating', -1, '👎', 'War schlecht')}${icon(id, 'dishes', undefined, '🧽', 'War zu viel Abwasch')}${icon(id, 'tooComplex', undefined, '⏱️', 'War zu aufwendig')}
         </div></li>`
           )
@@ -1365,7 +1408,7 @@ function viewReview(weekArg) {
       ${goalText ? `<p class="goal-text">${goalText}</p>` : ''}
     </section>
     ${plan ? '' : `<p class="sub center">Für diese Woche gibt es keinen Plan – Sättigung, Energie und Gewicht kannst du trotzdem eintragen.</p>`}
-    ${groupCard('fruehstueck', 'Frühstück')}${groupCard('mittag', 'Mittagessen')}${groupCard('abend', 'Abendessen')}
+    ${dishesCard()}
     ${ws === currentWeek() || ws === weeks[0] ? planningCards : ''}`;
 }
 
@@ -1547,6 +1590,31 @@ async function onClick(ev) {
       if (on) sound.check();
       return;
     }
+    case 'later-open':
+      S.ui.laterOpen = true;
+      S.ui.laterDay = null;
+      return render();
+    case 'later-cancel':
+      S.ui.laterOpen = false;
+      return render();
+    case 'later-day':
+      S.ui.laterDay = Number(el.dataset.day);
+      return render();
+    case 'later-go': {
+      const start = Number(el.dataset.day);
+      if (Object.values(S.checks[plan.weekStart] || {}).some(Boolean) && !confirm('Die Woche neu planen? Haken auf der Einkaufsliste werden zurückgesetzt.')) return;
+      // Auswärtstage der Woche beibehalten (ohne die Tage „unterwegs“)
+      const eatOut = (plan.structure?.eatOut || []).map((k) => ({ day: Number(k.split('-')[0]), slot: k.split('-')[1] })).filter((x) => x.day >= start && !(plan.structure.away || []).includes(x.day));
+      createPlan({ pantry: plan.pantryUsed || {}, eatOut, start });
+      S.ui.laterOpen = false;
+      S.ui.openDays = {};
+      toast(start ? `Plan ab ${DAY_NAMES[start]} erstellt` : 'Plan für die ganze Woche erstellt', { icon: '📅', sub: 'Einkaufsliste nur für die restlichen Tage' });
+      return render();
+    }
+    case 'draft-start':
+      nextDraft().start = Number(el.dataset.day);
+      saveNext();
+      return render();
     case 'sport-open':
       S.ui.sport = { week: plan.weekStart, day: Number(el.dataset.day), type: S.ui.lastSport || 'laufen', level: 1, min: 45 };
       return render();
@@ -1560,7 +1628,7 @@ async function onClick(ev) {
       const f = S.ui.sport;
       if (!f || !(f.min > 0)) return toast('Bitte eine Dauer eintragen', { icon: '⏱️', kind: 'warn' });
       const kcal = sportKcal(f.type, f.level, f.min, currentKg());
-      saveSport(plan, (sp) => (sp[f.day] ||= []).push({ type: f.type, level: f.level, min: f.min, kcal }));
+      saveSport(plan, (sp) => (sp[f.day] ||= []).push({ type: f.type, level: f.level, min: f.min, kg: currentKg(), kcal }));
       S.ui.lastSport = f.type;
       S.ui.sport = null;
       sound.check();
@@ -1617,7 +1685,10 @@ async function onClick(ev) {
       if (!S.cats.map[id]?.length) delete S.cats.map[id];
       if (S.cats.off && !S.cats.off[id]?.length) delete S.cats.off[id];
       saveCats();
-      return render();
+      const on = !has;
+      el.classList.toggle('on', on);
+      el.textContent = (on ? '✓ ' : '') + val;
+      return;
     }
     case 'toggle-eval':
       S.ui.evalOpen = !S.ui.evalOpen;
@@ -1884,8 +1955,8 @@ function onChange(ev) {
     return;
   }
   if (el.dataset.sport && S.ui.sport) {
-    // Dauer wird schon beim Tippen übernommen – kein Neuzeichnen, sonst geht der Tipp auf „Eintragen“ verloren
-    if (el.dataset.sport === 'min') return;
+    // Dauer/Gewicht werden schon beim Tippen übernommen – kein Neuzeichnen, sonst geht der Tipp auf „Eintragen“ verloren
+    if (el.dataset.sport === 'min' || el.dataset.sport === 'kg') return;
     S.ui.sport[el.dataset.sport] = el.value;
     return render();
   }
@@ -1949,9 +2020,16 @@ function onInput(ev) {
     }, 250);
     return;
   }
-  if (el.dataset.sport === 'min' && S.ui.sport) {
+  if ((el.dataset.sport === 'min' || el.dataset.sport === 'kg') && S.ui.sport) {
     // Vorschau live aktualisieren, ohne das Feld neu zu zeichnen
-    S.ui.sport.min = Number(el.value);
+    if (el.dataset.sport === 'kg') {
+      const kg = parseKg(el.value);
+      if (kg >= 30 && kg <= 250) {
+        S.settings.bodyWeight = kg;
+        S.settings.bodyWeightAt = new Date().toISOString();
+        saveSettings();
+      }
+    } else S.ui.sport.min = Number(el.value);
     const b = document.querySelector('.sport-kcal b');
     if (b) b.textContent = `+${num(sportKcal(S.ui.sport.type, S.ui.sport.level, S.ui.sport.min, currentKg()))} kcal`;
     return;

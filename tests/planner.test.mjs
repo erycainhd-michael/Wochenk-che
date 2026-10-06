@@ -100,6 +100,18 @@ test('Sport erhöht das Kalorienziel des Tages und die Portionen', () => {
   assert.deepEqual(next.structure.sport, withSport.structure.sport);
 });
 
+test('Später starten: Tage „unterwegs“ ohne Gerichte und ohne Einkauf', () => {
+  const p2 = generatePlan({ recipes, idx, settings: settings(), weekStart: '2026-10-05', seed: 11, away: [0, 1] });
+  assert.ok(p2.days[0].away && p2.days[1].away);
+  assert.equal(p2.days[0].meals.length, 0);
+  assert.equal(p2.days[1].totals.kcal, 0);
+  for (const c of p2.cooks) assert.ok(c.portions.every((p) => p.day >= 2), 'nichts kochen, solange man unterwegs ist');
+  for (const d of p2.days.slice(2)) assert.ok(Math.abs(d.totals.kcal - 2800) / 2800 < 0.08, `${d.name}: ${Math.round(d.totals.kcal)}`);
+  assert.ok(p2.cost < plan.cost, `Einkauf ${p2.cost.toFixed(2)} < ${plan.cost.toFixed(2)}`);
+  const again = refitPlan(p2, { recipes, idx, settings: settings(), weekStart: '2026-10-05' });
+  assert.ok(again.days[0].away);
+});
+
 test('Sport-kcal nach MET: (MET − 1) × kg × Stunden', () => {
   assert.equal(sportKcal('laufen', 1, 60, 80), 705); // (9,8 − 1) × 80 × 1
   assert.equal(sportKcal('kraft', 1, 45, 80), 240); // (5 − 1) × 80 × 0,75
