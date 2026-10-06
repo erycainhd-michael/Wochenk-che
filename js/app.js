@@ -220,6 +220,7 @@ function createPlan({ pantry, eatOut, boost, start = 0 } = {}) {
   const away = Array.from({ length: start }, (_, i) => i);
   const plan = generatePlan(plannerInput({ pantry: pantry || {}, boost, away, settings: { ...S.settings, eatOut: eatOut || S.settings.eatOut } }));
   plan.done = {};
+  plan.studi = !!S.settings.studi;
   S.plans[ws] = plan;
   savePlans();
   S.checks[ws] = {};
@@ -251,6 +252,14 @@ async function createPlanFromDraft() {
   S.next = null;
   saveNext();
   return plan;
+}
+
+/** Laufende Woche ab Tag `start` neu planen (Auswärtstage und Vorrat bleiben). false = abgebrochen */
+function replanWeek(plan, start) {
+  if (Object.values(S.checks[plan.weekStart] || {}).some(Boolean) && !confirm('Die Woche neu planen? Haken auf der Einkaufsliste werden zurückgesetzt.')) return false;
+  const eatOut = (plan.structure?.eatOut || []).map((k) => ({ day: Number(k.split('-')[0]), slot: k.split('-')[1] })).filter((x) => x.day >= start && !(plan.structure.away || []).includes(x.day));
+  createPlan({ pantry: plan.pantryUsed || {}, eatOut, start });
+  return true;
 }
 
 /** Laufenden Wochenplan an neue Ziele/Läden anpassen (gleiche Gerichte, neue Mengen) */
@@ -777,6 +786,15 @@ function viewMeal(key) {
   for (const a of meal.addons || []) {
     const ar = recipe(a);
     info += `<div class="banner info">💪 Dazu: <b>${e(ar.name)}</b> – ergänzt heute dein Protein. ${ar.steps.map((x) => e(x.t)).join(' ')}</div>`;
+  }
+  // Für die Tagesziele angepasstes Verhältnis von Beilage und Proteinquelle erklären
+  const mx = meal.mix;
+  if (mx && (Math.abs(mx.s - 1) >= 0.1 || Math.abs(mx.q - 1) >= 0.1)) {
+    const pct = (f) => `${f > 1 ? '+' : '−'}${Math.round(Math.abs(f - 1) * 100)} %`;
+    const parts = [];
+    if (Math.abs(mx.s - 1) >= 0.1) parts.push(`${mx.s > 1 ? 'mehr' : 'weniger'} ${meal.slot === 'fruehstueck' ? 'Haferflocken bzw. Brot' : 'Beilage wie Reis, Nudeln oder Kartoffeln'} (${pct(mx.s)})`);
+    if (Math.abs(mx.q - 1) >= 0.1) parts.push(`${mx.q > 1 ? 'mehr' : 'weniger'} Proteinquelle (${pct(mx.q)})`);
+    info += `<div class="banner info">⚖️ Für deine Tagesziele angepasst: ${parts.join(' und ')} als im Grundrezept. Die Mengen unten sind schon umgerechnet.</div>`;
   }
   const slot = meal.slot.startsWith('snack') ? 'Snack' : SLOT_LABEL[meal.slot];
   return recipeHtml(r, items, meal.macros, `${DAY_NAMES[meal.key.split('-')[0]]} · ${slot} · ${cook && cook.portions.length > 1 ? `${cook.portions.length} Portionen` : '1 Portion'}`, `<a class="back" href="#/woche">‹ Woche</a>`, info, key, false);
@@ -1492,6 +1510,8 @@ function viewSettings() {
   </section>
 
   <section class="card"><h2>Einkauf</h2>
+    <label class="row"><input type="checkbox" data-set="studi" ${st.studi ? 'checked' : ''}> <span><b>🎓 Studi-Modus</b><br><small>Bevorzugt besonders günstige Gerichte (Eier, Quark, Linsen, Reis, TK-Gemüse …) – weiterhin passend zu deinen Tageszielen und gut für den Muskelaufbau.</small></span></label>
+    ${S.plans[currentWeek()] && (S.plans[currentWeek()].studi ?? false) !== !!st.studi ? `<button class="btn small pill" data-action="replan-studi">Diese Woche ${st.studi ? 'im Studi-Modus ' : ''}neu planen</button>` : ''}
     ${STORE_IDS.map((id) => `<label class="row"><input type="checkbox" data-set="stores.${id}" ${st.stores[id] ? 'checked' : ''}> ${e(id === 'edeka' ? 'Edeka No1 Center Schloßstraße (Berlin)' : STORES[id].name)}</label>`).join('')}
     <label class="field">Hauptladen<select data-set="mainStore">${STORE_IDS
       .map((id) => `<option value="${id}" ${st.mainStore === id ? 'selected' : ''}>${e(STORES[id].short)}</option>`)
@@ -1602,13 +1622,16 @@ async function onClick(ev) {
       return render();
     case 'later-go': {
       const start = Number(el.dataset.day);
-      if (Object.values(S.checks[plan.weekStart] || {}).some(Boolean) && !confirm('Die Woche neu planen? Haken auf der Einkaufsliste werden zurückgesetzt.')) return;
-      // Auswärtstage der Woche beibehalten (ohne die Tage „unterwegs“)
-      const eatOut = (plan.structure?.eatOut || []).map((k) => ({ day: Number(k.split('-')[0]), slot: k.split('-')[1] })).filter((x) => x.day >= start && !(plan.structure.away || []).includes(x.day));
-      createPlan({ pantry: plan.pantryUsed || {}, eatOut, start });
+      if (!replanWeek(plan, start)) return;
       S.ui.laterOpen = false;
       S.ui.openDays = {};
       toast(start ? `Plan ab ${DAY_NAMES[start]} erstellt` : 'Plan für die ganze Woche erstellt', { icon: '📅', sub: 'Einkaufsliste nur für die restlichen Tage' });
+      return render();
+    }
+    case 'replan-studi': {
+      const p = S.plans[currentWeek()];
+      if (!p || !replanWeek(p, p.days.find((d) => !d.away)?.day || 0)) return;
+      toast(S.settings.studi ? 'Woche im Studi-Modus neu geplant' : 'Woche neu geplant', { icon: S.settings.studi ? '🎓' : '📅', sub: `Einkauf jetzt ${euro(S.plans[currentWeek()].cost)}` });
       return render();
     }
     case 'draft-start':

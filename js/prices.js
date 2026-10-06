@@ -86,8 +86,8 @@ export function makePriceFn({ idx, settings, offers = [], weekStart }) {
     }
     const main = cands.find((c) => c.store === mainStore);
     const cheapest = cands.reduce((a, b) => (b.price < a.price ? b : a));
-    // Hauptladen, außer ein anderer ausgewählter Laden ist mindestens 10 % günstiger
-    const best = main && !(cheapest.price <= main.price * 0.9) ? main : cheapest;
+    // Hauptladen, außer ein anderer ausgewählter Laden ist mindestens 10 % günstiger (Studi-Modus: 3 %)
+    const best = main && !(cheapest.price <= main.price * (settings.studi ? 0.97 : 0.9)) ? main : cheapest;
     cache.set(id, best);
     return best;
   };

@@ -107,9 +107,44 @@ test('Später starten: Tage „unterwegs“ ohne Gerichte und ohne Einkauf', () 
   assert.equal(p2.days[1].totals.kcal, 0);
   for (const c of p2.cooks) assert.ok(c.portions.every((p) => p.day >= 2), 'nichts kochen, solange man unterwegs ist');
   for (const d of p2.days.slice(2)) assert.ok(Math.abs(d.totals.kcal - 2800) / 2800 < 0.08, `${d.name}: ${Math.round(d.totals.kcal)}`);
-  assert.ok(p2.cost < plan.cost, `Einkauf ${p2.cost.toFixed(2)} < ${plan.cost.toFixed(2)}`);
+  // Verbrauch (ohne haltbaren Vorrat für die Folgewochen) ist für 5 Tage geringer als für 7
+  const full = generatePlan({ recipes, idx, settings: settings(), weekStart: '2026-10-05', seed: 11 });
+  const used = (x) => x.cost - x.shopping.stockEuro;
+  assert.ok(used(p2) < used(full), `Verbrauch ${used(p2).toFixed(2)} < ${used(full).toFixed(2)}`);
   const again = refitPlan(p2, { recipes, idx, settings: settings(), weekStart: '2026-10-05' });
   assert.ok(again.days[0].away);
+});
+
+test('Plan orientiert sich an allen Tageszielen (kcal, Protein, Kohlenhydrate, Fett)', () => {
+  for (const goals of [{ kcal: 2800, protein: 140, carbs: 350, fat: 90 }, { kcal: 2600, protein: 180, carbs: 280, fat: 85 }]) {
+    const s = settings();
+    s.goals = goals;
+    const p = generatePlan({ recipes, idx, settings: s, weekStart: '2026-10-05', seed: 21, candidates: 20 });
+    const days = p.days.filter((d) => !d.away);
+    const avg = (f) => days.reduce((a, d) => a + d.totals[f], 0) / days.length;
+    assert.ok(Math.abs(avg('kcal') / goals.kcal - 1) < 0.05, `kcal ${Math.round(avg('kcal'))}`);
+    assert.ok(Math.abs(avg('p') / goals.protein - 1) < 0.15, `Protein ${Math.round(avg('p'))} statt ${goals.protein}`);
+    assert.ok(Math.abs(avg('c') / goals.carbs - 1) < 0.12, `Kohlenhydrate ${Math.round(avg('c'))} statt ${goals.carbs}`);
+    assert.ok(Math.abs(avg('f') / goals.fat - 1) < 0.15, `Fett ${Math.round(avg('f'))} statt ${goals.fat}`);
+  }
+});
+
+test('Studi-Modus: günstiger, Ziele bleiben', () => {
+  const costs = { normal: 0, studi: 0 };
+  for (const seed of [3, 4]) {
+    for (const mode of ['normal', 'studi']) {
+      const s = settings();
+      s.studi = mode === 'studi';
+      const p = generatePlan({ recipes, idx, settings: s, weekStart: '2026-10-05', seed, candidates: 20 });
+      costs[mode] += p.cost;
+      if (mode === 'studi') {
+        const days = p.days.filter((d) => !d.away);
+        const avgP = days.reduce((a, d) => a + d.totals.p, 0) / days.length;
+        assert.ok(avgP >= 140 * 0.95, `Protein im Studi-Modus ${Math.round(avgP)}`);
+      }
+    }
+  }
+  assert.ok(costs.studi < costs.normal * 0.95, `Studi ${costs.studi.toFixed(2)} vs normal ${costs.normal.toFixed(2)}`);
 });
 
 test('Sport-kcal nach MET: (MET − 1) × kg × Stunden', () => {

@@ -23,6 +23,8 @@ export const DEFAULT_SETTINGS = {
   fiber: { target: 32 },
   psyllium: false,
   proteinPowder: true,
+  // Studi-Modus: besonders günstige, trotzdem ausgewogene Pläne
+  studi: false,
   planHour: 8,
   // Name für die Begrüßung in der Wochenübersicht
   name: 'Michael',

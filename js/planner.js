@@ -8,7 +8,7 @@
 //     Vielfalt > Geschmack/Alltag > Feinschliff). Aus vielen Kandidaten gewinnt der beste.
 
 import { DAY_NAMES, DAY_SHORT, SLOT_LABEL, addDays, avg, clamp, clone, mulberry32, pickWeighted, round, sum, euro, num } from './util.js';
-import { addMacros, emptyMacros, hasFish, itemsMacros, mainProteinCategory, recipeItems, recipeMacros } from './nutrition.js';
+import { addMacros, emptyMacros, hasFish, itemsMacros, mainProteinCategory, recipeItems, recipeMacros, recipeParts } from './nutrition.js';
 import { itemsCost, makePriceFn } from './prices.js';
 import { buildShopping } from './shopping.js';
 import { fiberTargetFor } from './settings.js';
@@ -48,6 +48,7 @@ export function prepareContext(input) {
     const colors = new Set(r.ingredients.map((l) => idx.get(l.id)?.color).filter(Boolean));
     info.set(r.id, {
       macros: m,
+      parts: recipeParts(r, idx, settings),
       cost,
       offerShare,
       colors,
@@ -70,12 +71,25 @@ export function prepareContext(input) {
     recipesById: new Map(recipes.map((r) => [r.id, r])),
     mains,
     breakfasts: byType('breakfast'),
-    addons: byType('addon'),
+    // Studi-Modus: keine teure Großpackung (z. B. Proteinpulver) für eine Ergänzung anbrechen – nur aus dem Vorrat
+    addons: byType('addon').filter((r) => !settings.studi || r.ingredients.every((l) => (idx.get(l.id)?.price || 0) < 6 || (input.pantry || {})[l.id] > 0)),
     avgMainCost: avg(mains, (r) => info.get(r.id).cost) || 3,
     fiberTarget: fiberTargetFor(settings),
     pantry: input.pantry || {},
     recentRecipes: input.recentRecipes || {},
   };
+}
+
+/**
+ * Wie gut passt die Nährstoff-Verteilung eines Gerichts (Anteil an kcal) zu den Tageszielen?
+ * 1 = perfekt, kleiner = weiter weg. Mengen gleicht später fitDay aus – hier geht es ums Verhältnis.
+ */
+function macroFit(m, goals) {
+  if (!m.kcal) return 1;
+  const share = (g, f) => (g * f) / m.kcal;
+  const gs = (g, f) => (g * f) / goals.kcal;
+  const dist = Math.abs(share(m.p, 4) - gs(goals.protein, 4)) + Math.abs(share(m.c, 4) - gs(goals.carbs, 4)) + Math.abs(share(m.f, 9) - gs(goals.fat, 9));
+  return Math.exp(-6 * dist);
 }
 
 // ---------------------------------------------------------------------------
@@ -193,6 +207,7 @@ export function buildStructure(ctx, rng, mode = {}) {
     if (ago && inf.weight < 1.3) w *= 1 - variety * (ago === 1 ? 0.7 : 0.35);
     const costRatio = ctx.avgMainCost / Math.max(0.5, inf.cost);
     w *= Math.pow(costRatio, mode.cheap ? 2.5 : 0.3);
+    w *= Math.pow(macroFit(inf.macros, settings.goals), mode.cheap ? 0.6 : 1);
     return Math.max(0.001, w);
   };
 
@@ -234,7 +249,7 @@ export function buildStructure(ctx, rng, mode = {}) {
     const weights = pool.map((r) => {
       const inf = info.get(r.id);
       const ev = stock.evaluate(baseItems(r, settings, 7 / k));
-      return Math.pow(inf.weight * (1 + 1.5 * ev.coverage) * (1 + offersW * inf.offerShare) * (mode.cheap ? 1 / Math.max(0.5, inf.cost) : 1), 1.5);
+      return Math.pow(inf.weight * (1 + 1.5 * ev.coverage) * (1 + offersW * inf.offerShare) * (mode.cheap ? 1 / Math.max(0.5, inf.cost) : 1) * macroFit(inf.macros, settings.goals), 1.5);
     });
     const r = pickWeighted(pool, weights, rng);
     chosen.push(r.id);
@@ -268,42 +283,61 @@ function dayGoals(goals, extra) {
   return { ...goals, kcal: goals.kcal + extra, carbs: goals.carbs + (extra * 0.6) / 4, fat: goals.fat + (extra * 0.25) / 9 };
 }
 
+// Mögliche Anpassungen der Bausteine je Tag: Beilage (s) und Proteinquelle (q)
+const S_STEPS = [0.7, 0.85, 1, 1.15, 1.3, 1.5, 1.75, 2];
+const Q_STEPS = [0.5, 0.6, 0.7, 0.8, 0.9, 1, 1.15, 1.3];
+
+/**
+ * Portionen eines Tages so wählen, dass kcal, Protein, Kohlenhydrate und Fett möglichst nah an den
+ * eingestellten Zielen liegen. Gesucht wird über: Ergänzung zum Frühstück, Verhältnis Beilage/Protein
+ * (z. B. mehr Reis, etwas weniger Hähnchen) und die Portionsgrößen von Frühstück und Hauptgerichten.
+ */
 function fitDay({ ctx, fixed, breakfast, mains, combos, extra = 0 }) {
   const g = dayGoals(ctx.settings.goals, extra);
-  const B = breakfast ? ctx.info.get(breakfast).macros : null;
-  const M = mains.reduce((a, id) => addMacros(a, ctx.info.get(id).macros), emptyMacros());
+  const BP = breakfast ? ctx.info.get(breakfast).parts : null;
+  const MP = { s: emptyMacros(), q: emptyMacros(), r: emptyMacros() };
+  for (const id of mains) for (const k of ['s', 'q', 'r']) MP[k] = addMacros(MP[k], ctx.info.get(id).parts[k]);
+  const mix = (P, s, q) => addMacros(addMacros(P.r, P.s, s), P.q, q);
   let best = null;
   for (const combo of combos) {
     let S = emptyMacros();
     let pref = 0;
-    for (const s of combo) {
-      const inf = ctx.info.get(s.id);
+    for (const a of combo) {
+      const inf = ctx.info.get(a.id);
       S = addMacros(S, inf.macros);
-      // Proteinpulver nur, wenn es wirklich hilft – Ergänzung, keine Grundlage
-      pref += 0.04 + 0.03 * inf.cost;
+      // Ergänzungen nur, wenn sie wirklich helfen
+      pref += 0.04 + 0.03 * inf.cost * (ctx.settings.studi ? 3 : 1);
     }
     const R = g.kcal - fixed.kcal - S.kcal;
-    let fb = 1;
-    let fm = 1;
-    if (B && M.kcal > 0) {
-      const f0 = R / (B.kcal + M.kcal);
-      fb = round(clamp(f0, 0.8, 1.4), 0.05);
-      fm = round(clamp((R - B.kcal * fb) / M.kcal, 0.7, 1.7), 0.05);
-    } else if (M.kcal > 0) {
-      fm = round(clamp(R / M.kcal, 0.7, 1.7), 0.05);
-    } else if (B) {
-      fb = round(clamp(R / B.kcal, 0.8, 1.6), 0.05);
-    }
-    let T = addMacros(addMacros(fixed, S), M, fm);
-    if (B) T = addMacros(T, B, fb);
-    const kErr = Math.abs(T.kcal - g.kcal) / g.kcal;
-    const pShort = Math.max(0, (g.protein - T.p) / g.protein);
-    const pOver = Math.max(0, (T.p - 1.1 * g.protein) / g.protein);
-    const cErr = Math.abs(T.c - g.carbs) / g.carbs;
-    const fErr = Math.abs(T.f - g.fat) / g.fat;
-    const fibOver = Math.max(0, T.fib - ctx.fiberTarget - 3) / ctx.fiberTarget;
-    const cost = 5 * Math.max(0, kErr - 0.03) + kErr + 4 * pShort + 3 * pOver + 0.6 * cErr + 0.6 * fErr + 3 * fibOver + 0.03 * combo.length + pref;
-    if (!best || cost < best.cost) best = { cost, fb, fm, addons: combo.map((s) => s.id) };
+    for (const s of S_STEPS)
+      for (const q of Q_STEPS) {
+        const B = BP ? mix(BP, s, q) : null;
+        const M = mix(MP, s, q);
+        let fb = 1;
+        let fm = 1;
+        if (B && M.kcal > 0) {
+          const f0 = R / (B.kcal + M.kcal);
+          fb = round(clamp(f0, 0.8, 1.4), 0.05);
+          fm = round(clamp((R - B.kcal * fb) / M.kcal, 0.7, 1.7), 0.05);
+        } else if (M.kcal > 0) {
+          fm = round(clamp(R / M.kcal, 0.7, 1.7), 0.05);
+        } else if (B) {
+          fb = round(clamp(R / B.kcal, 0.8, 1.6), 0.05);
+        }
+        let T = addMacros(addMacros(fixed, S), M, fm);
+        if (B) T = addMacros(T, B, fb);
+        const kErr = Math.abs(T.kcal - g.kcal) / g.kcal;
+        const pDev = (T.p - g.protein) / g.protein;
+        // etwas mehr Protein ist unkritisch (bis +5 %), zu wenig wiegt schwerer
+        const pCost = pDev < 0 ? 4 * -pDev : 3.5 * Math.max(0, pDev - 0.05);
+        const cErr = Math.abs(T.c - g.carbs) / g.carbs;
+        const fErr = Math.abs(T.f - g.fat) / g.fat;
+        const fibOver = Math.max(0, T.fib - ctx.fiberTarget - 3) / ctx.fiberTarget;
+        // Rezepte nicht unnötig verbiegen
+        const bend = 0.08 * (Math.abs(Math.log(s)) + Math.abs(Math.log(q)));
+        const cost = 5 * Math.max(0, kErr - 0.03) + kErr + pCost + 1.6 * cErr + 1.6 * fErr + 3 * fibOver + 0.03 * combo.length + pref + bend;
+        if (!best || cost < best.cost) best = { cost, fb, fm, s, q, addons: combo.map((x) => x.id) };
+      }
   }
   return best;
 }
@@ -376,10 +410,10 @@ export function finalizePlan(structure, ctx) {
     const meals = [];
     const mk = (slot, recipeId, factor, extra = {}) => {
       const r = ctx.recipesById.get(recipeId);
-      const items = recipeItems(r, factor, settings, idx);
+      const items = recipeItems(r, factor, settings, idx, { s: fit.s, q: fit.q });
       const macros = itemsMacros(items, idx);
       const { cost } = itemsCost(items, idx, ctx.priceOf);
-      return { key: slotKey(d, slot), slot, kind: 'recipe', recipeId, factor, items, macros, cost, ...extra };
+      return { key: slotKey(d, slot), slot, kind: 'recipe', recipeId, factor, mix: { s: fit.s, q: fit.q }, items, macros, cost, ...extra };
     };
     const eatOutMeal = (slot) => ({ key: slotKey(d, slot), slot, kind: 'eatout', macros: { ...eo }, cost: 0 });
 
@@ -525,6 +559,13 @@ export function scorePlan(plan, ctx) {
   const lunches = days.flatMap((d) => d.meals.filter((m) => m.slot === 'mittag' && m.kind === 'recipe'));
   s.energy = 5 * (lunches.length ? lunches.filter((m) => m.macros.f <= 35).length / lunches.length : 1);
 
+  // 8. Nähe zu allen Makro-Zielen aus den Einstellungen (10)
+  const macroDev = avg(days, (d) => (Math.abs(d.totals.p - g.protein) / g.protein + Math.abs(d.totals.c - g.carbs) / g.carbs + Math.abs(d.totals.f - g.fat) / g.fat) / 3);
+  s.macros = 10 * clamp(1 - macroDev / 0.2, 0, 1);
+
+  // Studi-Modus: jeder Euro zählt (die Ziele bleiben über die Punkte oben gewahrt)
+  if (settings.studi) s.studi = -3 * budgetCost(plan);
+
   // Abzüge: Budget und verderbliche Reste
   // Haltbarer Vorrat (Reis, Nudeln …) zählt nur teilweise, er wird in den Folgewochen verbraucht
   const over = Math.max(0, budgetCost(plan) - settings.budget);
@@ -535,7 +576,7 @@ export function scorePlan(plan, ctx) {
   return {
     total,
     parts: s,
-    stats: { kDev, daysInRange, pRatio, distr, veg, fib, fiberTarget: ft, plants: plantIds.size, proteins: [...proteins], fishCooks, colors: colors.size, fatPct, avgTime },
+    stats: { kDev, daysInRange, pRatio, distr, macroDev, veg, fib, fiberTarget: ft, plants: plantIds.size, proteins: [...proteins], fishCooks, colors: colors.size, fatPct, avgTime },
   };
 }
 
@@ -551,9 +592,11 @@ export function generatePlan(input) {
   const seed = input.seed ?? (Date.now() & 0x7fffffff);
   const n = input.candidates ?? 40;
   const all = [];
+  // Studi-Modus: von Anfang an günstige Gerichte bevorzugen
+  const studi = !!input.settings.studi;
   for (let i = 0; i < n; i++) {
     const rng = mulberry32(seed + i * 7919);
-    all.push(finalizePlan(buildStructure(ctx, rng), ctx));
+    all.push(finalizePlan(buildStructure(ctx, rng, { cheap: studi }), ctx));
   }
   let best = all.reduce((a, b) => (b.score.total > a.score.total ? b : a));
   let budgetInfo = null;

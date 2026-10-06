@@ -669,3 +669,6 @@ textarea { font: inherit; color: var(--text); background: var(--field); border: 
 .h-count { color: var(--accent); }
 .filters .chips.cats { margin-top: 0; }
 .card.later .grid2 .btn { white-space: nowrap; padding: 0 12px; }
+/* Studi-Modus in den Einstellungen */
+.row span small { display: block; line-height: 1.35; margin-top: 2px; }
+[data-action="replan-studi"] { margin: 4px 0 8px; }
