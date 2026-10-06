@@ -1,7 +1,7 @@
 // Mise – App-Oberfläche (Vanilla JS, kein Build-Schritt). Design nach Figma-Vorlage.
 import { DAY_NAMES, DAY_SHORT, SLOT_LABEL, addDays, clone, berlinNow, escapeHtml as e, euro, formatDate, isoWeek, mondayOf, num, shortName } from './util.js';
 import { buildIndex, plausibility } from './nutrition.js';
-import { generatePlan, swapMeal } from './planner.js';
+import { generatePlan, refitPlan, swapMeal } from './planner.js';
 import { mergeOffers, STORES, STORE_IDS } from './prices.js';
 import { amountText, packText } from './shopping.js';
 import { recipeWeights, weekHints } from './feedback.js';
@@ -42,6 +42,18 @@ async function loadJSON(url) {
   return r.json();
 }
 
+/** Blatt-Animation beim Kaltstart (Markup in index.html) – mindestens so lange, bis sie einmal durchgespielt ist */
+function hideSplash() {
+  const el = document.getElementById('splash');
+  if (!el) return;
+  sound.jingle(); // iOS spielt Töne erst nach der ersten Berührung – dann bleibt es still
+  const wait = reducedMotion() ? 0 : Math.max(0, 1250 - performance.now());
+  setTimeout(() => {
+    el.classList.add('out');
+    setTimeout(() => el.remove(), 450);
+  }, wait);
+}
+
 async function init() {
   window.__miseStarted = true;
   applyTheme();
@@ -53,6 +65,7 @@ async function init() {
     S.builtin = rec.recipes;
     rebuildRecipes();
   } catch (err) {
+    document.getElementById('splash')?.remove();
     app.innerHTML = `<main class="view"><div class="card warn"><h2>Daten konnten nicht geladen werden</h2><p>${e(err.message)}</p><p>Bitte Internetverbindung prüfen und neu laden.</p></div></main>`;
     return;
   }
@@ -71,6 +84,7 @@ async function init() {
   requestPersistence();
   if (Object.keys(S.plans).length) store.set('welcomed', true);
   render();
+  hideSplash();
   checkSchedule();
   setInterval(checkSchedule, 60_000);
 }
@@ -139,7 +153,8 @@ const ing = (id) => S.idx.get(id);
 const recipe = (id) => S.recipesById.get(id);
 /** Kompakte Einheit ohne Leerzeichen, z. B. „181g“ */
 const g_ = (x) => `${num(x)}g`;
-const portions = (f) => (Math.abs(f - 1) < 0.001 ? '1 Portion' : `${(Math.round(f * 100) / 100).toLocaleString('de-DE')} Portionen`);
+/** Abwasch als dezenter Text statt Schwamm-Symbolen */
+const dishesText = (n) => (n <= 1 ? '1 Topf' : `${n} Töpfe`);
 
 function displayedPlan() {
   const ws = currentWeek();
@@ -232,6 +247,14 @@ async function createPlanFromDraft() {
   return plan;
 }
 
+/** Laufenden Wochenplan an neue Ziele/Läden anpassen (gleiche Gerichte, neue Mengen) */
+function refitCurrent() {
+  const plan = S.plans[currentWeek()];
+  if (!plan?.structure) return;
+  S.plans[plan.weekStart] = refitPlan(plan, plannerInput({ weekStart: plan.weekStart }));
+  savePlans();
+}
+
 function setPath(obj, path, value) {
   const keys = path.split('.');
   let o = obj;
@@ -242,17 +265,61 @@ function getPath(obj, path) {
   return path.split('.').reduce((o, k) => o?.[k], obj);
 }
 
-function toast(msg) {
+const reducedMotion = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/** Meldung von oben: Symbol, Titel und optional eine zweite Zeile */
+function toast(title, { icon = '✓', sub = '', kind = '' } = {}) {
+  document.querySelectorAll('.toast').forEach((t) => t.remove());
   const t = document.createElement('div');
-  t.className = 'toast';
-  t.textContent = msg;
+  t.className = `toast ${kind}`;
+  t.innerHTML = `<span class="toast-icon">${e(icon)}</span><span class="toast-text"><b>${e(title)}</b>${sub ? `<small>${e(sub)}</small>` : ''}</span>`;
   document.body.appendChild(t);
-  setTimeout(() => t.classList.add('show'), 10);
+  requestAnimationFrame(() => requestAnimationFrame(() => t.classList.add('show')));
   setTimeout(() => {
     t.classList.remove('show');
-    setTimeout(() => t.remove(), 300);
-  }, 2600);
+    t.classList.add('hide');
+    setTimeout(() => t.remove(), 400);
+  }, 2800);
 }
+
+// --- Zahlen animiert verändern ------------------------------------------------
+
+const COUNT_FMT = { int: (v) => num(v), g: (v) => g_(v), euro: (v) => euro(v) };
+/** Antizipation: holt kurz in die Gegenrichtung aus, schießt leicht über und setzt sich */
+const easeInOutBack = (x) => {
+  const c2 = 1.70158 * 1.525;
+  return x < 0.5 ? (Math.pow(2 * x, 2) * ((c2 + 1) * 2 * x - c2)) / 2 : (Math.pow(2 * x - 2, 2) * ((c2 + 1) * (x * 2 - 2) + c2) + 2) / 2;
+};
+const easeOutCubic = (x) => 1 - Math.pow(1 - x, 3);
+
+function applyCounts() {
+  // Wochenwerte merken, damit sie auch nach einem Neustart animiert zum neuen Wert laufen
+  S.ui.counts ||= store.get('counts', {});
+  for (const el of document.querySelectorAll('[data-count]')) {
+    const key = el.dataset.count;
+    const to = Number(el.dataset.to);
+    const fmt = COUNT_FMT[el.dataset.fmt] || COUNT_FMT.int;
+    const from = S.ui.counts[key];
+    S.ui.counts[key] = to;
+    if (from == null || Math.abs(from - to) < 0.005 || reducedMotion()) continue;
+    const back = el.dataset.ease === 'back';
+    const ease = back ? easeInOutBack : easeOutCubic;
+    const dur = back ? 1100 : 500;
+    const t0 = performance.now();
+    el.classList.add('counting');
+    const step = (now) => {
+      if (!el.isConnected) return;
+      const p = Math.min(1, (now - t0) / dur);
+      el.textContent = fmt(from + (to - from) * ease(p));
+      if (p < 1) requestAnimationFrame(step);
+      else el.classList.remove('counting');
+    };
+    el.textContent = fmt(from);
+    requestAnimationFrame(step);
+  }
+  store.set('counts', Object.fromEntries(Object.entries(S.ui.counts).filter(([k]) => k.startsWith('w-'))));
+}
+
 
 // ---------------------------------------------------------------------------
 // Montags-Automatik: Ab der eingestellten Uhrzeit wird der neue Plan erstellt –
@@ -273,7 +340,7 @@ async function checkSchedule() {
   } finally {
     planning = false;
   }
-  toast('Dein neuer Wochenplan ist da 🍽️');
+  toast('Dein neuer Wochenplan ist da', { icon: '🍽️', sub: 'Guten Appetit diese Woche!' });
   render();
   return true;
 }
@@ -336,6 +403,8 @@ function render() {
     view.classList.add('enter');
   }
   applyFx();
+  applyCounts();
+  if (changed) view.querySelector('.charts')?.classList.add('play');
   renderTimerDock();
   if (changed) window.scrollTo(0, 0);
 }
@@ -351,26 +420,55 @@ function applyFx() {
   for (const el of document.querySelectorAll(f.sel)) el.classList.add(f.cls);
 }
 
-/** Dezentes Konfetti, z. B. beim Erreichen des Zielgewichts */
-function confetti() {
-  if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+/** Konfetti-Explosion ab einem Punkt (Standard: Bildschirmmitte) */
+function confetti({ x = innerWidth / 2, y = innerHeight * 0.38, count = 26, spread = 1, delay = 0 } = {}) {
+  if (reducedMotion()) return;
   const box = document.createElement('div');
   box.className = 'confetti';
-  const colors = ['#1f7a4d', '#3fb97a', '#e0702a', '#f2c94c', '#9bd3b0'];
-  for (let i = 0; i < 26; i++) {
+  box.style.left = `${x}px`;
+  box.style.top = `${y}px`;
+  const colors = ['#1f7a4d', '#3fb97a', '#e0702a', '#f2c94c', '#9bd3b0', '#e85d9c'];
+  for (let i = 0; i < count; i++) {
     const p = document.createElement('i');
-    const ang = Math.random() * Math.PI * 2;
-    const dist = 80 + Math.random() * 120;
+    const ang = -Math.PI / 2 + (Math.random() - 0.5) * Math.PI * 2 * spread;
+    const dist = 90 + Math.random() * 150;
     p.style.setProperty('--x', `${Math.cos(ang) * dist}px`);
-    p.style.setProperty('--y', `${Math.sin(ang) * dist - 60}px`);
-    p.style.setProperty('--r', `${Math.random() * 540 - 270}deg`);
+    p.style.setProperty('--y', `${Math.sin(ang) * dist - 40}px`);
+    p.style.setProperty('--r', `${Math.random() * 720 - 360}deg`);
     p.style.background = colors[i % colors.length];
-    p.style.animationDelay = `${Math.random() * 0.12}s`;
+    if (i % 3 === 0) p.classList.add('strip');
+    p.style.animationDelay = `${delay + Math.random() * 0.12}s`;
     box.appendChild(p);
   }
   document.body.appendChild(box);
-  setTimeout(() => box.remove(), 1600);
+  setTimeout(() => box.remove(), 2200 + delay * 1000);
 }
+
+/** Großer Moment: Zielgewicht erreicht – Partytüte knallt, Bizeps spannt an */
+function celebrate(kg) {
+  sound.goal();
+  const ov = document.createElement('div');
+  ov.className = 'celebrate';
+  ov.innerHTML = `<div class="cel-box">
+      <div class="cel-stage"><span class="popper">🎉</span><span class="bicep">💪</span></div>
+      <h2>Ziel erreicht!</h2>
+      <p><b>${fmtKg(kg)} kg</b> – du hast es geschafft. Richtig stark!</p>
+      <button class="btn primary block" data-close>Weiter so</button>
+    </div>`;
+  document.body.appendChild(ov);
+  const close = () => {
+    ov.classList.add('out');
+    setTimeout(() => ov.remove(), 350);
+  };
+  ov.addEventListener('click', close);
+  setTimeout(() => {
+    const r = ov.querySelector('.popper')?.getBoundingClientRect();
+    if (r) confetti({ x: r.left + r.width * 0.7, y: r.top + r.height * 0.3, count: 46, spread: 0.45 });
+  }, 520);
+  setTimeout(() => confetti({ count: 30, delay: 0.1 }), 1300);
+  setTimeout(close, 6000);
+}
+
 
 const tabBtn = (id, label) =>
   `<a href="#/${id}" class="tab" data-tab="${id}" aria-label="${label}"><img src="icons/nav/${id}.png" alt="${label}" width="44" height="44"></a>`;
@@ -417,6 +515,10 @@ function viewWeek() {
   const g = plan.goals;
   const avgK = plan.days.reduce((a, d) => a + d.totals.kcal, 0) / 7;
   const avgP = plan.days.reduce((a, d) => a + d.totals.p, 0) / 7;
+  const avgC = plan.days.reduce((a, d) => a + d.totals.c, 0) / 7;
+  const avgF = plan.days.reduce((a, d) => a + d.totals.f, 0) / 7;
+  // Zahlen zählen beim Öffnen animiert zum neuen Wert, wenn sich Ziele geändert haben
+  const cnt = (key, v, fmt) => `<i data-count="${key}" data-to="${v}" data-fmt="${fmt}" data-ease="back">${COUNT_FMT[fmt](v)}</i>`;
   return `
     <header class="top">
       <div><h1>KW ${isoWeek(plan.weekStart)}</h1><div class="sub">${formatDate(plan.weekStart)} – ${formatDate(addDays(plan.weekStart, 6), { day: 'numeric', month: 'long' })}</div></div>
@@ -425,9 +527,13 @@ function viewWeek() {
     ${banners.join('')}
     <section class="card hero">
       <div class="kpis">
-        <div><b>${num(avgK)}</b><span>Ø kcal / ${num(g.kcal)}</span></div>
-        <div><b>${num(avgP)}g</b><span>Ø Protein / ${g.protein}g</span></div>
-        <div><b>${euro(plan.cost)}</b><span>Einkauf / ${euro(S.settings.budget)}</span></div>
+        <div><b>${cnt('w-k', avgK, 'int')}</b><span>Ø kcal / ${cnt('w-gk', g.kcal, 'int')}</span></div>
+        <div><b>${cnt('w-p', avgP, 'g')}</b><span>Ø Protein / ${cnt('w-gp', g.protein, 'g')}</span></div>
+        <div><b>${cnt('w-cost', plan.cost, 'euro')}</b><span>Einkauf / ${euro(S.settings.budget)}</span></div>
+      </div>
+      <div class="kpis small">
+        <div><b>${cnt('w-c', avgC, 'g')}</b><span>Ø Kohlenhydrate / ${cnt('w-gc', g.carbs, 'g')}</span></div>
+        <div><b>${cnt('w-f', avgF, 'g')}</b><span>Ø Fett / ${cnt('w-gf', g.fat, 'g')}</span></div>
       </div>
       <div class="divider"></div>
       <button class="link" data-action="toggle-eval">${S.ui.evalOpen ? '▾' : '▸'} Bewertung des Plans</button>
@@ -458,7 +564,7 @@ function mealRow(plan, m) {
     <a class="mt" href="#/mahlzeit/${m.key}">
       <div class="ml">${ICON[isSnack ? 'snack' : m.slot]} ${isSnack ? 'Snack' : SLOT_LABEL[m.slot]} · ${r.time} Min.</div>
       <div class="mn">${e(r.name)}</div>
-      <div class="mm">${portions(m.factor)} · ${num(m.macros.kcal)} kcal · ${g_(m.macros.p)} P</div>
+      <div class="mm">${num(m.macros.kcal)} kcal · ${g_(m.macros.p)} P</div>
       ${badges.length ? `<div class="badges">${badges.join('')}</div>` : ''}
     </a>
     ${
@@ -520,14 +626,17 @@ function viewMeal(key) {
   let info = '';
   if (cook && cook.portions.length > 1) {
     const parts = cook.portions.map((p) => `${DAY_SHORT[p.day]} ${SLOT_LABEL[p.slot]}`).join(' + ');
-    info = `<div class="banner info">🍱 Du kochst für <b>${parts}</b>. ${meal.leftover ? 'Heute isst du die vorgekochte Portion – nur aufwärmen.' : 'Füll die zweite Portion direkt in die Lunchbox.'}</div>`;
+    // Portionen sind auf die Tagesziele abgestimmt – bei deutlich unterschiedlicher Größe Aufteilung nennen
+    const shares = cook.portions.map((p) => Math.round((p.factor / cook.totalFactor) * 100));
+    const split = Math.abs(shares[0] - shares[1]) >= 10 ? ` Teile etwa ${shares.join(' : ')} auf.` : '';
+    info = `<div class="banner info">🍱 Du kochst 2 Portionen: <b>${parts}</b>.${split} ${meal.leftover ? 'Heute isst du die vorgekochte Portion – nur aufwärmen.' : 'Füll die zweite Portion direkt in die Lunchbox.'}</div>`;
   }
   for (const a of meal.addons || []) {
     const ar = recipe(a);
     info += `<div class="banner info">💪 Dazu: <b>${e(ar.name)}</b> – ergänzt heute dein Protein. ${ar.steps.map((x) => e(x.t)).join(' ')}</div>`;
   }
   const slot = meal.slot.startsWith('snack') ? 'Snack' : SLOT_LABEL[meal.slot];
-  return recipeHtml(r, items, meal.macros, `${DAY_NAMES[meal.key.split('-')[0]]} · ${slot} · ${portions(cook ? cook.totalFactor : meal.factor)}`, `<a class="back" href="#/woche">‹ Woche</a>`, info, key, false);
+  return recipeHtml(r, items, meal.macros, `${DAY_NAMES[meal.key.split('-')[0]]} · ${slot} · ${cook && cook.portions.length > 1 ? `${cook.portions.length} Portionen` : '1 Portion'}`, `<a class="back" href="#/woche">‹ Woche</a>`, info, key, false);
 }
 
 function viewRecipes() {
@@ -545,7 +654,7 @@ function viewRecipes() {
             const w = fbw[r.id]?.weight;
             const tag = r.source === 'ki' ? ' · ✨ KI' : isFresh(r) ? ' · ✨ neu' : r.source === 'eigen' ? ' · eigenes' : '';
             const m = macrosOf(r.ingredients.filter((l) => !l.opt || S.settings[l.opt]));
-            return `<li><a href="#/rezept/${r.id}"><span>${e(r.name)}</span><small>${r.time} Min. · ${'🧽'.repeat(Math.max(1, r.dishes))}${w > 1.15 ? ' · 👍' : w < 0.85 ? ' · 👎' : ''}${r.season ? ' · saisonal' : ''}${tag}</small>
+            return `<li><a href="#/rezept/${r.id}"><span>${e(r.name)}</span><small>${r.time} Min. · ${dishesText(r.dishes)}${w > 1.15 ? ' · 👍' : w < 0.85 ? ' · 👎' : ''}${r.season ? ' · saisonal' : ''}${tag}</small>
               <span class="macros"><b>${num(m.kcal)} kcal</b><span>${g_(m.p)} P</span><span>${g_(m.c)} KH</span><span>${g_(m.f)} F</span></span></a></li>`;
           })
           .join('')}</ul></section>`;
@@ -571,7 +680,7 @@ function viewChoose(key) {
         list.length
           ? list
               .map(
-                (r) => `<li><button class="list-btn" data-action="choose" data-key="${key}" data-id="${r.id}"><span>${e(r.name)}</span><small>${r.time} Min. · ${'🧽'.repeat(Math.max(1, r.dishes))}${r.source === 'ki' ? ' · ✨ KI' : ''}</small></button></li>`
+                (r) => `<li><button class="list-btn" data-action="choose" data-key="${key}" data-id="${r.id}"><span>${e(r.name)}</span><small>${r.time} Min. · ${dishesText(r.dishes)}${r.source === 'ki' ? ' · ✨ KI' : ''}</small></button></li>`
               )
               .join('')
           : '<li class="muted">Nichts gefunden.</li>'
@@ -637,7 +746,8 @@ function viewRecipeBase(id) {
   const n = S.ui.servings || 1;
   const items = r.ingredients.filter((l) => !l.opt || S.settings[l.opt]).map((l) => ({ id: l.id, g: l.g * n, note: l.note }));
   const per = macrosOf(items.map((it) => ({ ...it, g: it.g / n })));
-  return recipeHtml(r, items, per, `Basisrezept · ${n === 1 ? '1 Portion' : n + ' Portionen'}`, `<a class="back" href="#/rezepte">‹ Rezepte</a>`, '', 'r:' + id, true);
+  const back = S.ui.recipeFrom === 'einkauf' ? `<a class="back" href="#/einkauf">‹ Einkauf</a>` : `<a class="back" href="#/rezepte">‹ Rezepte</a>`;
+  return recipeHtml(r, items, per, `Basisrezept · ${n === 1 ? '1 Portion' : n + ' Portionen'}`, back, '', 'r:' + id, true);
 }
 
 function recipeHtml(r, items, macros, subtitle, back, info, cookKey, withServings) {
@@ -749,7 +859,7 @@ function viewShopping() {
       it.id,
       it.name,
       euro(it.cost),
-      `${packText(it).replace(/(\d) g\b/g, '$1g').replace(/(\d) Liter\b/, '$1L')} · benötigt ${g_(it.need)}${it.have ? ` (davon ${g_(it.have)} Rest)` : ''}${it.offer ? ` · <span class="badge offer">Angebot${it.offerTitle ? ': ' + e(it.offerTitle) : ''}</span>` : ''}${it.note ? ` · ${e(it.note)}` : ''}`,
+      `${packText(it).replace(/(\d) g\b/g, '$1g').replace(/(\d) Liter\b/, '$1L')} · benötigt ${g_(it.need)}${it.have ? ` (davon ${g_(it.have)} Rest)` : ''}${it.offer ? ` · <span class="badge offer">Angebot${it.offerTitle ? ': ' + e(it.offerTitle) : ''}</span>` : ''}${it.note ? ` · ${e(it.note)}` : ''}${it.elsewhere ? ` · nur bei ${e(STORES[it.store]?.short || it.store)} erhältlich` : ''}`,
       it.useRefs || []
     );
   const staples = sh.staples.map((s) => row('staple:' + s.id, s.name, '', g_(s.g), s.useRefs || [])).join('');
@@ -771,8 +881,8 @@ function viewShopping() {
     <section class="card accent sticky">
       <div class="kpis">
         <div><b>${euro(plan.cost)}</b><span>Gesamt</span></div>
-        <div><b>${euro(openCost)}</b><span>noch offen</span></div>
-        <div><b>${toBuy.filter((i) => checks[i.id]).length}/${toBuy.length}</b><span>erledigt</span></div>
+        <div><b data-count="s-open" data-to="${openCost}" data-fmt="euro">${euro(openCost)}</b><span>noch offen</span></div>
+        <div><b><i data-count="s-done" data-to="${toBuy.filter((i) => checks[i.id]).length}" data-fmt="int">${toBuy.filter((i) => checks[i.id]).length}</i>/${toBuy.length}</b><span>erledigt</span></div>
       </div>
     </section>
     ${staples ? `<section class="card"><h2>Vorrat prüfen</h2><ul class="shop">${staples}</ul></section>` : ''}
@@ -787,37 +897,58 @@ const parseKg = (s) => {
   return Number.isFinite(v) && v > 0 ? Math.round(v * 10) / 10 : null;
 };
 
-/** Liniendiagramm (SVG) für die letzten Wochen. series: [{ name, cls, marker, values[] }] */
-function lineChart({ weeks, series, min, max, ticks, fmt, labelFmt = fmt, goal, unit = '' }) {
+/**
+ * Liniendiagramm (SVG). weeks = x-Achse (inkl. Prognose-Wochen), series: [{ name, cls, marker, values[], forecast? }]
+ * Beim Öffnen des Rückblicks zeichnen sich die Linien animiert (Klasse .play am Container).
+ */
+function lineChart({ weeks, series, min, max, ticks, fmt, labelFmt = fmt, goal, unit = '', forecastFrom = null }) {
   const W = 320, H = 150, L = 30, R = 46, T = 12, B = 24;
   const x = (i) => L + (i * (W - L - R)) / (weeks.length - 1);
   const y = (v) => T + (1 - (v - min) / (max - min)) * (H - T - B);
   const grid = ticks.map((t) => `<line class="grid" x1="${L}" x2="${W - R}" y1="${y(t)}" y2="${y(t)}"/><text class="axis" x="${L - 6}" y="${y(t) + 4}" text-anchor="end">${fmt(t)}</text>`).join('');
-  const xl = weeks.map((w, i) => `<text class="axis" x="${x(i)}" y="${H - 6}" text-anchor="middle">KW ${isoWeek(w)}</text>`).join('');
-  let goalLine = '';
-  if (goal != null) goalLine = `<line class="goal" x1="${L}" x2="${W - R}" y1="${y(goal)}" y2="${y(goal)}"/>`;
+  const xl = weeks.map((w, i) => `<text class="axis${forecastFrom != null && i >= forecastFrom ? ' fc-t' : ''}" x="${x(i)}" y="${H - 6}" text-anchor="middle">KW ${isoWeek(w)}</text>`).join('');
+  // Prognose-Bereich leicht hinterlegt
+  const fcZone =
+    forecastFrom != null
+      ? `<rect class="fc-zone" x="${(x(forecastFrom - 1) + x(forecastFrom)) / 2}" y="${T - 6}" width="${W - R - (x(forecastFrom - 1) + x(forecastFrom)) / 2 + 4}" height="${H - T - B + 10}" rx="8"/><text class="axis fc-t" x="${W - R}" y="${T + 2}" text-anchor="end">Prognose</text>`
+      : '';
+  const goalLine = goal != null ? `<line class="goal" x1="${L}" x2="${W - R}" y1="${y(goal)}" y2="${y(goal)}"/>` : '';
+  let n = 0;
   const marks = series
     .map((s) => {
-      // Linie nur zwischen aufeinanderfolgenden Wochen mit Wert
       let path = '';
       s.values.forEach((v, i) => {
         if (v == null) return;
         path += `${i > 0 && s.values[i - 1] != null ? 'L' : 'M'}${x(i)} ${y(v)} `;
       });
+      if (s.forecast) return path ? `<path class="ln fc ${s.cls}" d="${path}"/>` : '';
       const pts = s.values
         .map((v, i) => {
           if (v == null) return '';
           const tip = `KW ${isoWeek(weeks[i])} · ${s.name}: ${labelFmt(v)}${unit}`;
-          const m = s.marker === 'square' ? `<rect class="pt ${s.cls}" x="${x(i) - 4}" y="${y(v) - 4}" width="8" height="8" rx="1.5"/>` : `<circle class="pt ${s.cls}" cx="${x(i)}" cy="${y(v)}" r="4.5"/>`;
+          const style = `style="--i:${n++}"`;
+          const m = s.marker === 'square' ? `<rect class="pt ${s.cls}" ${style} x="${x(i) - 4}" y="${y(v) - 4}" width="8" height="8" rx="1.5"/>` : `<circle class="pt ${s.cls}" ${style} cx="${x(i)}" cy="${y(v)}" r="4.5"/>`;
           return `${m}<circle class="hit" cx="${x(i)}" cy="${y(v)}" r="16" data-action="chart-tip" data-tip="${e(tip)}"/>`;
         })
         .join('');
       const last = s.values.map((v, i) => [v, i]).filter(([v]) => v != null).pop();
-      const label = last ? `<text class="dl" x="${x(last[1]) + 9}" y="${y(last[0]) + 4 + (s.nudge || 0)}">${labelFmt(last[0])}</text>` : '';
-      return `<path class="ln ${s.cls}" d="${path}"/>${pts}${label}`;
+      // Mit Prognose steht die Beschriftung über dem Punkt, damit sie die gestrichelte Linie nicht verdeckt
+      const label = !last ? '' : forecastFrom != null ? `<text class="dl" x="${x(last[1])}" y="${y(last[0]) - 11}" text-anchor="middle">${labelFmt(last[0])}</text>` : `<text class="dl" x="${x(last[1]) + 9}" y="${y(last[0]) + 4 + (s.nudge || 0)}">${labelFmt(last[0])}</text>`;
+      return `<path class="ln ${s.cls}" pathLength="1" d="${path}"/>${pts}${label}`;
     })
     .join('');
-  return `<svg class="chart-svg" viewBox="0 0 ${W} ${H}" role="img">${grid}${xl}${goalLine}${marks}</svg>`;
+  return `<svg class="chart-svg" viewBox="0 0 ${W} ${H}" role="img">${fcZone}${grid}${xl}${goalLine}${marks}</svg>`;
+}
+
+/** Lineare Regression über die eingetragenen Gewichte → kg pro Woche */
+function weightTrend(points) {
+  if (points.length < 2) return null;
+  const n = points.length;
+  const mx = points.reduce((a, p) => a + p.i, 0) / n;
+  const my = points.reduce((a, p) => a + p.v, 0) / n;
+  const den = points.reduce((a, p) => a + (p.i - mx) ** 2, 0);
+  if (!den) return null;
+  return points.reduce((a, p) => a + (p.i - mx) * (p.v - my), 0) / den;
 }
 
 function trendCard(ws) {
@@ -825,10 +956,7 @@ function trendCard(ws) {
   const val = (w, f) => feedbackFor(w)?.week?.[f] ?? null;
   const sat = weeks.map((w) => val(w, 'satiety'));
   const en = weeks.map((w) => val(w, 'energy'));
-  const kg = weeks.map((w) => val(w, 'weight'));
-  const goal = S.settings.goalWeight;
   const has = (arr) => arr.some((v) => v != null);
-  // Direkte Beschriftungen nicht übereinanderlegen
   const lastOf = (arr) => [...arr].reverse().find((v) => v != null);
   const close = has(sat) && has(en) && Math.abs(lastOf(sat) - lastOf(en)) < 0.6;
   const chart1 = has(sat) || has(en)
@@ -844,42 +972,92 @@ function trendCard(ws) {
         ],
       })
     : `<p class="chart-empty">Noch keine Werte – bewerte unten Sättigung und Energie.</p>`;
+
+  // Gewicht: 4 Wochen Verlauf + 2 Wochen Prognose aus dem Trend
+  const goal = S.settings.goalWeight;
+  const kg = weeks.map((w) => val(w, 'weight'));
+  // für den Trend auch ältere Einträge nutzen (bis 8 Wochen zurück)
+  const trendPts = [-49, -42, -35, -28, -21, -14, -7, 0]
+    .map((d, i) => ({ i, v: val(addDays(ws, d), 'weight') }))
+    .filter((p) => p.v != null);
+  const slope = weightTrend(trendPts);
   let chart2 = `<p class="chart-empty">Noch kein Gewicht eingetragen.</p>`;
+  let trendText = '';
+  let progress = '';
   if (has(kg)) {
-    const vals = kg.filter((v) => v != null).concat(goal ? [goal] : []);
+    const lastIdx = kg.map((v, i) => (v != null ? i : -1)).filter((i) => i >= 0).pop();
+    const last = kg[lastIdx];
+    const fcWeeks = slope != null ? [7, 14].map((d) => addDays(ws, d)) : [];
+    const allWeeks = weeks.concat(fcWeeks);
+    const fc = allWeeks.map((w, i) => (slope != null && i >= lastIdx ? Math.round((last + slope * (i - lastIdx)) * 10) / 10 : null));
+    const vals = kg.filter((v) => v != null).concat(goal ? [goal] : [], fc.filter((v) => v != null));
     let lo = Math.floor(Math.min(...vals) - 0.5);
     let hi = Math.ceil(Math.max(...vals) + 0.5);
     if (hi - lo < 2) hi = lo + 2;
     const mid = Math.round(((lo + hi) / 2) * 2) / 2;
-    chart2 = lineChart({ weeks, min: lo, max: hi, ticks: [lo, mid, hi], fmt: (v) => fmtKg(v).replace(/,0$/, ''), labelFmt: fmtKg, unit: ' kg', goal, series: [{ name: 'Gewicht', cls: 's1', marker: 'circle', values: kg }] });
+    chart2 = lineChart({
+      weeks: allWeeks,
+      min: lo,
+      max: hi,
+      ticks: [lo, mid, hi],
+      fmt: (v) => fmtKg(v).replace(/,0$/, ''),
+      labelFmt: fmtKg,
+      unit: ' kg',
+      goal,
+      forecastFrom: fcWeeks.length ? weeks.length : null,
+      series: [
+        { name: 'Prognose', cls: 's1', forecast: true, values: fc },
+        { name: 'Gewicht', cls: 's1', marker: 'circle', values: kg.concat(fcWeeks.map(() => null)) },
+      ],
+    });
+    // Motivierender Ausblick
+    if (slope != null) {
+      const perWeek = `${slope > 0 ? '+' : '−'}${fmtKg(Math.abs(slope))} kg/Woche`;
+      if (goal && Math.abs(goal - last) < 0.3) trendText = `🎯 Du bist am Ziel – jetzt geht es ums Halten.`;
+      else if (goal && Math.abs(slope) >= 0.05 && Math.sign(goal - last) === Math.sign(slope)) {
+        const weeksLeft = Math.ceil(Math.abs(goal - last) / Math.abs(slope));
+        trendText = weeksLeft <= 52 ? `📈 Weiter so! Bei deinem Tempo (${perWeek}) erreichst du dein Ziel etwa in <b>KW ${isoWeek(addDays(weeks[lastIdx], 7 * weeksLeft))}</b>.` : `📈 Du bist auf dem richtigen Weg (${perWeek}).`;
+      } else if (goal && Math.abs(slope) >= 0.05) trendText = `Trend: ${perWeek} – dein Ziel liegt in der anderen Richtung. Kleine Anpassungen bringen dich zurück auf Kurs.`;
+      else trendText = `Trend: ${Math.abs(slope) < 0.05 ? 'stabil' : perWeek}.`;
+    }
+    // Fortschritt vom ersten eingetragenen Gewicht bis zum Ziel
+    const first = S.feedback.filter((f) => f.week?.weight != null).sort((a, b) => a.weekStart.localeCompare(b.weekStart))[0]?.week.weight;
+    if (goal && first != null && Math.abs(first - goal) >= 0.3) {
+      const pct = Math.max(0, Math.min(1, (first - last) / (first - goal)));
+      progress = `<div class="goal-progress"><div class="gp-bar"><i style="--p:${(pct * 100).toFixed(0)}%"></i></div><span>${Math.round(pct * 100)} % geschafft</span></div>`;
+    }
   }
   return `<section class="card charts">
-    <div class="chart" data-chart>
+    <div class="chart">
       <div class="chart-head"><h2>Sättigung & Energie</h2>
         <div class="legend"><span><i class="sw s1"></i>Sättigung</span><span><i class="sw s2 sq"></i>Energie</span></div></div>
       ${chart1}
     </div>
-    <div class="chart" data-chart>
+    <div class="chart">
       <div class="chart-head"><h2>Gewicht <span class="sub">kg</span></h2>${goal ? `<div class="legend"><span><i class="sw goal"></i>Ziel ${fmtKg(goal)}</span></div>` : ''}</div>
       ${chart2}
+      ${progress}
+      ${trendText ? `<p class="trend-text">${trendText}</p>` : ''}
     </div>
-    <p class="chart-tip sub" aria-live="polite">Letzte 4 Wochen · Punkt antippen für Details</p>
+    <p class="chart-tip sub" aria-live="polite">Punkt antippen für Details</p>
   </section>`;
 }
 
-function weekPager(ws, weeks) {
-  const asc = [...weeks].sort();
-  const i = asc.indexOf(ws);
-  const prev = asc[i - 1];
-  const next = asc[i + 1];
-  const side = (w, fallback, dir) => {
-    const label = dir < 0 ? `‹ KW ${isoWeek(w || fallback)}` : `KW ${isoWeek(w || fallback)} ›`;
-    return w ? `<a class="pg" href="#/rueckblick/${w}">${label}${feedbackFor(w) ? ' <small>✓</small>' : ''}</a>` : `<span class="pg off">${label}</span>`;
+/** Wochen blättern: ‹ Vorwoche · aktuelle · nächste › (bis zur nächsten zu planenden Woche) */
+function weekPager(ws, maxWeek) {
+  const minWeek = addDays(currentWeek(), -7 * 52);
+  const prev = ws > minWeek ? addDays(ws, -7) : null;
+  const next = ws < maxWeek ? addDays(ws, 7) : null;
+  const side = (w, dir) => {
+    if (!w) return '<span class="pg off"></span>';
+    const label = dir < 0 ? `‹ KW ${isoWeek(w)}` : `KW ${isoWeek(w)} ›`;
+    return `<a class="pg" href="#/rueckblick/${w}">${label}${feedbackFor(w) ? ' <small>✓</small>' : ''}</a>`;
   };
+  const tag = ws === currentWeek() ? 'diese Woche' : ws > currentWeek() ? 'nächste Woche' : `${formatDate(ws, { day: 'numeric', month: 'short' })} – ${formatDate(addDays(ws, 6), { day: 'numeric', month: 'short' })}`;
   return `<nav class="pager">
-    ${side(prev, addDays(ws, -7), -1)}
-    <div class="pg cur"><b>KW ${isoWeek(ws)}</b><small>${formatDate(ws, { day: 'numeric', month: 'short' })} – ${formatDate(addDays(ws, 6), { day: 'numeric', month: 'short' })}</small></div>
-    ${side(next, addDays(ws, 7), 1)}
+    ${side(prev, -1)}
+    <div class="pg cur"><b>KW ${isoWeek(ws)}</b><small>${tag}</small></div>
+    ${side(next, 1)}
   </nav>`;
 }
 
@@ -952,15 +1130,22 @@ function viewReview(weekArg) {
       </select>
       <p class="hint">Haltbares wie Reis, Nudeln oder Dosen rechnet Mise automatisch mit. ${S.plans[currentWeek()] ? `Gilt für deinen Plan ab ${formatDate(draft.week)}.` : 'Gilt für den Plan dieser Woche.'}</p>
     </section>`;
-  if (!weeks.length) return `<header class="top col"><h1>Rückblick</h1></header>${planningCards}`;
-
-  const ws = weekArg && S.plans[weekArg] ? weekArg : weeks[0];
+  // Jede Woche ist anwählbar – auch ohne Plan (dann nur Sättigung, Energie und Gewicht)
+  const maxWeek = draft.week > currentWeek() ? draft.week : currentWeek();
+  const valid = (w) => /^\d{4}-\d{2}-\d{2}$/.test(w || '') && w <= maxWeek;
+  const ws = valid(weekArg) ? mondayOf(new Date(weekArg + 'T12:00:00')) : weeks[0] || currentWeek();
   const plan = S.plans[ws];
+  const head = `<header class="top col"><h1>Rückblick</h1><div class="sub">Dein Feedback beeinflusst, wie oft Gerichte künftig vorkommen.</div></header>`;
+  if (ws > currentWeek() && !plan) {
+    return `${head}${trendCard(currentWeek())}${weekPager(ws, maxWeek)}
+      <section class="card tip"><p>🗓️ Der Plan für KW ${isoWeek(ws)} wird am Montag ab ${S.settings.planHour ?? 8}:00 Uhr erstellt. Hier kannst du ihn vorbereiten:</p></section>
+      ${planningCards}`;
+  }
   const fb = feedbackFor(ws) || { weekStart: ws, recipes: {}, week: {} };
   const hints = weekHints(S.feedback, S.settings.goals, S.settings.goalWeight);
   const groups = { fruehstueck: [], mittag: [], abend: [] };
   const seen = new Set();
-  for (const d of plan.days)
+  for (const d of plan?.days || [])
     for (const m of d.meals) {
       if (m.kind !== 'recipe' || m.leftover || seen.has(m.recipeId)) continue;
       seen.add(m.recipeId);
@@ -989,9 +1174,9 @@ function viewReview(weekArg) {
   const goal = S.settings.goalWeight;
   const diff = w != null && goal ? Math.round((w - goal) * 10) / 10 : null;
   const goalText = diff == null ? '' : Math.abs(diff) < 0.05 ? '🎉 Ziel erreicht!' : `Noch ${fmtKg(Math.abs(diff))} kg bis zum Ziel.`;
-  return `<header class="top col"><h1>Rückblick</h1><div class="sub">Dein Feedback beeinflusst, wie oft Gerichte künftig vorkommen.</div></header>
+  return `${head}
     ${trendCard(ws)}
-    ${weekPager(ws, weeks)}
+    ${weekPager(ws, maxWeek)}
     ${hints.length ? `<section class="card tip">${hints.map((h) => `<p>💡 ${e(h)}</p>`).join('')}</section>` : ''}
     <section class="card"><h2>Wie war die Woche?</h2>
       ${scale('satiety', 'Sättigung (1 = hungrig, 5 = sehr satt)')}
@@ -1002,8 +1187,9 @@ function viewReview(weekArg) {
       </div>
       ${goalText ? `<p class="goal-text">${goalText}</p>` : ''}
     </section>
+    ${plan ? '' : `<p class="sub center">Für diese Woche gibt es keinen Plan – Sättigung, Energie und Gewicht kannst du trotzdem eintragen.</p>`}
     ${groupCard('fruehstueck', 'Frühstück')}${groupCard('mittag', 'Mittagessen')}${groupCard('abend', 'Abendessen')}
-    ${planningCards}`;
+    ${ws === currentWeek() || ws === weeks[0] ? planningCards : ''}`;
 }
 
 /** Zielgewicht erreicht? (Gewicht hat das Ziel getroffen oder überschritten – egal ob ab- oder zunehmend) */
@@ -1012,9 +1198,7 @@ function checkGoal(before, now) {
   if (!goal || now == null) return;
   const hit = Math.abs(now - goal) < 0.05 || (before != null && Math.abs(before - goal) >= 0.05 && (before - goal) * (now - goal) < 0);
   if (!hit) return;
-  sound.goal();
-  confetti();
-  toast('🎉 Zielgewicht erreicht – stark!');
+  celebrate(now);
 }
 
 /** Letztes eingetragenes Gewicht vor der Woche ws */
@@ -1089,10 +1273,10 @@ function viewSettings() {
 
   <section class="card"><h2>Einkauf</h2>
     ${STORE_IDS.map((id) => `<label class="row"><input type="checkbox" data-set="stores.${id}" ${st.stores[id] ? 'checked' : ''}> ${e(id === 'edeka' ? 'Edeka No1 Center Schloßstraße (Berlin)' : STORES[id].name)}</label>`).join('')}
-    <label class="field">Hauptladen<select data-set="mainStore">${STORE_IDS.filter((id) => st.stores[id])
+    <label class="field">Hauptladen<select data-set="mainStore">${STORE_IDS
       .map((id) => `<option value="${id}" ${st.mainStore === id ? 'selected' : ''}>${e(STORES[id].short)}</option>`)
       .join('')}</select></label>
-    <p class="sub">Gekauft wird im Hauptladen. Nur wenn ein anderer ausgewählter Laden mindestens 10 % günstiger ist (z. B. durch ein Angebot), landet der Artikel dort. dm und Rossmann führen nur Trockenware, Nüsse & Co.</p>
+    <p class="sub">Gekauft wird im Hauptladen. Nur wenn ein anderer ausgewählter Laden mindestens 10 % günstiger ist (z. B. durch ein Angebot) oder der Hauptladen den Artikel nicht führt, landet er dort – z. B. Spezielles wie grüne Tagliatelle bei Edeka. dm und Rossmann führen nur Trockenware, Nüsse & Co.</p>
     ${field('budget', 'Wochenbudget (€)', 'step="1"')}
   </section>
 
@@ -1200,7 +1384,7 @@ async function onClick(ev) {
         try {
           chosen = (await aiRecipe({ type })).id;
         } catch (err) {
-          toast(err.message);
+          toast('Das hat nicht geklappt', { icon: '⚠️', sub: err.message, kind: 'warn' });
         } finally {
           busy(null);
         }
@@ -1209,7 +1393,7 @@ async function onClick(ev) {
       next.done = plan.done || {};
       S.plans[plan.weekStart] = next;
       savePlans();
-      toast(chosen ? 'Neues Rezept eingeplant ✨' : 'Gericht getauscht – Einkaufsliste aktualisiert');
+      toast(chosen ? 'Neues Rezept eingeplant' : 'Gericht getauscht', { icon: chosen ? '✨' : '🔄', sub: 'Einkaufsliste ist aktualisiert' });
       fx(`.meal[data-key="${key}"]`, 'swapped');
       return render();
     }
@@ -1221,7 +1405,7 @@ async function onClick(ev) {
       S.ui.search = '';
       fx(`.meal[data-key="${el.dataset.key}"]`, 'swapped');
       location.hash = '#/woche';
-      toast('Rezept übernommen – Einkaufsliste aktualisiert');
+      toast('Rezept übernommen', { icon: '🔄', sub: 'Einkaufsliste ist aktualisiert' });
       return;
     }
     case 'first-plan':
@@ -1232,12 +1416,12 @@ async function onClick(ev) {
       S.ui.openDays = {};
       location.hash = '#/woche';
       render();
-      toast('Dein Wochenplan ist fertig!');
+      toast('Dein Wochenplan ist fertig!', { icon: '🍽️' });
       return;
     case 'new-recipe': {
       const type = el.dataset.type;
       const title = (S.ui.newTitle[type] || '').trim();
-      if (!title) return toast('Bitte zuerst einen Titel eintragen');
+      if (!title) return toast('Bitte zuerst einen Titel eintragen', { icon: '✏️', kind: 'warn' });
       S.ui.newTitle[type] = '';
       if (S.settings.aiKey) {
         busy(`Mise erfindet „${title}“ …`);
@@ -1245,7 +1429,7 @@ async function onClick(ev) {
           const r = await aiRecipe({ title, type });
           location.hash = `#/rezept/${r.id}`;
         } catch (err) {
-          toast(err.message);
+          toast('Das hat nicht geklappt', { icon: '⚠️', sub: err.message, kind: 'warn' });
         } finally {
           busy(null);
         }
@@ -1272,13 +1456,13 @@ async function onClick(ev) {
       return;
     case 'edit-ai': {
       const d = S.ui.edit;
-      if (!d.name.trim()) return toast('Bitte zuerst einen Titel eintragen');
+      if (!d.name.trim()) return toast('Bitte zuerst einen Titel eintragen', { icon: '✏️', kind: 'warn' });
       busy(`Mise erfindet „${d.name}“ …`);
       try {
         const r = await inventRecipe({ apiKey: S.settings.aiKey, title: d.name, type: d.type, ingredients: [...S.idx.values()], avoid: [], dislikes: S.settings.dislikes });
         S.ui.edit = { ...r, id: d.id, name: d.name, source: d.source === 'eigen' ? 'ki' : d.source };
       } catch (err) {
-        toast(err.message);
+        toast('Das hat nicht geklappt', { icon: '⚠️', sub: err.message, kind: 'warn' });
       } finally {
         busy(null);
       }
@@ -1287,13 +1471,13 @@ async function onClick(ev) {
     case 'edit-save': {
       const d = S.ui.edit;
       const r = cleanRecipe(d, d.type, S.ingData.items);
-      if (!r.ingredients.length) return toast('Bitte mindestens eine Zutat eintragen');
-      if (!r.steps.length) return toast('Bitte mindestens einen Schritt eintragen');
+      if (!r.ingredients.length) return toast('Bitte mindestens eine Zutat eintragen', { icon: '✏️', kind: 'warn' });
+      if (!r.steps.length) return toast('Bitte mindestens einen Schritt eintragen', { icon: '✏️', kind: 'warn' });
       r.source = d.source || 'eigen';
       saveCustom(r);
       S.ui.edit = null;
       location.hash = `#/rezept/${r.id}`;
-      toast('Rezept gespeichert');
+      toast('Rezept gespeichert', { icon: '📖' });
       return;
     }
     case 'edit-delete': {
@@ -1339,7 +1523,7 @@ async function onClick(ev) {
     case 'timer':
       timers.start(el.dataset.label, Number(el.dataset.sec), el.dataset.ctx);
       sound.timerStart();
-      toast(`Timer „${el.dataset.label}“ läuft`);
+      toast(`Timer läuft`, { icon: '⏱️', sub: el.dataset.label });
       return;
     case 't-toggle':
       return timers.toggle(el.dataset.id);
@@ -1399,6 +1583,7 @@ async function onClick(ev) {
     case 'fix-carbs':
       S.settings.goals.carbs = Number(el.dataset.val);
       saveSettings();
+      refitCurrent();
       return render();
     case 'add-dislike': {
       const v = document.getElementById('dislike-new').value.trim();
@@ -1431,8 +1616,11 @@ function onChange(ev) {
     if (el.type === 'number') v = Number(v);
     setPath(S.settings, el.dataset.set, v);
     if (!STORE_IDS.some((id) => S.settings.stores[id])) S.settings.stores.lidl = true;
+    // Hauptladen ist immer auch ausgewählt
+    if (el.dataset.set === 'mainStore') S.settings.stores[S.settings.mainStore] = true;
     if (!S.settings.stores[S.settings.mainStore]) S.settings.mainStore = STORE_IDS.find((id) => S.settings.stores[id]);
     saveSettings();
+    if (/^(goals\.|stores\.|mainStore$)/.test(el.dataset.set)) refitCurrent();
     if (el.dataset.set === 'theme') applyTheme();
     setSoundsEnabled(S.settings.sounds);
     render();
@@ -1473,7 +1661,7 @@ function onChange(ev) {
     reader.onload = () => {
       try {
         importAll(JSON.parse(reader.result));
-        toast('Sicherung importiert');
+        toast('Sicherung importiert', { icon: '📦' });
         setTimeout(() => location.reload(), 600);
       } catch (err) {
         alert(err.message);
@@ -1547,7 +1735,10 @@ async function doExport() {
 }
 
 // Kochmodus beginnt bei Schritt 1; Rezeptansicht startet mit 1 Portion
-window.addEventListener('hashchange', () => {
+window.addEventListener('hashchange', (ev) => {
+  // Woher kam man ins Rezept? (Zurück führt dann z. B. wieder zur Einkaufsliste)
+  const from = (ev.oldURL || '').split('#/')[1]?.split('/')[0] || '';
+  if (location.hash.startsWith('#/rezept/') && !['rezept', 'kochen', 'bearbeiten'].includes(from)) S.ui.recipeFrom = from;
   if (location.hash.startsWith('#/kochen')) S.ui.cookStep = 0;
   if (location.hash.startsWith('#/rezept/')) S.ui.servings = S.ui.servings || 1;
   if (location.hash.startsWith('#/rezepte')) S.ui.servings = 1;

@@ -1,6 +1,6 @@
 // Service Worker: App offline verfügbar machen.
 // Bei Änderungen an App-Dateien VERSION erhöhen, damit iPhones die neue Version laden.
-const VERSION = 'mf-v8';
+const VERSION = 'mf-v9';
 const SHELL = [
   './',
   './index.html',
@@ -49,44 +49,26 @@ self.addEventListener('activate', (event) => {
   );
 });
 
-// Netz zuerst (immer die aktuelle Version), bei Funkloch nach 4 s der Offline-Zwischenspeicher
+// Offline zuerst: Antwort sofort aus dem Zwischenspeicher (auch im Supermarkt ohne Netz),
+// im Hintergrund wird die Datei aktualisiert – neue Rezepte/Angebote sind beim nächsten Öffnen da.
+// Nur wenn noch nichts gespeichert ist, wird auf das Netz gewartet.
 self.addEventListener('fetch', (event) => {
   const req = event.request;
   if (req.method !== 'GET' || new URL(req.url).origin !== self.location.origin) return;
   event.respondWith(
-    new Promise((resolve) => {
-      let done = false;
-      const fromCache = () =>
-        caches.match(req, { ignoreSearch: true }).then((hit) => hit || (req.mode === 'navigate' ? caches.match('./index.html') : undefined));
-      const timer = setTimeout(() => {
-        fromCache().then((hit) => {
-          if (hit && !done) {
-            done = true;
-            resolve(hit);
-          }
-        });
-      }, 4000);
-      fetch(req, { cache: 'no-cache' })
+    caches.open(VERSION).then(async (cache) => {
+      const hit = (await cache.match(req, { ignoreSearch: true })) || (req.mode === 'navigate' ? await cache.match('./index.html') : undefined);
+      const update = fetch(req, { cache: 'no-cache' })
         .then((res) => {
-          if (res.ok) {
-            const copy = res.clone();
-            caches.open(VERSION).then((c) => c.put(req, copy));
-          }
-          if (!done) {
-            done = true;
-            clearTimeout(timer);
-            resolve(res);
-          }
+          if (res.ok) cache.put(req, res.clone());
+          return res;
         })
-        .catch(() =>
-          fromCache().then((hit) => {
-            if (!done) {
-              done = true;
-              clearTimeout(timer);
-              resolve(hit || Response.error());
-            }
-          })
-        );
+        .catch(() => undefined);
+      if (hit) {
+        event.waitUntil(update);
+        return hit;
+      }
+      return (await update) || Response.error();
     })
   );
 });

@@ -601,6 +601,18 @@ export function setEatOut(plan, mealKey, on, input) {
   return next;
 }
 
+/**
+ * Gleiche Gerichte, neu berechnet – z. B. nach geänderten Tageszielen oder Läden:
+ * Portionsgrößen, Makros und Einkaufsliste passen sich an, die Rezeptauswahl bleibt.
+ */
+export function refitPlan(plan, input) {
+  const ctx = prepareContext({ ...input, pantry: plan.pantryUsed || input.pantry, weekNo: plan.weekNo });
+  const next = finalizePlan(clone(plan.structure), ctx);
+  Object.assign(next, { seed: plan.seed, weekNo: plan.weekNo, pantryUsed: plan.pantryUsed, createdAt: plan.createdAt, done: plan.done || {} });
+  next.evaluation = evaluatePlan(next, ctx);
+  return next;
+}
+
 /** Ersetzt ein Gericht (Hauptgericht-Kochvorgang oder Frühstück) und berechnet den Plan neu. */
 export function swapMeal(plan, mealKey, input, chosenId = null) {
   const ctx = prepareContext({ ...input, pantry: plan.pantryUsed || input.pantry, weekNo: plan.weekNo });

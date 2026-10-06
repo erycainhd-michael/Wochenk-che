@@ -72,6 +72,7 @@ export function buildShopping({ plan, idx, pantry = {}, priceOf, recipesById }) 
       uses,
       useRefs,
       note: ing.note,
+      elsewhere: !!pr.elsewhere,
     });
   }
 
