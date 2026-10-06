@@ -4,6 +4,7 @@
 // Ungültige Rezepte (unbekannte Zutat, zu wenig Protein, zu lang …) werden übersprungen und gemeldet.
 import fs from 'node:fs';
 import { buildIndex, recipeMacros } from '../js/nutrition.js';
+import { shortName } from '../js/util.js';
 
 const file = process.argv[2];
 if (!file) {
@@ -45,6 +46,7 @@ for (const raw of incoming) {
   const recipe = {
     id: '',
     name,
+    short: raw.short ? String(raw.short).slice(0, 24) : shortName(name),
     type,
     time,
     dishes: Math.max(0, Math.min(5, Math.round(Number(raw.dishes) || 1))),

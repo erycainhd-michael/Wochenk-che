@@ -32,7 +32,7 @@ export function recipeWeights(history = []) {
 }
 
 /** Hinweise aus dem Wochen-Feedback (Sättigung, Energie, Gewicht) – nur Vorschläge, keine automatischen Änderungen */
-export function weekHints(history = [], goals) {
+export function weekHints(history = [], goals, goalWeight = null) {
   const hints = [];
   const sorted = [...history].filter((w) => w.week).sort((a, b) => (a.weekStart < b.weekStart ? -1 : 1));
   const last = sorted[sorted.length - 1]?.week;
@@ -46,10 +46,23 @@ export function weekHints(history = [], goals) {
   if (weights.length >= 3) {
     const recent = weights.slice(-3);
     const change = recent[2].w - recent[0].w;
-    if (change <= 0.1)
-      hints.push(`Dein Gewicht ist in den letzten Wochen etwa gleich geblieben (${recent[0].w} → ${recent[2].w} kg). Für Muskelaufbau kannst du das Kalorienziel um ca. 150 kcal anheben (aktuell ${goals?.kcal} kcal).`);
-    else if (change > 1.2)
-      hints.push(`Du hast in drei Wochen ${change.toFixed(1).replace('.', ',')} kg zugenommen – etwas schneller als für Muskelaufbau nötig. Optional: Kalorienziel um ca. 100–150 kcal senken.`);
+    const kg = (x) => x.toLocaleString('de-DE', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+    const span = `${kg(recent[0].w)} → ${kg(recent[2].w)} kg`;
+    // Richtung aus dem Zielgewicht; ohne Ziel gilt Muskelaufbau (zunehmen)
+    const toGoal = goalWeight ? goalWeight - recent[2].w : 1;
+    if (Math.abs(toGoal) < 0.3) {
+      // am Ziel – kein Hinweis nötig
+    } else if (toGoal > 0) {
+      if (change <= 0.1)
+        hints.push(`Dein Gewicht ist in den letzten Wochen ${change < -0.3 ? 'etwas gesunken' : 'etwa gleich geblieben'} (${span}). Für Muskelaufbau kannst du das Kalorienziel um ca. 150 kcal anheben (aktuell ${goals?.kcal} kcal).`);
+      else if (change > 1.2)
+        hints.push(`Du hast in drei Wochen ${kg(change)} kg zugenommen – etwas schneller als für Muskelaufbau nötig. Optional: Kalorienziel um ca. 100–150 kcal senken.`);
+    } else {
+      if (change >= -0.1)
+        hints.push(`Dein Gewicht hat sich zuletzt kaum Richtung Ziel bewegt (${span}). Optional: Kalorienziel um ca. 150 kcal senken (aktuell ${goals?.kcal} kcal).`);
+      else if (change < -2)
+        hints.push(`Du hast in drei Wochen ${kg(-change)} kg abgenommen – recht schnell. Damit die Muskeln bleiben: Kalorienziel ggf. um ca. 100 kcal anheben.`);
+    }
   }
   return hints;
 }
