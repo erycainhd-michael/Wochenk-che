@@ -1,6 +1,6 @@
-// Service Worker: App offline verfügbar machen.
+// Service Worker der gesicherten klassischen Version (Stand vor dem Redesign).
 // Bei Änderungen an App-Dateien VERSION erhöhen, damit iPhones die neue Version laden.
-const VERSION = 'mf-v12';
+const VERSION = 'mfk-1';
 const SHELL = [
   './',
   './index.html',
@@ -44,8 +44,7 @@ self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches
       .keys()
-      // nur eigene alte Versionen löschen (die klassische Version unter /klassisch/ hat eigene Caches)
-      .then((keys) => Promise.all(keys.filter((k) => k.startsWith('mf-v') && k !== VERSION).map((k) => caches.delete(k))))
+      .then((keys) => Promise.all(keys.filter((k) => k.startsWith('mfk-') && k !== VERSION).map((k) => caches.delete(k))))
       .then(() => self.clients.claim())
   );
 });

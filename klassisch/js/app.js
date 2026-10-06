@@ -488,56 +488,17 @@ function bar(value, target, label, unit = '') {
     <div class="bar-track"><div class="bar-fill ${ok ? 'ok' : value < target ? 'low' : 'high'}" style="width:${pct}%"></div></div></div>`;
 }
 
-/** Passendes Gericht-Emoji für Kacheln (aus Name/Tags abgeleitet, eigenes `emoji`-Feld hat Vorrang) */
-const DISH_EMOJI = [
-  [/porridge|oats|quark-bowl|müsli|haferflocken/i, '🥣'],
-  [/pfannkuchen|pancake/i, '🥞'],
-  [/omelett|rührei|shakshuka|spiegelei/i, '🍳'],
-  [/pizza|flammkuchen/i, '🍕'],
-  [/pasta|spaghetti|nudel|tagliatelle|lasagne|carbonara|puttanesca|bolognese|gnocchi/i, '🍝'],
-  [/curry|tikka|masala|butter chicken/i, '🍛'],
-  [/wrap|döner/i, '🌯'],
-  [/garnele/i, '🦐'],
-  [/lachs|fisch|thunfisch|bordelaise/i, '🐟'],
-  [/bowl|salat/i, '🥗'],
-  [/kürbis/i, '🎃'],
-  [/toast|brot|stulle/i, '🥪'],
-  [/gefüllte paprika/i, '🫑'],
-  [/pfanne|geschnetzeltes/i, '🥘'],
-  [/hähnchen|chicken|cordon/i, '🍗'],
-  [/hack|rind|bällchen/i, '🥩'],
-  [/wok|reis/i, '🍚'],
-  [/kartoffel|püree|rösti|bratkartoffeln/i, '🥔'],
-  [/spargel|gemüse|rote bete/i, '🥦'],
-  [/shake/i, '🥤'],
-];
-const recipeEmoji = (r) => r?.emoji || DISH_EMOJI.find(([re]) => re.test(r?.name || ''))?.[1] || '🍽️';
-
-/** Überschrift mit kleiner Symbol-Kachel */
-const H2 = (icon, text) => `<h2 class="ih"><span class="hi">${icon}</span>${text}</h2>`;
-
-function greeting() {
-  const h = berlinNow().hour;
-  const part = h < 11 ? 'Guten Morgen' : h < 17 ? 'Hallo' : 'Guten Abend';
-  const name = (S.settings.name || '').trim();
-  return `${part}${name ? ', ' + e(name) : ''} 👋`;
-}
-
 // --- Woche -------------------------------------------------------------------
 
 function viewWelcome() {
   return `<div class="welcome">
       <img class="welcome-icon" src="icons/icon-512.png" alt="">
-      <h1>Willkommen bei Mise!</h1>
-      <p class="sub">Deine Woche – geplant, eingekauft, gekocht.</p>
-      <button class="btn primary block big" data-action="first-plan">🍽️ Wochenplan erstellen</button>
+      <h2>Willkommen bei Mise!</h2>
     </div>
-    <section class="card">
-      <ul class="features">
-        <li><span class="hi">🎯</span><div><b>Ziele ohne Tracking</b><p>Dein Einkauf erfüllt Kalorien und Protein schon – nichts mehr abwiegen oder eintragen.</p></div></li>
-        <li><span class="hi">🛒</span><div><b>Einkauf nach Laden</b><p>Sortiert nach Laden und Regal, mit aktuellen Angeboten.</p></div></li>
-        <li><span class="hi">🌱</span><div><b>Ausgewogen nach deinem Geschmack</b><p>Mise lernt aus deinem Feedback und ergänzt, statt zu verbieten.</p></div></li>
-      </ul>
+    <section class="card center">
+      <button class="btn primary block" data-action="first-plan">🍽️ Wochenplan erstellen</button>
+      <p>Die App plant deine Woche so, dass dein Einkauf deine Kalorien- und Proteinziele schon erfüllt – kein Tracking nötig.</p>
+      <p>Mise hilft dir außerdem bei einer ausgewogeneren Ernährung und bezieht dabei deine Vorlieben ein.</p>
     </section>`;
 }
 
@@ -564,34 +525,24 @@ function viewWeek() {
   const cnt = (key, v, fmt) => `<i data-count="${key}" data-to="${v}" data-fmt="${fmt}" data-ease="back">${COUNT_FMT[fmt](v)}</i>`;
   return `
     <header class="top">
-      <div><div class="eyebrow">${greeting()}</div><h1>KW ${isoWeek(plan.weekStart)}</h1><div class="sub">${formatDate(plan.weekStart)} – ${formatDate(addDays(plan.weekStart, 6), { day: 'numeric', month: 'long' })}</div></div>
+      <div><h1>KW ${isoWeek(plan.weekStart)}</h1><div class="sub">${formatDate(plan.weekStart)} – ${formatDate(addDays(plan.weekStart, 6), { day: 'numeric', month: 'long' })}</div></div>
       <a class="btn pill" href="#/rezepte">📖 Rezepte</a>
     </header>
     ${banners.join('')}
     <section class="card hero">
-      <div class="hero-top">
-        <div><span class="hero-label">Ø pro Tag</span><b class="hero-big">${cnt('w-k', avgK, 'int')}<small> kcal</small></b><span class="hero-sub">Ziel ${cnt('w-gk', g.kcal, 'int')} kcal</span></div>
-        <div class="hero-right"><span class="hero-label">Einkauf</span><b class="hero-mid">${cnt('w-cost', plan.cost, 'euro')}</b><span class="hero-sub">Budget ${euro(S.settings.budget)}</span></div>
+      <div class="kpis two">
+        <div><b>${cnt('w-k', avgK, 'int')}</b><span>Ø kcal / ${cnt('w-gk', g.kcal, 'int')}</span></div>
+        <div><b>${cnt('w-cost', plan.cost, 'euro')}</b><span>Einkauf / ${euro(S.settings.budget)}</span></div>
       </div>
-      <div class="macro-bars">
-        ${[
-          ['Kohlenhydrate', avgC, g.carbs, 'w-c', 'w-gc'],
-          ['Protein', avgP, g.protein, 'w-p', 'w-gp'],
-          ['Fett', avgF, g.fat, 'w-f', 'w-gf'],
-        ]
-          .map(([l, v, t, k, kt]) => `<div class="mb"><span class="mb-l">${l}</span><span class="mb-v">${cnt(k, v, 'g')}<small> / ${cnt(kt, t, 'g')}</small></span><span class="mb-track"><i style="width:${Math.min(100, (v / t) * 100).toFixed(0)}%"></i></span></div>`)
-          .join('')}
+      <div class="kpis small">
+        <div><b>${cnt('w-c', avgC, 'g')}</b><span>Ø Kohlenhydr. / ${cnt('w-gc', g.carbs, 'g')}</span></div>
+        <div><b>${cnt('w-p', avgP, 'g')}</b><span>Ø Protein / ${cnt('w-gp', g.protein, 'g')}</span></div>
+        <div><b>${cnt('w-f', avgF, 'g')}</b><span>Ø Fett / ${cnt('w-gf', g.fat, 'g')}</span></div>
       </div>
-      <button class="link hero-link" data-action="toggle-eval">${S.ui.evalOpen ? '▾' : '▸'} Bewertung des Plans</button>
-      ${S.ui.evalOpen ? `<div class="hero-eval">${evaluationHtml(plan)}</div>` : ''}
+      <div class="divider"></div>
+      <button class="link" data-action="toggle-eval">${S.ui.evalOpen ? '▾' : '▸'} Bewertung des Plans</button>
+      ${S.ui.evalOpen ? evaluationHtml(plan) : ''}
     </section>
-    <nav class="daystrip">${plan.days
-      .map((d) => {
-        const open = S.ui.openDays[d.day] ?? d.day === Math.max(0, todayIdx);
-        const out = d.meals.some((m) => m.kind === 'eatout');
-        return `<button class="ds ${open ? 'open' : ''} ${d.day === todayIdx ? 'today' : ''}" data-action="jump-day" data-day="${d.day}"><span>${d.short}</span><b>${Number(d.date.slice(8))}</b><i class="${out ? 'eat' : ''}" title="${out ? 'auswärts essen' : ''}"></i></button>`;
-      })
-      .join('')}</nav>
     ${plan.days.map((d) => dayCard(plan, d, S.ui.openDays[d.day] ?? d.day === Math.max(0, todayIdx), d.day === todayIdx)).join('')}`;
 }
 
@@ -601,8 +552,8 @@ function evaluationHtml(plan) {
 
 function mealRow(plan, m) {
   if (m.kind === 'eatout') {
-    return `<li class="meal eatout"><span class="mtile slot-eatout">${ICON.eatout}</span><div class="mt"><div class="ml">${SLOT_LABEL[m.slot]} · auswärts</div>
-      <div class="mn">Auswärtsessen</div><div class="mm">≈ ${num(m.macros.kcal)} kcal · ≈ ${g_(m.macros.p)} Protein</div></div></li>`;
+    return `<li class="meal eatout"><span class="mi">${ICON.eatout}</span><div class="mt"><div class="ml">${SLOT_LABEL[m.slot]} · auswärts</div>
+      <div class="mn">Auswärtsessen</div><div class="mm">≈ ${num(m.macros.kcal)} kcal · ≈ ${g_(m.macros.p)} P</div></div></li>`;
   }
   const r = recipe(m.recipeId);
   const cook = m.cookId ? plan.cooks.find((c) => c.id === m.cookId) : null;
@@ -614,11 +565,10 @@ function mealRow(plan, m) {
   for (const a of m.addons || []) badges.push(`<span class="badge">+ ${e(recipe(a)?.name || a)}</span>`);
   const isSnack = m.slot === 'snack';
   return `<li class="meal" data-key="${m.key}">
-    <a class="mtile slot-${m.slot}" href="#/mahlzeit/${m.key}" aria-hidden="true">${recipeEmoji(r)}</a>
     <a class="mt" href="#/mahlzeit/${m.key}">
-      <div class="ml">${isSnack ? 'Snack' : SLOT_LABEL[m.slot]} · ${r.time} Min.</div>
+      <div class="ml">${ICON[isSnack ? 'snack' : m.slot]} ${isSnack ? 'Snack' : SLOT_LABEL[m.slot]} · ${r.time} Min.</div>
       <div class="mn">${e(r.name)}</div>
-      <div class="mm">${num(m.macros.kcal)} kcal · ${g_(m.macros.p)} Protein</div>
+      <div class="mm">${num(m.macros.kcal)} kcal · ${g_(m.macros.p)} P</div>
       ${badges.length ? `<div class="badges">${badges.join('')}</div>` : ''}
     </a>
     ${
@@ -636,9 +586,8 @@ function dayCard(plan, d, open, isToday) {
   const g = plan.goals;
   return `<section class="card day ${isToday ? 'accent' : ''}" data-day="${d.day}">
     <button class="day-head" data-action="toggle-day" data-day="${d.day}" data-open="${open ? 1 : 0}">
-      <span class="dnum"><small>${d.short}</small><b>${Number(d.date.slice(8))}</b></span>
-      <span class="dtxt"><b>${d.name}${isToday ? ' <em class="today-tag">Heute</em>' : ''}</b><span class="sub">${num(d.totals.kcal)} kcal · ${g_(d.totals.p)} Protein</span></span>
-      <span class="chev ${open ? 'up' : ''}" aria-hidden="true">›</span>
+      <b>${d.name} ${formatDate(d.date)}${isToday ? ' · heute' : ''}</b>
+      <span class="sub">${num(d.totals.kcal)} kcal · ${g_(d.totals.p)} P</span>
     </button>
     ${
       open
@@ -735,7 +684,7 @@ function viewRecipes() {
             const w = fbw[r.id]?.weight;
             const tag = r.source === 'ki' ? ' · ✨ KI' : isFresh(r) ? ' · ✨ neu' : r.source === 'eigen' ? ' · eigenes' : '';
             const m = macrosOf(r.ingredients.filter((l) => !l.opt || S.settings[l.opt]));
-            return `<li class="rl"><span class="mtile slot-${r.type === 'breakfast' ? 'fruehstueck' : 'abend'}">${recipeEmoji(r)}</span><a href="#/rezept/${r.id}"><span class="rl-n">${e(r.name)}</span><small>${r.time} Min. · ${dishesText(r.dishes)}${w > 1.15 ? ' · 👍' : w < 0.85 ? ' · 👎' : ''}${r.season ? ' · saisonal' : ''}${tag}</small>
+            return `<li><a href="#/rezept/${r.id}"><span>${e(r.name)}</span><small>${r.time} Min. · ${dishesText(r.dishes)}${w > 1.15 ? ' · 👍' : w < 0.85 ? ' · 👎' : ''}${r.season ? ' · saisonal' : ''}${tag}</small>
               <span class="macros"><b>${num(m.kcal)} kcal</b><span>${g_(m.p)} Protein</span><span>${g_(m.c)} Kohlenhydrate</span><span>${g_(m.f)} Fett</span></span>
               ${catsOf(r.id).length ? `<span class="rcats">${catsOf(r.id).map((c) => `<i>${e(c)}</i>`).join('')}</span>` : ''}</a></li>`;
           })
@@ -837,8 +786,7 @@ function recipeHtml(r, items, macros, subtitle, back, info, cookKey, withServing
   const ingList = items
     .map((it) => {
       const i = ing(it.id);
-      const k = `${r.id}:${it.id}`;
-      return `<li class="mep ${S.ui.mep?.[k] ? 'on' : ''}" data-action="mep" data-k="${e(k)}"><span class="mep-c" aria-hidden="true"></span><span class="mep-n">${e(i.name)}${it.note ? ` <small class="muted">${e(it.note)}</small>` : ''}${it.extra ? ` <small class="badge">+${Math.round(it.extra)}g Restverwertung</small>` : ''}</span><b>${amountText(i, it.g)}</b></li>`;
+      return `<li><span>${e(i.name)}${it.note ? ` <small class="muted">${e(it.note)}</small>` : ''}${it.extra ? ` <small class="badge">+${Math.round(it.extra)}g Restverwertung</small>` : ''}</span><b>${amountText(i, it.g)}</b></li>`;
     })
     .join('');
   const steps = r.steps
@@ -848,32 +796,27 @@ function recipeHtml(r, items, macros, subtitle, back, info, cookKey, withServing
     )
     .join('');
   const servings = withServings
-    ? `<section class="card">${H2('🍽️', 'Portionen')}<div class="pills">${[1, 2, 3, 4, 5, 6]
+    ? `<section class="card"><h2>Portionen</h2><div class="pills">${[1, 2, 3, 4, 5, 6]
         .map((n) => `<button class="pill circle ${S.ui.servings === n ? 'on' : ''}" data-action="servings" data-n="${n}">${n}</button>`)
         .join('')}</div></section>`
     : '';
   return `<header class="top">${back}<a class="btn primary pill" href="${cookHref}">👨‍🍳 Kochmodus starten</a></header>
-    <section class="card accent rhero">
-      <div class="rhero-art slot-${r.type === 'breakfast' ? 'fruehstueck' : 'abend'}"><span>${recipeEmoji(r)}</span></div>
+    <section class="card accent">
       <div class="card-head"><div class="sub">${e(subtitle)}</div><a class="btn small pill" href="#/bearbeiten/${r.id}">✏️ Ändern</a></div>
       <h1 class="rtitle">${e(r.name)}</h1>
-      <div class="chips"><span class="chip on">⏱️ ${r.time} Min.</span><span class="chip">🧽 ${dishesText(r.dishes)}</span><span class="chip">${['', 'einfach', 'normal', 'aufwendig'][r.effort]}</span><span class="chip">${e(r.protein)}</span></div>
-      <div class="mtiles">
-        <div class="mt-k"><b>${num(macros.kcal)}</b><span>kcal</span></div>
-        <div><b>${g_(macros.p)}</b><span>Protein</span></div>
-        <div><b>${g_(macros.c)}</b><span>Kohlenhydrate</span></div>
-        <div><b>${g_(macros.f)}</b><span>Fett</span></div>
-      </div>
+      <div class="chips"><span class="chip on">⏱️ ${r.time} Min.</span><span class="chip">Abwasch ${r.dishes}</span><span class="chip">${['', 'einfach', 'normal', 'aufwendig'][r.effort]}</span><span class="chip">${e(r.protein)}</span></div>
+      <div class="divider accent"></div>
+      <div class="sub">${num(macros.kcal)} kcal · ${g_(macros.p)} Protein · ${g_(macros.c)} Kohlenhydrate · ${g_(macros.f)} Fett</div>
     </section>
-    <section class="card">${H2('🏷️', 'Kategorien')}
+    <section class="card"><h2>Kategorien</h2>
       <div class="chips cats">${S.cats.names
         .map((n) => `<button class="chip ${catsOf(r.id).includes(n) ? 'on' : ''}" data-action="rcat-toggle" data-id="${r.id}" data-val="${e(n)}">${catsOf(r.id).includes(n) ? '✓ ' : ''}${e(n)}</button>`)
         .join('')}<button class="chip add" data-action="cat-new" data-id="${r.id}">+ Neue Kategorie</button></div>
     </section>
     ${info}
     ${servings}
-    <section class="card">${H2('🧺', 'Zutaten')}<p class="hint">Antippen zum Abhaken, während du alles bereitlegst.</p><ul class="ings">${ingList}</ul></section>
-    <section class="card">${H2('👨‍🍳', 'Zubereitung')}<ol class="steps tl">${steps}</ol>
+    <section class="card"><h2>Zutaten</h2><ul class="ings">${ingList}</ul></section>
+    <section class="card"><ol class="steps">${steps}</ol>
       <a class="btn primary block" href="${cookHref}">👨‍🍳 Kochmodus starten</a>
     </section>`;
 }
@@ -902,8 +845,7 @@ function viewCooking(key) {
   const s = r.steps[n];
   return `<div class="cook">
     <header class="top col"><a class="back" href="${backHref}">‹ Zurück</a></header>
-    <div class="cook-head"><span class="mtile slot-abend">${recipeEmoji(r)}</span><a class="sub underline" href="${backHref}">${e(r.name)}</a></div>
-    <div class="cook-progress" aria-hidden="true">${r.steps.map((_, i) => `<i class="${i <= n ? 'on' : ''}"></i>`).join('')}</div>
+    <a class="sub underline" href="${backHref}">${e(r.name)}</a>
     <div class="step-count">Schritt ${n + 1} von ${r.steps.length}</div>
     <p class="step-text" data-step="${n}">${e(s.t)}</p>
     ${s.timer ? `<button class="btn primary block big" data-action="timer" data-sec="${s.timer}" data-label="${e(s.label || 'Schritt ' + (n + 1))}" data-ctx="${e(r.name)}">⏱️ Timer ${fmtTime(s.timer)} starten</button>` : ''}
@@ -922,19 +864,6 @@ function viewCooking(key) {
 }
 
 // --- Einkaufsliste -----------------------------------------------------------
-
-const CAT_ICON = {
-  'Obst & Gemüse': '🥦',
-  'Brot & Backwaren': '🥖',
-  Kühlregal: '🧀',
-  'Fleisch & Fisch': '🥩',
-  Tiefkühl: '❄️',
-  'Nudeln, Reis & Getreide': '🍝',
-  'Konserven & Gläser': '🥫',
-  'Nüsse & Samen': '🥜',
-  'Süßes & Backen': '🍫',
-  'Vorrat: Öle & Gewürze': '🧂',
-};
 
 /** Kurze Rezeptnamen, damit die Einkaufsliste kompakt bleibt */
 const useLinks = (refs) => refs.map((u) => `<a href="#/rezept/${u.id}">${e(shortName(recipe(u.id) || u.name))}</a>`).join(' · ');
@@ -974,11 +903,11 @@ function viewShopping() {
     .map((st) => {
       const list = toBuy.filter((i) => i.store === st);
       const total = list.reduce((a, i) => a + i.cost, 0);
-      return `<section class="card"><h2 class="store-h"><span class="store-dot">${e((STORES[st]?.short || st).slice(0, 1))}</span>${e(STORES[st]?.short || st)}<span class="store-sum">${euro(total)}</span></h2>
+      return `<section class="card"><h2>${e(STORES[st]?.short || st)} ${euro(total)}</h2>
         ${cats
           .map((c) => {
             const rows = list.filter((i) => i.cat === c).map(itemRow).join('');
-            return rows ? `<h3><span>${CAT_ICON[c] || '•'}</span>${e(c)}</h3><ul class="shop">${rows}</ul>` : '';
+            return rows ? `<h3>${e(c)}</h3><ul class="shop">${rows}</ul>` : '';
           })
           .join('')}</section>`;
     })
@@ -991,10 +920,8 @@ function viewShopping() {
         <div><b data-count="s-open" data-to="${openCost}" data-fmt="euro">${euro(openCost)}</b><span>noch offen</span></div>
         <div><b><i data-count="s-done" data-to="${toBuy.filter((i) => checks[i.id]).length}" data-fmt="int">${toBuy.filter((i) => checks[i.id]).length}</i>/${toBuy.length}</b><span>erledigt</span></div>
       </div>
-      <div class="sprog"><i style="width:${toBuy.length ? ((toBuy.filter((i) => checks[i.id]).length / toBuy.length) * 100).toFixed(1) : 0}%"></i></div>
     </section>
-    ${toBuy.length && toBuy.every((i) => checks[i.id]) ? `<section class="card all-done"><span>🎉</span><div><b>Alles im Korb!</b><p class="sub">Gut gemacht – die Woche kann kommen.</p></div></section>` : ''}
-    ${staples ? `<section class="card">${H2('🫙', 'Vorrat prüfen')}<ul class="shop">${staples}</ul></section>` : ''}
+    ${staples ? `<section class="card"><h2>Vorrat prüfen</h2><ul class="shop">${staples}</ul></section>` : ''}
     ${storeBlocks}`;
 }
 
@@ -1201,11 +1128,11 @@ function viewReview(weekArg) {
   const guesses = leftoverGuesses(draft);
   const guessIds = new Set(guesses.map((x) => x.id));
   const planningCards = `
-    <section class="card">${H2('🍴', 'Wann isst du auswärts?')}
+    <section class="card"><h2>Wann isst du auswärts?</h2>
       <p class="sub">Tippe die Tage an (KW ${isoWeek(draft.week)}). Sie werden mit ca. ${num(S.settings.eatOutKcal)} kcal eingerechnet; an diesen Tagen wird entsprechend weniger gekocht. Den Standard änderst du in den Einstellungen.</p>
       ${dayPills(draft.days, 'draft-day')}
     </section>
-    <section class="card">${H2('🧺', 'Was ist übrig geblieben?')}
+    <section class="card"><h2>Was ist übrig geblieben?</h2>
       <p class="sub">Trag ein, was noch da ist – Mise plant es in der nächsten Woche ein.</p>
       ${
         draft.items.length
@@ -1287,7 +1214,7 @@ function viewReview(weekArg) {
     ${trendCard(ws)}
     ${weekPager(ws, maxWeek)}
     ${hints.length ? `<section class="card tip">${hints.map((h) => `<p>💡 ${e(h)}</p>`).join('')}</section>` : ''}
-    <section class="card">${H2('🙂', 'Wie war die Woche?')}
+    <section class="card"><h2>Wie war die Woche?</h2>
       ${scale('satiety', 'Sättigung (1 = hungrig, 5 = sehr satt)')}
       ${scale('energy', 'Energie (1 = schlapp, 5 = top)')}
       <div class="grid2">
@@ -1359,7 +1286,7 @@ function viewSettings() {
   };
   return `<header class="top"><h1>Einstellungen</h1></header>
 
-  <section class="card accent">${H2('🎯', 'Tagesziele')}
+  <section class="card accent"><h2>Tagesziele</h2>
     <div class="grid2">
       ${field('goals.kcal', 'Kalorien (kcal)', 'step="50"')}
       ${field('goals.protein', 'Protein (g)', 'step="5"')}
@@ -1370,17 +1297,17 @@ function viewSettings() {
     ${!pl.ok && pl.suggestedCarbs > 0 ? `<button class="btn small pill" data-action="fix-carbs" data-val="${pl.suggestedCarbs}">Kohlenhydrate auf ${pl.suggestedCarbs} g setzen</button>` : ''}
   </section>
 
-  <section class="card">${H2('🎛️', 'Feineinstellungen')}
+  <section class="card"><h2>Feineinstellungen</h2>
     <div class="field">Zubereitung${seg(PREP, 'simple')}</div>
     <div class="field">Abwasch${seg(DISHES, 'dishes')}</div>
   </section>
 
-  <section class="card">${H2('🍴', 'Wann isst du auswärts?')}
+  <section class="card"><h2>Wann isst du auswärts?</h2>
     <p class="sub">Tippe die Tage an. Sie werden mit ca. ${num(st.eatOutKcal)} kcal eingerechnet; an diesen Tagen wird entsprechend weniger gekocht. Du kannst das im Rückblick für jede Woche ändern.</p>
     ${dayPills(eatOutDays(st.eatOut), 'eatout-day')}
   </section>
 
-  <section class="card">${H2('🛒', 'Einkauf')}
+  <section class="card"><h2>Einkauf</h2>
     ${STORE_IDS.map((id) => `<label class="row"><input type="checkbox" data-set="stores.${id}" ${st.stores[id] ? 'checked' : ''}> ${e(id === 'edeka' ? 'Edeka No1 Center Schloßstraße (Berlin)' : STORES[id].name)}</label>`).join('')}
     <label class="field">Hauptladen<select data-set="mainStore">${STORE_IDS
       .map((id) => `<option value="${id}" ${st.mainStore === id ? 'selected' : ''}>${e(STORES[id].short)}</option>`)
@@ -1389,7 +1316,7 @@ function viewSettings() {
     ${field('budget', 'Wochenbudget (€)', 'step="1"')}
   </section>
 
-  <section class="card">${H2('🍽️', 'Gerichte')}
+  <section class="card"><h2>Gerichte</h2>
     ${field('complexPerWeek', 'Aufwendige Gerichte pro Woche', 'min="0" max="3"')}
     <div class="field">Abneigungen (werden nicht eingeplant)
       <div class="chips">${st.dislikes.map((d, i) => `<span class="chip soft">${e(d)} <button data-action="del-dislike" data-i="${i}" aria-label="entfernen">×</button></span>`).join('')}</div>
@@ -1397,20 +1324,19 @@ function viewSettings() {
     </div>
   </section>
 
-  <section class="card">${H2('🎨', 'Darstellung')}
+  <section class="card"><h2>Darstellung</h2>
     <label class="field">Design<select data-set="theme"><option value="auto" ${!st.theme || st.theme === 'auto' ? 'selected' : ''}>Automatisch</option><option value="dark" ${st.theme === 'dark' ? 'selected' : ''}>Dunkel</option><option value="light" ${st.theme === 'light' ? 'selected' : ''}>Hell</option></select></label>
-    <label class="field">Dein Name (für die Begrüßung)<input type="text" autocomplete="given-name" data-set="name" value="${e(st.name || '')}" placeholder="z. B. Michael"></label>
     ${field('planHour', 'Neuer Plan montags ab (Uhr)', 'min="0" max="23"')}
     <label class="row"><input type="checkbox" data-set="sounds" ${st.sounds !== false ? 'checked' : ''}> Töne (nur wenn das iPhone nicht lautlos ist)</label>
   </section>
 
-  <section class="card">${H2('✨', 'KI-Rezepte <span class="sub">(optional, kostenpflichtig)</span>')}
+  <section class="card"><h2>KI-Rezepte <span class="sub">(optional, kostenpflichtig)</span></h2>
     <p class="sub">Mit einem eigenen Claude-API-Schlüssel erfindet Mise neue Gerichte: jeden Montag eines für deinen Plan, bei ↻ in der Woche und wenn du unter „Rezepte“ nur einen Titel einträgst. Kosten: ca. 3–5 Cent pro Rezept auf deinem Anthropic-Konto. Der Schlüssel bleibt nur auf diesem Gerät.</p>
     <label class="field">API-Schlüssel<input type="password" autocomplete="off" placeholder="sk-ant-…" data-set="aiKey" value="${e(st.aiKey || '')}"></label>
     <p class="hint">${st.aiKey ? '✓ KI-Rezepte sind aktiv.' : 'Ohne Schlüssel schlägt Mise nur Rezepte aus der Sammlung vor.'} Schlüssel erstellen: console.anthropic.com → API Keys.</p>
   </section>
 
-  <section class="card">${H2('💾', 'Datensicherung')}
+  <section class="card"><h2>Datensicherung</h2>
     <p class="sub">Alle Daten liegen nur auf diesem Gerät. Exportiere ab und zu eine Sicherung (z. B. in iCloud Drive).</p>
     <div class="grid2"><button class="btn" data-action="export">Exportieren</button>
     <label class="btn">Importieren<input type="file" accept="application/json,.json" id="import-file" hidden></label></div>
@@ -1472,21 +1398,6 @@ async function onClick(ev) {
   const a = el.dataset.action;
   const plan = displayedPlan();
   switch (a) {
-    case 'jump-day': {
-      const d = Number(el.dataset.day);
-      S.ui.openDays[d] = true;
-      render();
-      const card = document.querySelector(`.day[data-day="${d}"]`);
-      if (card) window.scrollTo({ top: card.getBoundingClientRect().top + scrollY - 12, behavior: reducedMotion() ? 'auto' : 'smooth' });
-      return;
-    }
-    case 'mep': {
-      S.ui.mep ||= {};
-      const on = (S.ui.mep[el.dataset.k] = !S.ui.mep[el.dataset.k]);
-      el.classList.toggle('on', on);
-      if (on) sound.check();
-      return;
-    }
     case 'rfilter-time':
       S.ui.rTime = el.dataset.val;
       return render();

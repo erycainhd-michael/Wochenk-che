@@ -24,8 +24,6 @@ export const DEFAULT_SETTINGS = {
   psyllium: false,
   proteinPowder: true,
   planHour: 8,
-  // Name für die Begrüßung in der Wochenübersicht
-  name: 'Michael',
   sounds: true,
   // Zielgewicht in kg (Dezimalzahl), wird im Rückblick angezeigt
   goalWeight: null,
