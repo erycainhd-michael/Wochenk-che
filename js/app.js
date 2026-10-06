@@ -8,10 +8,13 @@ import { recipeWeights, weekHints } from './feedback.js';
 import { DEFAULT_SETTINGS, mergeSettings } from './settings.js';
 import { exportAll, importAll, prunePlans, requestPersistence, store } from './storage.js';
 import { TimerManager, fmtTime, keepAwake, unlockAudio } from './timers.js';
+import { cleanRecipe, inventRecipe } from './ai.js';
 
 const S = {
   ingData: null,
   idx: null,
+  builtin: [],
+  custom: store.get('customRecipes', []),
   recipes: [],
   recipesById: new Map(),
   offers: null,
@@ -22,7 +25,7 @@ const S = {
   manualOffers: store.get('manualOffers', []),
   // Eingaben für die nächste Planung (Auswärtstage + Reste), im Rückblick gepflegt
   next: store.get('nextWeek', null),
-  ui: { hideChecked: false, cookStep: 0, openDays: {}, evalOpen: false, servings: 1, search: {} },
+  ui: { hideChecked: false, cookStep: 0, openDays: {}, evalOpen: false, servings: 1, search: '', newTitle: {}, edit: null },
 };
 let timers;
 const app = document.getElementById('app');
@@ -44,8 +47,8 @@ async function init() {
     const [ing, rec] = await Promise.all([loadJSON('data/ingredients.json'), loadJSON('data/recipes.json')]);
     S.ingData = ing;
     S.idx = buildIndex(ing);
-    S.recipes = rec.recipes;
-    S.recipesById = new Map(S.recipes.map((r) => [r.id, r]));
+    S.builtin = rec.recipes;
+    rebuildRecipes();
   } catch (err) {
     app.innerHTML = `<main class="view"><div class="card warn"><h2>Daten konnten nicht geladen werden</h2><p>${e(err.message)}</p><p>Bitte Internetverbindung prüfen und neu laden.</p></div></main>`;
     return;
@@ -63,9 +66,52 @@ async function init() {
   document.addEventListener('pointerdown', unlockAudio, { once: true });
   registerSW();
   requestPersistence();
-  checkSchedule();
-  setInterval(() => checkSchedule() && render(), 60_000);
+  if (Object.keys(S.plans).length) store.set('welcomed', true);
   render();
+  checkSchedule();
+  setInterval(checkSchedule, 60_000);
+}
+
+/** Eingebaute Rezepte + eigene/KI-Rezepte (eigene Änderungen überschreiben das Original). */
+function rebuildRecipes() {
+  const byId = new Map(S.builtin.map((r) => [r.id, r]));
+  for (const r of S.custom) byId.set(r.id, r);
+  S.recipes = [...byId.values()];
+  S.recipesById = byId;
+}
+
+function saveCustom(recipe) {
+  S.custom = S.custom.filter((r) => r.id !== recipe.id).concat(recipe);
+  store.set('customRecipes', S.custom);
+  rebuildRecipes();
+}
+
+/** Ganzseitiger Hinweis während die KI arbeitet */
+function busy(msg) {
+  let el = document.getElementById('busy');
+  if (!msg) return el?.remove();
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'busy';
+    document.body.appendChild(el);
+  }
+  el.innerHTML = `<div class="busy-box"><div class="spinner"></div><p>${e(msg)}</p></div>`;
+}
+
+/** Neues Rezept per KI erfinden und speichern (für ↻, „Hinzufügen“, Montags-Plan). */
+async function aiRecipe({ title = '', type = 'main' } = {}) {
+  const r = await inventRecipe({
+    apiKey: S.settings.aiKey,
+    title,
+    type,
+    ingredients: [...S.idx.values()].filter((i) => !i.staple || ['olivenoel', 'rapsoel', 'gewuerze', 'sojasauce', 'honig', 'senf', 'gemuesebruehe', 'tomatenmark', 'balsamico'].includes(i.id)),
+    avoid: S.recipes.filter((x) => x.type === type).map((x) => x.name),
+    dislikes: S.settings.dislikes,
+  });
+  r.source = 'ki';
+  r.createdAt = new Date().toISOString();
+  saveCustom(r);
+  return r;
 }
 
 function registerSW() {
@@ -117,7 +163,7 @@ function plannerInput(extra = {}) {
     settings: S.settings,
     weekStart: ws,
     offers: mergeOffers(S.offers, S.manualOffers),
-    feedbackWeights: recipeWeights(S.feedback),
+    feedbackWeights: { ...recipeWeights(S.feedback), ...(extra.boost || {}) },
     weekNo: prevWeeks.length,
     recentRecipes,
     ...extra,
@@ -146,9 +192,9 @@ function nextDraft() {
   return S.next;
 }
 
-function createPlan({ pantry, eatOut } = {}) {
+function createPlan({ pantry, eatOut, boost } = {}) {
   const ws = currentWeek();
-  const plan = generatePlan(plannerInput({ pantry: pantry || {}, settings: { ...S.settings, eatOut: eatOut || S.settings.eatOut } }));
+  const plan = generatePlan(plannerInput({ pantry: pantry || {}, boost, settings: { ...S.settings, eatOut: eatOut || S.settings.eatOut } }));
   plan.done = {};
   S.plans[ws] = plan;
   savePlans();
@@ -157,12 +203,27 @@ function createPlan({ pantry, eatOut } = {}) {
   return plan;
 }
 
-/** Plan aus dem Rückblick-Entwurf erstellen (Auswärtstage + bestätigte Reste). */
-function createPlanFromDraft() {
+/**
+ * Plan aus dem Rückblick-Entwurf erstellen (Auswärtstage + bestätigte Reste).
+ * Mit KI-Schlüssel wird zusätzlich ein ganz neues Gericht erfunden und bevorzugt eingeplant.
+ */
+async function createPlanFromDraft() {
   const d = S.next?.week === currentWeek() ? S.next : null;
   const pantry = {};
   for (const it of d?.items || []) if (it.use && it.g > 0) pantry[it.id] = it.g;
-  const plan = createPlan({ pantry, eatOut: d ? daysToEatOut(d.days) : S.settings.eatOut });
+  const boost = {};
+  if (S.settings.aiKey) {
+    try {
+      busy('Mise erfindet ein neues Gericht für deine Woche …');
+      const r = await aiRecipe({ type: 'main' });
+      boost[r.id] = { weight: 3, tooComplex: 0 };
+    } catch (err) {
+      console.warn(err);
+    } finally {
+      busy(null);
+    }
+  }
+  const plan = createPlan({ pantry, boost, eatOut: d ? daysToEatOut(d.days) : S.settings.eatOut });
   S.next = null;
   saveNext();
   return plan;
@@ -195,13 +256,22 @@ function toast(msg) {
 // mit den Auswärtstagen und Resten aus dem Rückblick.
 // ---------------------------------------------------------------------------
 
-function checkSchedule() {
+let planning = false;
+async function checkSchedule() {
   const ws = currentWeek();
-  if (S.plans[ws] || !previousPlan()) return false;
+  if (S.plans[ws] || planning) return false;
+  const hasPrev = !!previousPlan();
+  if (!hasPrev && !store.get('welcomed')) return false; // erster Start: Willkommensbildschirm
   const b = berlinNow();
-  if (b.weekday === 0 && b.hour < (S.settings.planHour ?? 8)) return false;
-  createPlanFromDraft();
+  if (hasPrev && b.weekday === 0 && b.hour < (S.settings.planHour ?? 8)) return false;
+  planning = true;
+  try {
+    await createPlanFromDraft();
+  } finally {
+    planning = false;
+  }
   toast('Dein neuer Wochenplan ist da 🍽️');
+  render();
   return true;
 }
 
@@ -236,6 +306,8 @@ function render() {
     rezepte: viewRecipes,
     rezept: viewRecipeBase,
     kochen: viewCooking,
+    waehlen: viewChoose,
+    bearbeiten: viewEdit,
   };
   const fn = views[r.name] || viewWeek;
   const tab = { einkauf: 'einkauf', rueckblick: 'rueckblick', planen: 'rueckblick', einstellungen: 'einstellungen' }[r.name] || 'woche';
@@ -279,7 +351,7 @@ function viewWelcome() {
 
 function viewWeek() {
   const plan = displayedPlan();
-  if (!plan) return viewWelcome();
+  if (!plan) return store.get('welcomed') ? `<p class="sub center">Dein Wochenplan wird erstellt …</p>` : viewWelcome();
   const ws = currentWeek();
   const b = berlinNow();
   const isCurrent = plan.weekStart === ws;
@@ -332,19 +404,25 @@ function mealRow(plan, m) {
   if (m.leftover) badges.push('<span class="badge">Portion von gestern</span>');
   else if (cook && cook.portions.length > 1) badges.push('<span class="badge">+ Portion für morgen</span>');
   if (r.effort === 3) badges.push('<span class="badge fancy">aufwendig</span>');
+  if (r.source === 'ki') badges.push('<span class="badge new">neu</span>');
+  for (const a of m.addons || []) badges.push(`<span class="badge">+ ${e(recipe(a)?.name || a)}</span>`);
   const isSnack = m.slot === 'snack';
   return `<li class="meal ${done ? 'done' : ''}">
     <button class="check ${done ? 'on' : ''}" data-action="toggle-done" data-key="${m.key}" aria-label="erledigt">${done ? '✓' : ''}</button>
-    <div class="mt">
+    <a class="mt" href="#/mahlzeit/${m.key}">
       <div class="ml">${ICON[isSnack ? 'snack' : m.slot]} ${isSnack ? 'Snack' : SLOT_LABEL[m.slot]} · ${r.time} Min.</div>
       <div class="mn">${e(r.name)}</div>
       <div class="mm">${portions(m.factor)} · ${num(m.macros.kcal)} kcal · ${g_(m.macros.p)} P</div>
       ${badges.length ? `<div class="badges">${badges.join('')}</div>` : ''}
-    </div>
-    <div class="meal-btns">
-      ${!isSnack && !m.leftover ? `<button class="round-btn" data-action="swap" data-key="${m.key}" aria-label="Gericht tauschen">↻</button>` : ''}
-      <a class="round-btn" href="#/mahlzeit/${m.key}" aria-label="Rezept ansehen">🔎</a>
-    </div>
+    </a>
+    ${
+      !isSnack && !m.leftover
+        ? `<div class="meal-btns">
+      <button class="round-btn" data-action="swap" data-key="${m.key}" aria-label="Neues Rezept vorschlagen">↻</button>
+      <a class="round-btn" href="#/waehlen/${m.key}" aria-label="Rezept aus der Sammlung wählen">🔎</a>
+    </div>`
+        : ''
+    }
   </li>`;
 }
 
@@ -398,35 +476,111 @@ function viewMeal(key) {
     const parts = cook.portions.map((p) => `${DAY_SHORT[p.day]} ${SLOT_LABEL[p.slot]}`).join(' + ');
     info = `<div class="banner info">🍱 Du kochst für <b>${parts}</b>. ${meal.leftover ? 'Heute isst du die vorgekochte Portion – nur aufwärmen.' : 'Füll die zweite Portion direkt in die Lunchbox.'}</div>`;
   }
+  for (const a of meal.addons || []) {
+    const ar = recipe(a);
+    info += `<div class="banner info">💪 Dazu: <b>${e(ar.name)}</b> – ergänzt heute dein Protein. ${ar.steps.map((x) => e(x.t)).join(' ')}</div>`;
+  }
   const slot = meal.slot.startsWith('snack') ? 'Snack' : SLOT_LABEL[meal.slot];
   return recipeHtml(r, items, meal.macros, `${DAY_NAMES[meal.key.split('-')[0]]} · ${slot} · ${portions(cook ? cook.totalFactor : meal.factor)}`, `<a class="back" href="#/woche">‹ Woche</a>`, info, key, false);
 }
 
 function viewRecipes() {
-  const groups = { main: 'Hauptgerichte', breakfast: 'Frühstück', snack: 'Snacks & Desserts' };
+  const groups = { main: 'Hauptgerichte', breakfast: 'Frühstück' };
   const fbw = recipeWeights(S.feedback);
   return `<header class="top col"><a class="back" href="#/woche">‹ Woche</a><h1>Rezepte</h1></header>
     ${Object.entries(groups)
       .map(([t, label]) => {
-        const q = (S.ui.search[t] || '').toLowerCase().trim();
-        const list = S.recipes
-          .filter((r) => r.type === t)
-          .filter((r) => !q || r.name.toLowerCase().includes(q) || r.ingredients.some((l) => ing(l.id)?.name.toLowerCase().includes(q)));
+        const list = S.recipes.filter((r) => r.type === t);
         return `<section class="card"><h2>${label}</h2>
-        <div class="add-row"><input type="search" placeholder="z. B. Pilze" data-search="${t}" value="${e(S.ui.search[t] || '')}"><button class="btn pill" data-action="search" data-type="${t}">Suchen</button></div>
-        <ul class="list">
-        ${
-          list.length
-            ? list
-                .map((r) => {
-                  const w = fbw[r.id]?.weight;
-                  return `<li><a href="#/rezept/${r.id}"><span>${e(r.name)}</span><small>${r.time} Min. · ${'🧽'.repeat(Math.max(1, r.dishes))}${w > 1.15 ? ' · 👍' : w < 0.85 ? ' · 👎' : ''}${r.season ? ' · saisonal' : ''}</small></a></li>`;
-                })
-                .join('')
-            : '<li class="muted">Nichts gefunden.</li>'
-        }</ul></section>`;
+        <div class="add-row"><input placeholder="Neues Rezept, z. B. Pilzrisotto" data-new-title="${t}" value="${e(S.ui.newTitle[t] || '')}"><button class="btn pill" data-action="new-recipe" data-type="${t}">Hinzufügen</button></div>
+        <p class="hint">${S.settings.aiKey ? 'Nur den Titel eintragen – die KI erfindet das passende Rezept.' : 'Titel eintragen und Rezept selbst ausfüllen. Mit KI-Schlüssel (Einstellungen) erfindet Mise es für dich.'}</p>
+        <ul class="list">${list
+          .map((r) => {
+            const w = fbw[r.id]?.weight;
+            const tag = r.source === 'ki' ? ' · ✨ KI' : r.source ? ' · eigenes' : '';
+            return `<li><a href="#/rezept/${r.id}"><span>${e(r.name)}</span><small>${r.time} Min. · ${'🧽'.repeat(Math.max(1, r.dishes))}${w > 1.15 ? ' · 👍' : w < 0.85 ? ' · 👎' : ''}${r.season ? ' · saisonal' : ''}${tag}</small></a></li>`;
+          })
+          .join('')}</ul></section>`;
       })
       .join('')}`;
+}
+
+/** 🔎 Rezept aus der Sammlung für eine Mahlzeit auswählen */
+function viewChoose(key) {
+  const plan = displayedPlan();
+  const meal = findMeal(plan, key);
+  if (!meal) return `<div class="card">Mahlzeit nicht gefunden. <a href="#/woche">Zur Woche</a></div>`;
+  const type = meal.slot === 'fruehstueck' ? 'breakfast' : 'main';
+  const q = S.ui.search.toLowerCase().trim();
+  const list = S.recipes
+    .filter((r) => r.type === type && r.id !== meal.recipeId)
+    .filter((r) => !q || r.name.toLowerCase().includes(q) || r.ingredients.some((l) => ing(l.id)?.name.toLowerCase().includes(q)));
+  return `<header class="top col"><a class="back" href="#/woche">‹ Woche</a><h1>Rezept wählen</h1>
+    <div class="sub">${DAY_NAMES[key.split('-')[0]]} · ${SLOT_LABEL[meal.slot]} · statt „${e(recipe(meal.recipeId)?.name || '')}“</div></header>
+    <section class="card">
+      <input type="search" placeholder="Suchen, z. B. Lachs oder Pasta" data-search="choose" value="${e(S.ui.search)}">
+      <ul class="list">${
+        list.length
+          ? list
+              .map(
+                (r) => `<li><button class="list-btn" data-action="choose" data-key="${key}" data-id="${r.id}"><span>${e(r.name)}</span><small>${r.time} Min. · ${'🧽'.repeat(Math.max(1, r.dishes))}${r.source === 'ki' ? ' · ✨ KI' : ''}</small></button></li>`
+              )
+              .join('')
+          : '<li class="muted">Nichts gefunden.</li>'
+      }</ul>
+    </section>`;
+}
+
+/** Rezept anlegen/ändern: Text, Zutaten und Timer */
+function viewEdit(id) {
+  if (!S.ui.edit || S.ui.edit.id !== id) {
+    const r = recipe(id);
+    if (!r) return `<div class="card">Rezept nicht gefunden. <a href="#/rezepte">Zu den Rezepten</a></div>`;
+    S.ui.edit = structuredClone(r);
+  }
+  const r = S.ui.edit;
+  const opts = (sel) =>
+    [...S.idx.values()]
+      .sort((a, b) => a.name.localeCompare(b.name, 'de'))
+      .map((i) => `<option value="${i.id}" ${i.id === sel ? 'selected' : ''}>${e(i.name)}</option>`)
+      .join('');
+  const isBuiltin = S.builtin.some((b) => b.id === r.id);
+  const isCustom = S.custom.some((c) => c.id === r.id);
+  return `<header class="top"><a class="back" href="#/rezept/${r.id}" data-action="edit-cancel">‹ Abbrechen</a><button class="btn primary pill" data-action="edit-save">Speichern</button></header>
+    <section class="card accent">
+      <label class="field">Titel<input data-edit="name" value="${e(r.name)}"></label>
+      <div class="grid2">
+        <label class="field">Mahlzeit<select data-edit="type"><option value="main" ${r.type === 'main' ? 'selected' : ''}>Mittag/Abend</option><option value="breakfast" ${r.type === 'breakfast' ? 'selected' : ''}>Frühstück</option></select></label>
+        <label class="field">Zeit (Min.)<input type="number" inputmode="numeric" data-edit="time" value="${r.time}"></label>
+        <label class="field">Abwasch (Töpfe)<input type="number" inputmode="numeric" data-edit="dishes" value="${r.dishes}"></label>
+        <label class="field">Aufwand<select data-edit="effort">${[1, 2, 3].map((v) => `<option value="${v}" ${r.effort === v ? 'selected' : ''}>${['', 'einfach', 'normal', 'aufwendig'][v]}</option>`).join('')}</select></label>
+      </div>
+      <label class="row"><input type="checkbox" data-edit="mealPrep" ${r.mealPrep ? 'checked' : ''}> Schmeckt auch am nächsten Tag (Lunchbox)</label>
+    </section>
+    <section class="card"><h2>Zutaten <span class="sub">für 1 Portion</span></h2>
+      <ul class="edit-list">${r.ingredients
+        .map(
+          (l, n) => `<li><select data-edit-ing="${n}" data-f="id">${opts(l.id)}</select>
+          <span class="qty"><input type="number" inputmode="numeric" data-edit-ing="${n}" data-f="g" value="${l.g}"> g</span>
+          <button class="round-btn" data-action="edit-del-ing" data-n="${n}" aria-label="entfernen">✕</button></li>`
+        )
+        .join('')}</ul>
+      <button class="btn pill small" data-action="edit-add-ing">+ Zutat</button>
+    </section>
+    <section class="card"><h2>Anleitung</h2>
+      <ol class="edit-steps">${r.steps
+        .map(
+          (st, n) => `<li><textarea rows="3" data-edit-step="${n}" data-f="t">${e(st.t)}</textarea>
+          <div class="step-meta"><span class="qty">⏱️ <input type="number" inputmode="decimal" step="0.5" min="0" data-edit-step="${n}" data-f="timer" value="${st.timer ? st.timer / 60 : ''}" placeholder="–"> Min.</span>
+          <input data-edit-step="${n}" data-f="label" value="${e(st.label || '')}" placeholder="Timer-Name">
+          <button class="round-btn" data-action="edit-del-step" data-n="${n}" aria-label="entfernen">✕</button></div></li>`
+        )
+        .join('')}</ol>
+      <button class="btn pill small" data-action="edit-add-step">+ Schritt</button>
+      ${S.settings.aiKey ? `<button class="btn pill small" data-action="edit-ai">✨ Mit KI ausfüllen</button>` : ''}
+    </section>
+    <button class="btn primary block" data-action="edit-save">Speichern</button>
+    ${isCustom ? `<button class="link danger" data-action="edit-delete">${isBuiltin ? 'Original wiederherstellen' : 'Rezept löschen'}</button>` : ''}`;
 }
 
 function viewRecipeBase(id) {
@@ -459,7 +613,7 @@ function recipeHtml(r, items, macros, subtitle, back, info, cookKey, withServing
     : '';
   return `<header class="top">${back}<a class="btn primary pill" href="${cookHref}">👨‍🍳 Kochmodus starten</a></header>
     <section class="card accent">
-      <div class="sub">${e(subtitle)}</div>
+      <div class="card-head"><div class="sub">${e(subtitle)}</div><a class="btn small pill" href="#/bearbeiten/${r.id}">✏️ Ändern</a></div>
       <h1 class="rtitle">${e(r.name)}</h1>
       <div class="chips"><span class="chip on">⏱️ ${r.time} Min.</span><span class="chip">Abwasch ${r.dishes}</span><span class="chip">${['', 'einfach', 'normal', 'aufwendig'][r.effort]}</span><span class="chip">${e(r.protein)}</span></div>
       <div class="divider accent"></div>
@@ -542,7 +696,7 @@ function viewShopping() {
       it.id,
       it.name,
       euro(it.cost),
-      `${packText(it).replace(/(\d) g\b/g, '$1g').replace(/(\d) Liter\b/, '$1L')} · benötigt ${g_(it.need)}${it.have ? ` (davon ${g_(it.have)} Rest)` : ''}${it.offer ? ` · <span class="badge offer">Angebot</span>` : ''}${it.note ? ` · ${e(it.note)}` : ''}`,
+      `${packText(it).replace(/(\d) g\b/g, '$1g').replace(/(\d) Liter\b/, '$1L')} · benötigt ${g_(it.need)}${it.have ? ` (davon ${g_(it.have)} Rest)` : ''}${it.offer ? ` · <span class="badge offer">Angebot${it.offerTitle ? ': ' + e(it.offerTitle) : ''}</span>` : ''}${it.note ? ` · ${e(it.note)}` : ''}`,
       it.useRefs || []
     );
   const staples = sh.staples.map((s) => row('staple:' + s.id, s.name, '', g_(s.g), s.useRefs || [])).join('');
@@ -604,21 +758,20 @@ function viewReview(weekArg) {
         </li>
       </ul>
       <p class="sub">${S.plans[currentWeek()] ? `Wird für deinen Plan ab ${formatDate(draft.week)} verwendet (montags ab ${S.settings.planHour ?? 8}:00).` : 'Wird für den Plan dieser Woche verwendet.'}</p>
-    </section>
-    <button class="btn ghost block" data-action="${S.plans[currentWeek()] ? 'replan' : 'plan-now'}">🔄 ${S.plans[currentWeek()] ? 'Plan dieser Woche neu erstellen' : 'Plan jetzt erstellen'}</button>`;
+    </section>`;
   if (!weeks.length) return `<header class="top col"><h1>Rückblick</h1></header>${planningCards}`;
 
   const ws = weekArg && S.plans[weekArg] ? weekArg : weeks[0];
   const plan = S.plans[ws];
   const fb = feedbackFor(ws) || { weekStart: ws, recipes: {}, week: {} };
   const hints = weekHints(S.feedback, S.settings.goals);
-  const groups = { fruehstueck: [], mittag: [], abend: [], snack: [] };
+  const groups = { fruehstueck: [], mittag: [], abend: [] };
   const seen = new Set();
   for (const d of plan.days)
     for (const m of d.meals) {
       if (m.kind !== 'recipe' || m.leftover || seen.has(m.recipeId)) continue;
       seen.add(m.recipeId);
-      groups[m.slot === 'snack' ? 'snack' : m.slot].push(m.recipeId);
+      groups[m.slot]?.push(m.recipeId);
     }
   const icon = (id, field, val, emoji, label) => {
     const cur = fb.recipes[id]?.[field];
@@ -634,7 +787,7 @@ function viewReview(weekArg) {
       ? `<section class="card"><h2>${title}</h2><ul class="fb-list">${groups[key]
           .map(
             (id) => `<li><div class="fb-name">${e(recipe(id).name)}</div><div class="pills">
-          ${icon(id, 'again', undefined, '😍', 'Lieblingsgericht – gern öfter')}${icon(id, 'rating', 1, '👍', 'Gut')}${icon(id, 'rating', -1, '👎', 'Nicht so gut')}${icon(id, 'dishes', undefined, '🧽', 'Zu viel Abwasch')}${icon(id, 'tooComplex', undefined, '⏱️', 'Zu aufwendig')}
+          ${icon(id, 'rating', 2, '😍', 'Ich liebe das')}${icon(id, 'rating', 1, '👍', 'War gut')}${icon(id, 'rating', -1, '👎', 'War schlecht')}${icon(id, 'dishes', undefined, '🧽', 'War zu viel Abwasch')}${icon(id, 'tooComplex', undefined, '⏱️', 'War zu aufwendig')}
         </div></li>`
           )
           .join('')}</ul></section>`
@@ -650,7 +803,7 @@ function viewReview(weekArg) {
       ${scale('energy', 'Energie (1 = schlapp, 5 = top)')}
       <label class="field">Gewicht (optional, kg)<input type="number" inputmode="decimal" step="0.1" data-fbw-input="weight" data-week="${ws}" value="${fb.week?.weight ?? ''}"></label>
     </section>
-    ${groupCard('fruehstueck', 'Frühstück')}${groupCard('mittag', 'Mittagessen')}${groupCard('abend', 'Abendessen')}${groupCard('snack', 'Snacks')}
+    ${groupCard('fruehstueck', 'Frühstück')}${groupCard('mittag', 'Mittagessen')}${groupCard('abend', 'Abendessen')}
     ${planningCards}`;
 }
 
@@ -737,6 +890,12 @@ function viewSettings() {
     ${field('planHour', 'Neuer Plan montags ab (Uhr)', 'min="0" max="23"')}
   </section>
 
+  <section class="card"><h2>KI-Rezepte <span class="sub">(optional, kostenpflichtig)</span></h2>
+    <p class="sub">Mit einem eigenen Claude-API-Schlüssel erfindet Mise neue Gerichte: jeden Montag eines für deinen Plan, bei ↻ in der Woche und wenn du unter „Rezepte“ nur einen Titel einträgst. Kosten: ca. 3–5 Cent pro Rezept auf deinem Anthropic-Konto. Der Schlüssel bleibt nur auf diesem Gerät.</p>
+    <label class="field">API-Schlüssel<input type="password" autocomplete="off" placeholder="sk-ant-…" data-set="aiKey" value="${e(st.aiKey || '')}"></label>
+    <p class="hint">${st.aiKey ? '✓ KI-Rezepte sind aktiv.' : 'Ohne Schlüssel schlägt Mise nur Rezepte aus der Sammlung vor.'} Schlüssel erstellen: console.anthropic.com → API Keys.</p>
+  </section>
+
   <section class="card"><h2>Datensicherung</h2>
     <p class="sub">Alle Daten liegen nur auf diesem Gerät. Exportiere ab und zu eine Sicherung (z. B. in iCloud Drive).</p>
     <div class="grid2"><button class="btn" data-action="export">Exportieren</button>
@@ -811,33 +970,119 @@ async function onClick(ev) {
       savePlans();
       return render();
     case 'swap': {
-      const next = swapMeal(plan, el.dataset.key, plannerInput({ weekStart: plan.weekStart }));
+      // ↻ = neues Rezept: mit KI frisch erfunden, sonst zufällig aus der Sammlung
+      const key = el.dataset.key;
+      const type = key.endsWith('fruehstueck') ? 'breakfast' : 'main';
+      let chosen = null;
+      if (S.settings.aiKey) {
+        busy('Mise erfindet ein neues Rezept …');
+        try {
+          chosen = (await aiRecipe({ type })).id;
+        } catch (err) {
+          toast(err.message);
+        } finally {
+          busy(null);
+        }
+      }
+      const next = swapMeal(plan, key, plannerInput({ weekStart: plan.weekStart }), chosen);
       next.done = plan.done || {};
       S.plans[plan.weekStart] = next;
       savePlans();
-      toast('Gericht getauscht – Einkaufsliste aktualisiert');
+      toast(chosen ? 'Neues Rezept eingeplant ✨' : 'Gericht getauscht – Einkaufsliste aktualisiert');
       return render();
+    }
+    case 'choose': {
+      const next = swapMeal(plan, el.dataset.key, plannerInput({ weekStart: plan.weekStart }), el.dataset.id);
+      next.done = plan.done || {};
+      S.plans[plan.weekStart] = next;
+      savePlans();
+      S.ui.search = '';
+      location.hash = '#/woche';
+      toast('Rezept übernommen – Einkaufsliste aktualisiert');
+      return;
     }
     case 'first-plan':
     case 'plan-now':
       el.disabled = true;
-      setTimeout(() => {
-        createPlanFromDraft();
-        S.ui.openDays = {};
-        location.hash = '#/woche';
-        render();
-        toast('Dein Wochenplan ist fertig!');
-      }, 30);
-      return;
-    case 'replan': {
-      if (!confirm('Plan dieser Woche neu erstellen? Die Häkchen der Einkaufsliste werden zurückgesetzt.')) return;
-      const pantry = plan.pantryUsed || {};
-      createPlan({ pantry, eatOut: (plan.structure.eatOut || []).map((k) => ({ day: Number(k.split('-')[0]), slot: k.split('-')[1] })) });
-      S.next = null;
-      saveNext();
+      store.set('welcomed', true);
+      await createPlanFromDraft();
+      S.ui.openDays = {};
       location.hash = '#/woche';
-      toast('Neuer Plan erstellt');
+      render();
+      toast('Dein Wochenplan ist fertig!');
+      return;
+    case 'new-recipe': {
+      const type = el.dataset.type;
+      const title = (S.ui.newTitle[type] || '').trim();
+      if (!title) return toast('Bitte zuerst einen Titel eintragen');
+      S.ui.newTitle[type] = '';
+      if (S.settings.aiKey) {
+        busy(`Mise erfindet „${title}“ …`);
+        try {
+          const r = await aiRecipe({ title, type });
+          location.hash = `#/rezept/${r.id}`;
+        } catch (err) {
+          toast(err.message);
+        } finally {
+          busy(null);
+        }
+        return;
+      }
+      S.ui.edit = { id: `u_${Date.now().toString(36)}`, name: title, type, time: 20, dishes: 1, effort: 1, mealPrep: false, tags: [], protein: '', ingredients: [], steps: [{ t: '' }], source: 'eigen' };
+      location.hash = `#/bearbeiten/${S.ui.edit.id}`;
+      return;
+    }
+    case 'edit-add-ing':
+      S.ui.edit.ingredients.push({ id: 'eier', g: 100 });
       return render();
+    case 'edit-del-ing':
+      S.ui.edit.ingredients.splice(Number(el.dataset.n), 1);
+      return render();
+    case 'edit-add-step':
+      S.ui.edit.steps.push({ t: '' });
+      return render();
+    case 'edit-del-step':
+      S.ui.edit.steps.splice(Number(el.dataset.n), 1);
+      return render();
+    case 'edit-cancel':
+      S.ui.edit = null;
+      return;
+    case 'edit-ai': {
+      const d = S.ui.edit;
+      if (!d.name.trim()) return toast('Bitte zuerst einen Titel eintragen');
+      busy(`Mise erfindet „${d.name}“ …`);
+      try {
+        const r = await inventRecipe({ apiKey: S.settings.aiKey, title: d.name, type: d.type, ingredients: [...S.idx.values()], avoid: [], dislikes: S.settings.dislikes });
+        S.ui.edit = { ...r, id: d.id, name: d.name, source: d.source === 'eigen' ? 'ki' : d.source };
+      } catch (err) {
+        toast(err.message);
+      } finally {
+        busy(null);
+      }
+      return render();
+    }
+    case 'edit-save': {
+      const d = S.ui.edit;
+      const r = cleanRecipe(d, d.type, S.ingData.items);
+      if (!r.ingredients.length) return toast('Bitte mindestens eine Zutat eintragen');
+      if (!r.steps.length) return toast('Bitte mindestens einen Schritt eintragen');
+      r.source = d.source || 'eigen';
+      saveCustom(r);
+      S.ui.edit = null;
+      location.hash = `#/rezept/${r.id}`;
+      toast('Rezept gespeichert');
+      return;
+    }
+    case 'edit-delete': {
+      const id = S.ui.edit.id;
+      const builtin = S.builtin.some((b) => b.id === id);
+      if (!confirm(builtin ? 'Deine Änderungen verwerfen und das Original wiederherstellen?' : 'Dieses Rezept löschen?')) return;
+      S.custom = S.custom.filter((r) => r.id !== id);
+      store.set('customRecipes', S.custom);
+      rebuildRecipes();
+      S.ui.edit = null;
+      location.hash = builtin ? `#/rezept/${id}` : '#/rezepte';
+      return;
     }
     case 'draft-day':
       toggleDay(nextDraft().days, Number(el.dataset.day));
@@ -873,8 +1118,6 @@ async function onClick(ev) {
       return render();
     case 'servings':
       S.ui.servings = Number(el.dataset.n);
-      return render();
-    case 'search':
       return render();
     case 'check': {
       if (ev.target.closest('a')) return; // Link zum Rezept nicht als Abhaken werten
@@ -931,6 +1174,7 @@ async function onClick(ev) {
 
 function onChange(ev) {
   const el = ev.target;
+  if (S.ui.edit && (el.dataset.edit || el.dataset.editIng !== undefined || el.dataset.editStep !== undefined)) return editField(el);
   if (el.dataset.set) {
     let v = el.type === 'checkbox' ? el.checked : el.value;
     if (el.type === 'number') v = Number(v);
@@ -983,16 +1227,40 @@ let searchTimer;
 function onInput(ev) {
   const el = ev.target;
   if (el.dataset.search) {
-    S.ui.search[el.dataset.search] = el.value;
+    S.ui.search = el.value;
     clearTimeout(searchTimer);
     searchTimer = setTimeout(() => {
       const pos = el.selectionStart;
-      const key = el.dataset.search;
       render();
-      const again = document.querySelector(`[data-search="${key}"]`);
+      const again = document.querySelector('[data-search]');
       again?.focus();
       again?.setSelectionRange?.(pos, pos);
     }, 250);
+    return;
+  }
+  if (el.dataset.newTitle) {
+    S.ui.newTitle[el.dataset.newTitle] = el.value;
+    return;
+  }
+  if (S.ui.edit) editField(el);
+}
+
+/** Eingaben im Rezept-Editor in den Entwurf übernehmen (ohne neu zu zeichnen) */
+function editField(el) {
+  const d = S.ui.edit;
+  if (el.dataset.edit) {
+    const f = el.dataset.edit;
+    d[f] = el.type === 'checkbox' ? el.checked : ['time', 'dishes', 'effort'].includes(f) ? Number(el.value) : el.value;
+  } else if (el.dataset.editIng !== undefined) {
+    const l = d.ingredients[Number(el.dataset.editIng)];
+    l[el.dataset.f] = el.dataset.f === 'g' ? Number(el.value) : el.value;
+  } else if (el.dataset.editStep !== undefined) {
+    const st = d.steps[Number(el.dataset.editStep)];
+    if (el.dataset.f === 'timer') {
+      const min = Number(String(el.value).replace(',', '.'));
+      if (min > 0) st.timer = Math.round(min * 60);
+      else delete st.timer;
+    } else st[el.dataset.f] = el.value;
   }
 }
 
@@ -1023,6 +1291,7 @@ window.addEventListener('hashchange', () => {
   if (location.hash.startsWith('#/kochen')) S.ui.cookStep = 0;
   if (location.hash.startsWith('#/rezept/')) S.ui.servings = S.ui.servings || 1;
   if (location.hash.startsWith('#/rezepte')) S.ui.servings = 1;
+  if (location.hash.startsWith('#/waehlen')) S.ui.search = '';
 });
 
 init();

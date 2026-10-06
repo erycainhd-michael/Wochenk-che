@@ -33,7 +33,8 @@ jobs:
           TARGET_HOUR: '6'
           FORCE: ${{ github.event_name == 'workflow_dispatch' && '1' || '' }}
           FIND_MARKET: ${{ github.event.inputs.find_market }}
-          EDEKA_MARKET_ID: ${{ vars.EDEKA_MARKET_ID }}
+          # EDEKA Center No. 1, Schloßstr. 1, 12163 Berlin (per Suchlauf ermittelt)
+          EDEKA_MARKET_ID: ${{ vars.EDEKA_MARKET_ID || '10001290' }}
         run: node scripts/fetch-offers.mjs
       - name: offers.json speichern
         run: |

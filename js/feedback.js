@@ -12,6 +12,7 @@ export function recipeWeights(history = []) {
     const decay = Math.pow(0.5, i / 6);
     for (const [id, fb] of Object.entries(week.recipes || {})) {
       let delta = 0;
+      if (fb.rating === 2) delta += 0.8; // 😍 ich liebe das
       if (fb.rating === 1) delta += 0.35;
       if (fb.rating === -1) delta -= 0.45;
       if (fb.again) delta += 0.4;
