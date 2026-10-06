@@ -2,47 +2,12 @@
 // ein Neuladen der App überstehen. Hinweis: iOS pausiert Web-Apps im Hintergrund – der Ton
 // kommt nur zuverlässig, solange die App geöffnet ist.
 import { store } from './storage.js';
+import { sound, unlockAudio } from './sounds.js';
 
-let audioCtx = null;
-
-/** Muss einmal durch eine Nutzer-Geste aufgerufen werden (iOS-Audio-Sperre). */
-export function unlockAudio() {
-  try {
-    audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
-    if (audioCtx.state === 'suspended') audioCtx.resume();
-    // stiller Puffer entsperrt die Wiedergabe auf iOS
-    const buf = audioCtx.createBuffer(1, 1, 22050);
-    const src = audioCtx.createBufferSource();
-    src.buffer = buf;
-    src.connect(audioCtx.destination);
-    src.start(0);
-  } catch {
-    /* kein Audio verfügbar */
-  }
-}
+export { unlockAudio };
 
 export function beep(times = 3) {
-  try {
-    if (!audioCtx) unlockAudio();
-    const now = audioCtx.currentTime;
-    for (let i = 0; i < times; i++) {
-      for (const [offset, freq] of [[0, 880], [0.18, 1175]]) {
-        const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
-        osc.type = 'sine';
-        osc.frequency.value = freq;
-        const t = now + i * 0.7 + offset;
-        gain.gain.setValueAtTime(0.0001, t);
-        gain.gain.exponentialRampToValueAtTime(0.5, t + 0.02);
-        gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.16);
-        osc.connect(gain).connect(audioCtx.destination);
-        osc.start(t);
-        osc.stop(t + 0.18);
-      }
-    }
-  } catch {
-    /* ignorieren */
-  }
+  sound.alarm(times);
   try {
     navigator.vibrate?.([300, 150, 300, 150, 300]);
   } catch {

@@ -7,6 +7,18 @@ export const SLOT_LABEL = { fruehstueck: 'Frühstück', mittag: 'Mittag', abend:
 /** Tiefe Kopie (ohne structuredClone, damit auch ältere iPhones mitspielen) */
 export const clone = (x) => JSON.parse(JSON.stringify(x));
 
+/** Kurzer Rezeptname für enge Stellen (Einkaufsliste), z. B. „Lachs-Pasta“ */
+export function shortName(r) {
+  if (r && typeof r === 'object') {
+    if (r.short) return r.short;
+    r = r.name || '';
+  }
+  let s = String(r).split(/ mit | \+ |, | & /)[0].trim();
+  if (s.length > 20 && s.includes(' ')) s = s.split(' ').pop();
+  if (s.length > 20) s = s.split('-').slice(-2).join('-');
+  return s;
+}
+
 export const clamp = (x, lo, hi) => Math.min(hi, Math.max(lo, x));
 export const round = (x, step = 1) => Number((Math.round(x / step) * step).toFixed(6));
 export const sum = (arr, fn = (x) => x) => arr.reduce((a, b) => a + fn(b), 0);

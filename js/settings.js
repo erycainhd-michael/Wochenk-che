@@ -24,6 +24,9 @@ export const DEFAULT_SETTINGS = {
   psyllium: false,
   proteinPowder: true,
   planHour: 8,
+  sounds: true,
+  // Zielgewicht in kg (Dezimalzahl), wird im Rückblick angezeigt
+  goalWeight: null,
   // Optional: eigener Claude-API-Schlüssel, um ein Rezept sofort aus einem Titel zu erfinden
   aiKey: '',
 };
