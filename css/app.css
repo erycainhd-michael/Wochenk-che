@@ -83,12 +83,18 @@
 :root { --sat: env(safe-area-inset-top); --sab: env(safe-area-inset-bottom); }
 html.rot-l { --sat: env(safe-area-inset-left); --sab: env(safe-area-inset-right); }
 html.rot-r { --sat: env(safe-area-inset-right); --sab: env(safe-area-inset-left); }
-html.rot-l body, html.rot-r body { position: fixed; top: 0; left: 0; width: 100vh; height: 100vw; transform-origin: top left; }
+html.rot-l body, html.rot-r body { position: fixed; top: 0; left: 0; width: var(--rot-w, 100vh); height: var(--rot-h, 100vw); transform-origin: top left; }
+body { transition: opacity 0.18s ease-out; }
+html.rotating body { opacity: 0; transition: none; }
 html.rot-l body { transform: rotate(-90deg) translateX(-100%); }
 html.rot-r body { transform: rotate(90deg) translateY(-100%); }
-/* Gescrollt wird in #app statt in der Seite: keine Scrollleiste, und die Tab-Leiste wandert nie mit */
+/* Die App füllt immer den ganzen Bildschirm (--app-h = echte Displayhöhe, wird beim Start gemessen).
+   Gescrollt wird in #scroller statt in der Seite: keine Scrollleiste, und die Tab-Leiste wandert nie mit. */
 html, body { height: 100%; overflow: hidden; }
-#app { position: fixed; inset: 0; overflow-x: hidden; overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; scrollbar-width: none; }
+#app { position: fixed; top: 0; left: 0; right: 0; height: var(--app-h, 100%); overflow: hidden; }
+#scroller { position: absolute; inset: 0; overflow-x: hidden; overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; scrollbar-width: none; }
+/* Vollbild-Ebenen ebenfalls auf die echte Displayhöhe */
+#busy, .done-overlay, .celebrate, #splash, .scanner, #magic-frame { bottom: auto !important; height: var(--app-h, 100%); }
 ::-webkit-scrollbar { display: none; width: 0; height: 0; background: transparent; }
 html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; touch-action: pan-x pan-y; }
 /* Nichts darf seitlich überstehen – sonst verkleinert iOS die ganze Seite */
@@ -314,7 +320,7 @@ input[type='checkbox']:checked::after { content: '✓'; color: var(--accent-text
 
 /* Schwebende Tab-Leiste, nur Symbole */
 .tabbar {
-  position: fixed; left: 16px; right: 16px; z-index: 20;
+  position: absolute; left: 16px; right: 16px; z-index: 20;
   /* tief unten wie bei nativen Apps: halb im Bereich des Home-Indikators.
      --tab-bottom wird beim Start einmal gemessen, damit die Leiste beim Scrollen nicht mitwandert */
   bottom: var(--tab-bottom, max(8px, calc(var(--sab) - 14px)));
@@ -339,7 +345,7 @@ input[type='checkbox']:checked::after { content: '✓'; color: var(--accent-text
 .tab:active img { opacity: 0.7; }
 
 #timer-dock {
-  position: fixed; left: 16px; right: 16px; z-index: 19; max-width: 648px; margin: 0 auto;
+  position: absolute; left: 16px; right: 16px; z-index: 19; max-width: 648px; margin: 0 auto;
   bottom: calc(var(--tab-bottom, max(8px, calc(var(--sab) - 14px))) + 74px);
   transform: translate3d(0, 0, 0);
   display: flex; flex-direction: column; gap: 8px;
@@ -798,7 +804,7 @@ body.fancy .rhero-art { background: linear-gradient(135deg, #ffd8ae, #ffc7c0 50%
 
 /* Kochmodus eines aufwendigen Gerichts: umlaufende Linie in Orange, Rot, Gelb und Lila */
 @property --mf { syntax: '<angle>'; inherits: false; initial-value: 0deg; }
-#magic-frame { position: fixed; inset: 0; z-index: 35; pointer-events: none; animation: viewIn 0.6s ease-out; }
+#magic-frame { position: fixed; top: 0; left: 0; right: 0; z-index: 35; pointer-events: none; animation: viewIn 0.6s ease-out; }
 /* dezent wie die Kartenrahmen (3px), folgt den Rundungen des Displays */
 #magic-frame i { position: absolute; inset: 0; border-radius: var(--screen-r, 0px); padding: 3px;
   background: conic-gradient(from var(--mf), #ff8a00, #ff3b3b, #ffd23f, #9b5cff, #ff8a00);

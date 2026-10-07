@@ -128,6 +128,14 @@ export const sound = {
       sparkle(0.62, [G6, E6, C6 * 2, G6 * 1.5, C6 * 2.5], 0.07, 0.06);
       tone([C6, C6 * 2], 0.95, 1.1, { type: 'sine', vol: 0.05 });
     }),
+  /** Gewicht in Richtung Ziel: zwei weiche Töne aufwärts */
+  progress: () => play(() => [E5, A5].forEach((f, i) => tone(f, i * 0.12, 0.3, { type: 'triangle', vol: 0.12 }))),
+  /** Einkauf komplett: kurzer, heller Akkord mit Funkeln */
+  allDone: () =>
+    play(() => {
+      [C5, E5, G5, C6].forEach((f, i) => tone(f, i * 0.06, 0.4, { type: 'triangle', vol: 0.11 }));
+      sparkle(0.3, [E6, G6, C6 * 2], 0.06, 0.05);
+    }),
   /** Start-Jingle zur Blatt-Animation: kurzes, helles Arpeggio */
   jingle: () =>
     play(() => {
