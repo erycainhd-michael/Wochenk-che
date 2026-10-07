@@ -49,7 +49,7 @@ export function exportAll() {
 
 export function importAll(obj) {
   if (!obj || obj.app !== APP_ID || typeof obj.data !== 'object') {
-    throw new Error('Das ist keine Michael-Food-Sicherung.');
+    throw new Error('Das ist keine Mise-Sicherung.');
   }
   for (const k of store.keys()) store.del(k);
   for (const [k, v] of Object.entries(obj.data)) store.set(k, v);

@@ -672,3 +672,26 @@ textarea { font: inherit; color: var(--text); background: var(--field); border: 
 /* Studi-Modus in den Einstellungen */
 .row span small { display: block; line-height: 1.35; margin-top: 2px; }
 [data-action="replan-studi"] { margin: 4px 0 8px; }
+
+/* Mengen und Zahlen im Schritt-Text */
+.amt { color: var(--muted); font-weight: 500; }
+.cook .step-text .amt { font-weight: 600; }
+/* Eigene Zutaten im Editor */
+.edit-list li { flex-wrap: wrap; }
+.edit-list li > input[list] { flex: 1; min-width: 0; }
+.own-ing { flex-basis: 100%; background: var(--field); border-radius: 16px; padding: 8px 12px 10px; margin-top: 2px; }
+.own-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px 8px; margin-top: 6px; }
+.own-grid label { font-size: 0.75rem; color: var(--muted); display: flex; flex-direction: column; gap: 2px; }
+.own-grid input { min-height: 40px; padding: 6px 10px; background: var(--card); font-size: 16px; }
+/* Studi-Modus neben dem Budget */
+.studi-toggle .row { min-height: 48px; margin-top: 6px; gap: 10px; font-size: 1.3rem; }
+/* Weiter kochen */
+#cook-resume { position: fixed; z-index: 40; top: calc(env(safe-area-inset-top) + 8px); right: 12px; display: flex; align-items: center; gap: 4px;
+  background: var(--accent); border-radius: 999px; padding: 4px 4px 4px 14px; box-shadow: var(--shadow); animation: unfold 0.3s ease-out; }
+#cook-resume a { color: var(--accent-text); font-weight: 600; font-size: 0.95rem; padding: 6px 4px; }
+#cook-resume button { width: 32px; height: 32px; border-radius: 50%; border: 0; background: rgba(255, 255, 255, 0.2); color: var(--accent-text); font-size: 0.85rem; cursor: pointer; }
+body.cooking .view { padding-top: calc(env(safe-area-inset-top) + 60px); }
+/* Sicherungs-Erinnerung */
+.banner.backup .banner-btns { display: flex; gap: 6px; }
+.snap-row { display: grid; gap: 8px; margin: 8px 0 4px; }
+.snap-row .btn { width: 100%; }

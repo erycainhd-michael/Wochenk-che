@@ -147,6 +147,16 @@ test('Studi-Modus: günstiger, Ziele bleiben', () => {
   assert.ok(costs.studi < costs.normal * 0.95, `Studi ${costs.studi.toFixed(2)} vs normal ${costs.normal.toFixed(2)}`);
 });
 
+test('Sonntag: kein Mittagessen, sondern Kaffee & Kuchen', () => {
+  const sun = plan.days[6].meals.find((m) => m.slot === 'mittag');
+  assert.ok(sun && sun.sunday, 'Sonntag-Mittag ist Kaffee & Kuchen');
+  assert.equal(recipes.find((r) => r.id === sun.recipeId).type, 'snack');
+  assert.ok(!plan.cooks.some((c) => c.portions.some((p) => p.key === '6-mittag')), 'nichts für Sonntagmittag vorkochen');
+  const swapped = swapMeal(plan, '6-mittag', { recipes, idx, settings: settings(), weekStart: '2026-10-05' });
+  const sun2 = swapped.days[6].meals.find((m) => m.slot === 'mittag');
+  assert.ok(sun2.sunday && sun2.recipeId !== sun.recipeId);
+});
+
 test('Sport-kcal nach MET: (MET − 1) × kg × Stunden', () => {
   assert.equal(sportKcal('laufen', 1, 60, 80), 705); // (9,8 − 1) × 80 × 1
   assert.equal(sportKcal('kraft', 1, 45, 80), 240); // (5 − 1) × 80 × 0,75
