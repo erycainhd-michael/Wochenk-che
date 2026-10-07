@@ -267,16 +267,15 @@ export function buildStructure(ctx, rng, mode = {}) {
   }
   const breakfasts = Array.from({ length: 7 }, (_, d) => (eatOut.has(slotKey(d, 'fruehstueck')) ? null : chosen[d % chosen.length]));
 
-  // Samstag und Sonntag: zwei verschiedene Kuchen/Süßspeisen (wenn möglich)
-  const cakes = [];
-  for (const key of cakeKeys) {
-    let pool = ctx.snacks.filter((r) => !cakes.some((c) => c.recipeId === r.id));
-    if (!pool.length) pool = ctx.snacks;
-    const weights = pool.map((r) => {
+  // Samstag und Sonntag: derselbe Kuchen (einmal backen bzw. einkaufen, reicht fürs Wochenende)
+  let cakes = [];
+  if (cakeKeys.length) {
+    const weights = ctx.snacks.map((r) => {
       const inf = info.get(r.id);
       return Math.pow(inf.weight * macroFit(inf.macros, settings.goals) * (mode.cheap ? 1 / Math.max(0.5, inf.cost) : 1), 1.5);
     });
-    cakes.push({ key, recipeId: pickWeighted(pool, weights, rng).id });
+    const id = pickWeighted(ctx.snacks, weights, rng).id;
+    cakes = cakeKeys.map((key) => ({ key, recipeId: id }));
   }
 
   return { cooks, breakfasts, eatOut: [...eatOut], complex: [...complex], away: [...(ctx.away || [])], cakes };
@@ -714,9 +713,7 @@ export function swapMeal(plan, mealKey, input, chosenId = null) {
   const d = Number(dStr);
   const cake = cakesOf(structure).find((c) => c.key === mealKey);
   if (cake) {
-    const taken = new Set(cakesOf(structure).map((c) => c.recipeId));
-    let pool = ctx.snacks.filter((r) => !taken.has(r.id));
-    if (!pool.length) pool = ctx.snacks.filter((r) => r.id !== cake.recipeId);
+    const pool = ctx.snacks.filter((r) => r.id !== cake.recipeId);
     if (chosenId) cake.recipeId = chosenId;
     else if (!pool.length) return plan;
     else cake.recipeId = pickWeighted(pool, pool.map((r) => ctx.info.get(r.id).weight), rng).id;
