@@ -67,31 +67,52 @@ function hideSplash() {
   }, wait);
 }
 
+// Eckenradius der iPhone-Displays (Punkte), nach Bildschirmgröße im Hochformat
+const SCREEN_RADIUS = { '375x812': 41, '414x896': 41.5, '390x844': 47.33, '428x926': 53.33, '393x852': 55, '430x932': 55, '402x874': 62, '440x956': 62, '420x912': 60 };
+
 /**
- * Abstand der Tab-Leiste zum unteren Rand einmal messen und festhalten. Sonst wandert sie auf
- * manchen iPhones beim Scrollen mit, weil iOS den unteren Sicherheitsabstand dabei kurz ändert.
- * Gemessen wird neu, wenn sich die Breite ändert (Drehen).
+ * Mise bleibt immer im Hochformat: Wird das iPhone quer gehalten, dreht sich die App gegen,
+ * sodass alles aufrecht bleibt (Klasse rot-l/rot-r am <html>, siehe CSS).
  */
-let pinnedWidth = 0;
+function applyOrientation() {
+  const root = document.documentElement;
+  const phone = Math.min(screen.width, screen.height) < 500 && matchMedia('(pointer: coarse)').matches;
+  let rot = '';
+  if (phone && innerWidth > innerHeight) {
+    const angle = screen.orientation?.angle ?? window.orientation ?? 90;
+    rot = angle === 270 || angle === -90 ? 'rot-r' : 'rot-l';
+  }
+  root.classList.toggle('rot-l', rot === 'rot-l');
+  root.classList.toggle('rot-r', rot === 'rot-r');
+  pinChrome();
+}
+
+/**
+ * Abstand der Tab-Leiste zum unteren Rand einmal messen und festhalten (neu nur beim Drehen),
+ * dazu der Eckenradius des Displays für den Rahmen im Kochmodus.
+ */
+let pinnedKey = '';
 function pinChrome() {
-  if (innerWidth === pinnedWidth) return;
-  pinnedWidth = innerWidth;
+  const key = `${innerWidth}x${innerHeight > innerWidth}${document.documentElement.className}`;
+  if (key === pinnedKey) return;
+  pinnedKey = key;
   const probe = document.createElement('div');
-  probe.style.cssText = 'position:fixed;left:0;bottom:0;width:1px;height:0;padding-bottom:env(safe-area-inset-bottom);visibility:hidden;pointer-events:none';
+  probe.style.cssText = 'position:fixed;left:0;bottom:0;width:1px;height:0;padding-bottom:var(--sab);visibility:hidden;pointer-events:none';
   document.body.appendChild(probe);
-  const sab = probe.getBoundingClientRect().height;
+  const sab = probe.offsetHeight;
   probe.remove();
   const root = document.documentElement.style;
   root.setProperty('--tab-bottom', `${Math.max(8, Math.round(sab - 14))}px`);
-  // iPhones mit Home-Indikator haben runde Displayecken (für den Rahmen im Kochmodus)
-  root.setProperty('--screen-r', sab > 0 ? '44px' : '0px');
+  const dims = `${Math.min(screen.width, screen.height)}x${Math.max(screen.width, screen.height)}`;
+  root.setProperty('--screen-r', `${SCREEN_RADIUS[dims] ?? (sab > 0 ? 44 : 0)}px`);
 }
 
 async function init() {
   window.__miseStarted = true;
   applyTheme();
-  pinChrome();
-  addEventListener('resize', pinChrome);
+  applyOrientation();
+  addEventListener('resize', applyOrientation);
+  addEventListener('orientationchange', () => setTimeout(applyOrientation, 50));
   setSoundsEnabled(S.settings.sounds);
   try {
     const [ing, rec] = await Promise.all([loadJSON('data/ingredients.json'), loadJSON('data/recipes.json')]);
@@ -236,8 +257,8 @@ const g_ = (x) => `${num(x)}g`;
 /** Abwasch als dezenter Text statt Schwamm-Symbolen */
 /** Abwasch = Töpfe, Pfannen, Schüsseln, Bleche … zusammen */
 const dishesText = (n) => (!n ? 'kein Abwasch' : n === 1 ? '1 Teil Abwasch' : `${n} Teile Abwasch`);
-/** Aufwendige Gerichte fühlen sich besonders an: orange statt grün */
-const isFancy = (r) => r?.effort === 3;
+/** Aufwendige Gerichte, Familienrezepte und Gourmet fühlen sich besonders an: orange statt grün */
+const isFancy = (r) => !!r && (r.effort === 3 || catsOf(r.id).some((c) => c === 'Familienrezepte' || c === 'Gourmet'));
 /** Mahlzeit am Wochenende-Mittag: „Kaffee & Kuchen“ (ältere Pläne: nur Sonntag) */
 const isCake = (m) => !!(m?.cake || m?.sunday);
 /** Personen, für die diese Mahlzeit gekocht wird (1 = nur du) */
@@ -536,6 +557,7 @@ function render() {
       resume.id = 'cook-resume';
       document.body.appendChild(resume);
     }
+    resume.classList.toggle('magic', isFancy(cookRecipe(S.ui.cookActive)));
     resume.innerHTML = `<a href="#/kochen/${encodeURIComponent(S.ui.cookActive)}">👨‍🍳 Weiter kochen</a><button data-action="cook-end" aria-label="Kochmodus beenden">✕</button>`;
   } else resume?.remove();
   applyFx();
@@ -543,7 +565,15 @@ function render() {
   if (changed) view.querySelector('.charts')?.classList.add('play');
   renderTimerDock();
   setupKwStrip();
-  if (changed && !sameView) window.scrollTo(0, 0);
+  if (changed && !sameView) app.scrollTo(0, 0);
+}
+
+/** Rezept zu einem Kochmodus-Schlüssel („r:id“ oder Mahlzeit wie „2-abend“) */
+function cookRecipe(key) {
+  if (!key) return null;
+  if (key.startsWith('r:')) return recipe(key.slice(2));
+  const m = findMeal(displayedPlan(), key);
+  return m?.recipeId ? recipe(m.recipeId) : null;
 }
 
 /** Rezept, das die aktuelle Seite zeigt (Rezept, Mahlzeit oder Kochmodus) */
@@ -764,7 +794,24 @@ function viewWeek() {
       ${S.ui.evalOpen ? `<div class="hero-eval">${evaluationHtml(plan)}</div>` : ''}
     </section>
     ${isCurrent ? laterStart(plan, todayIdx, firstDay) : ''}
-    ${plan.days.map((d) => dayCard(plan, d, S.ui.openDays[d.day] ?? d.day === Math.max(firstDay, todayIdx), d.day === todayIdx)).join('')}`;
+    ${daysHtml(plan, firstDay, todayIdx)}`;
+}
+
+/** Wird an diesem Tag gekocht? (Frühstück, Reste vom Vortag und Auswärtsessen zählen nicht) */
+const cooksOn = (d) => !d.away && d.meals.some((m) => m.kind === 'recipe' && !m.leftover && m.slot !== 'fruehstueck');
+
+/** Tage ohne Kochen sind eingeklappt und über einen Knopf einblendbar (heute bleibt immer sichtbar) */
+function daysHtml(plan, firstDay, todayIdx) {
+  const quiet = plan.days.filter((d) => !cooksOn(d) && d.day !== todayIdx);
+  const show = S.ui.showQuiet || !quiet.length;
+  const cards = plan.days
+    .filter((d) => show || !quiet.includes(d))
+    .map((d) => dayCard(plan, d, S.ui.openDays[d.day] ?? d.day === Math.max(firstDay, todayIdx), d.day === todayIdx))
+    .join('');
+  const btn = quiet.length
+    ? `<button class="hidden-days" data-action="toggle-quiet">${show ? '▾ Tage ohne Kochen ausblenden' : `▸ <b>${quiet.length} ${quiet.length === 1 ? 'Tag' : 'Tage'} ohne Kochen</b> einblenden (${quiet.map((d) => d.short).join(', ')})`}</button>`
+    : '';
+  return cards + btn;
 }
 
 /** „Woche später starten“: Plan ab einem gewählten Tag neu erstellen (z. B. nach dem Urlaub) */
@@ -1304,9 +1351,11 @@ function recipeHtml(r, items, macros, subtitle, back, info, cookKey, withServing
         .map((n) => `<button class="pill circle ${cur === n ? 'on' : ''}" data-action="${people ? 'people' : 'servings'}" data-key="${e(cookKey)}" data-n="${n}">${n}</button>`)
         .join('')}</div>${people ? `<p class="hint">Weitere Personen bekommen dieselbe Menge wie du. Die Einkaufsliste rechnet sie automatisch mit.</p>` : ''}</section>`
     : '';
+  const magic = isFancy(r) ? 'magic' : '';
   const startBtn = (cls) =>
-    active === cookKey ? `<a class="btn primary ${cls}" href="${cookHref}">👨‍🍳 Weiter kochen</a>` : `<a class="btn primary ${cls}" href="${cookHref}">${isFancy(r) ? '✨' : '👨‍🍳'} Kochmodus starten</a>`;
-  return `<header class="top">${back}${active ? `<a class="btn primary pill" href="${resumeHref}">👨‍🍳 Weiter kochen</a>` : startBtn('pill')}</header>
+    active === cookKey ? `<a class="btn primary ${magic} ${cls}" href="${cookHref}">👨‍🍳 Weiter kochen</a>` : `<a class="btn primary ${magic} ${cls}" href="${cookHref}">${magic ? '✨' : '👨‍🍳'} Kochmodus starten</a>`;
+  const activeMagic = active && isFancy(cookRecipe(active)) ? 'magic' : '';
+  return `<header class="top">${back}${active ? `<a class="btn primary pill ${activeMagic}" href="${resumeHref}">👨‍🍳 Weiter kochen</a>` : startBtn('pill')}</header>
     <section class="card accent rhero">
       <div class="rhero-art slot-${r.type === 'breakfast' ? 'fruehstueck' : 'abend'}"><span>${recipeEmoji(r)}</span></div>
       <div class="card-head"><div class="sub">${e(subtitle)}</div><a class="btn small pill" href="#/bearbeiten/${r.id}">✏️ Ändern</a></div>
@@ -2127,6 +2176,9 @@ async function onClick(ev) {
       el.textContent = (on ? '✓ ' : '') + val;
       return;
     }
+    case 'toggle-quiet':
+      S.ui.showQuiet = !S.ui.showQuiet;
+      return render();
     case 'toggle-eval':
       S.ui.evalOpen = !S.ui.evalOpen;
       return render();

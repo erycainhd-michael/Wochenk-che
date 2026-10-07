@@ -79,9 +79,20 @@
 }
 
 * { box-sizing: border-box; }
+/* Sicherheitsabstände (Notch, Home-Indikator). Quer gehaltenes iPhone: Mise dreht sich mit, damit alles aufrecht bleibt */
+:root { --sat: env(safe-area-inset-top); --sab: env(safe-area-inset-bottom); }
+html.rot-l { --sat: env(safe-area-inset-left); --sab: env(safe-area-inset-right); }
+html.rot-r { --sat: env(safe-area-inset-right); --sab: env(safe-area-inset-left); }
+html.rot-l body, html.rot-r body { position: fixed; top: 0; left: 0; width: 100vh; height: 100vw; transform-origin: top left; }
+html.rot-l body { transform: rotate(-90deg) translateX(-100%); }
+html.rot-r body { transform: rotate(90deg) translateY(-100%); }
+/* Gescrollt wird in #app statt in der Seite: keine Scrollleiste, und die Tab-Leiste wandert nie mit */
+html, body { height: 100%; overflow: hidden; }
+#app { position: fixed; inset: 0; overflow-x: hidden; overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; scrollbar-width: none; }
+::-webkit-scrollbar { display: none; width: 0; height: 0; background: transparent; }
 html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; touch-action: pan-x pan-y; }
 /* Nichts darf seitlich überstehen – sonst verkleinert iOS die ganze Seite */
-html, body { overflow-x: hidden; overflow-x: clip; max-width: 100%; }
+html, body { overflow-x: hidden; max-width: 100%; }
 button, a, input, select, textarea, label { touch-action: manipulation; }
 body.no-nav .tabbar { display: none; }
 body {
@@ -104,9 +115,9 @@ small, .sub { color: var(--muted); font-size: 0.85rem; }
 .view {
   max-width: 680px;
   margin: 0 auto;
-  padding: calc(env(safe-area-inset-top) + 16px) 16px calc(env(safe-area-inset-bottom) + 96px);
+  padding: calc(var(--sat) + 16px) 16px calc(var(--sab) + 96px);
 }
-body.has-timers .view { padding-bottom: calc(env(safe-area-inset-bottom) + 176px); }
+body.has-timers .view { padding-bottom: calc(var(--sab) + 176px); }
 
 .top { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 8px 0 14px; min-height: 44px; }
 .top.col { flex-direction: column; align-items: flex-start; gap: 6px; }
@@ -130,7 +141,7 @@ body.has-timers .view { padding-bottom: calc(env(safe-area-inset-bottom) + 176px
 .card.hero .kpis.small span { color: var(--muted); opacity: 1; font-size: 0.7rem; }
 .card.hero .divider { background: var(--accent); opacity: 0.25; }
 /* Einkauf: Summen-Karte bleibt beim Scrollen sichtbar */
-.card.sticky { position: sticky; top: calc(env(safe-area-inset-top) + 8px); z-index: 5; box-shadow: var(--shadow); }
+.card.sticky { position: sticky; top: calc(var(--sat) + 8px); z-index: 5; box-shadow: var(--shadow); }
 .card.tip { background: var(--accent-soft); border-color: transparent; }
 .card.warn { border-color: var(--warn); }
 .divider { height: 1px; background: var(--line); margin: 12px 0 4px; }
@@ -306,7 +317,7 @@ input[type='checkbox']:checked::after { content: '✓'; color: var(--accent-text
   position: fixed; left: 16px; right: 16px; z-index: 20;
   /* tief unten wie bei nativen Apps: halb im Bereich des Home-Indikators.
      --tab-bottom wird beim Start einmal gemessen, damit die Leiste beim Scrollen nicht mitwandert */
-  bottom: var(--tab-bottom, max(8px, calc(env(safe-area-inset-bottom) - 14px)));
+  bottom: var(--tab-bottom, max(8px, calc(var(--sab) - 14px)));
   transform: translate3d(0, 0, 0); will-change: transform;
   max-width: 648px; margin: 0 auto;
   display: grid; grid-template-columns: repeat(4, 1fr);
@@ -329,7 +340,7 @@ input[type='checkbox']:checked::after { content: '✓'; color: var(--accent-text
 
 #timer-dock {
   position: fixed; left: 16px; right: 16px; z-index: 19; max-width: 648px; margin: 0 auto;
-  bottom: calc(var(--tab-bottom, max(8px, calc(env(safe-area-inset-bottom) - 14px))) + 74px);
+  bottom: calc(var(--tab-bottom, max(8px, calc(var(--sab) - 14px))) + 74px);
   transform: translate3d(0, 0, 0);
   display: flex; flex-direction: column; gap: 8px;
 }
@@ -345,7 +356,7 @@ input[type='checkbox']:checked::after { content: '✓'; color: var(--accent-text
 @keyframes ring { 50% { box-shadow: 0 0 0 4px rgba(220, 38, 38, 0.35); } }
 
 .toast {
-  position: fixed; left: 50%; top: calc(env(safe-area-inset-top) + 10px); z-index: 80;
+  position: fixed; left: 50%; top: calc(var(--sat) + 10px); z-index: 80;
   display: flex; align-items: center; gap: 12px; width: max-content; max-width: min(92vw, 440px);
   padding: 8px 18px 8px 8px; border-radius: 999px;
   background: var(--card); color: var(--text); border: 1px solid var(--line);
@@ -694,11 +705,11 @@ textarea { font: inherit; color: var(--text); background: var(--field); border: 
 .field .unit-input input { display: block; margin-top: 0; padding-right: 42px; }
 .unit-input i { position: absolute; right: 18px; top: 50%; transform: translateY(-50%); font-style: normal; color: var(--muted); pointer-events: none; }
 /* Weiter kochen */
-#cook-resume { position: fixed; z-index: 40; top: calc(env(safe-area-inset-top) + 8px); right: 12px; display: flex; align-items: center; gap: 4px;
+#cook-resume { position: fixed; z-index: 40; top: calc(var(--sat) + 8px); right: 12px; display: flex; align-items: center; gap: 4px;
   background: var(--accent); border-radius: 999px; padding: 4px 4px 4px 14px; box-shadow: var(--shadow); animation: unfold 0.3s ease-out; }
 #cook-resume a { color: var(--accent-text); font-weight: 600; font-size: 0.95rem; padding: 6px 4px; }
 #cook-resume button { width: 32px; height: 32px; border-radius: 50%; border: 0; background: rgba(255, 255, 255, 0.2); color: var(--accent-text); font-size: 0.85rem; cursor: pointer; }
-body.cooking .view { padding-top: calc(env(safe-area-inset-top) + 60px); }
+body.cooking .view { padding-top: calc(var(--sat) + 60px); }
 /* Sicherungs-Erinnerung */
 .banner.backup .banner-btns { display: flex; gap: 6px; }
 .snap-row { display: grid; gap: 8px; margin: 8px 0 4px; }
@@ -737,10 +748,10 @@ body.cooking .view { padding-top: calc(env(safe-area-inset-top) + 60px); }
 
 /* Rückblick: Gerichte nach Tagen */
 .fb-days { list-style: none; margin: 0; padding: 0; }
-.fb-day { display: flex; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--line); }
+.fb-day { display: flex; gap: 20px; padding: 12px 0; border-bottom: 1px solid var(--line); }
 .fb-day:first-child { padding-top: 2px; }
 .fb-day:last-child { border-bottom: 0; padding-bottom: 0; }
-.day-dot { flex: none; width: 34px; height: 34px; border-radius: 50%; background: var(--accent-soft); color: var(--accent); font-weight: 700; font-size: 0.85rem; display: grid; place-items: center; }
+.day-dot { flex: none; min-width: 34px; padding-top: 3px; color: var(--text); font-weight: 800; font-size: 1.15rem; line-height: 1.2; }
 .fb-meals { flex: 1; min-width: 0; display: grid; gap: 14px; }
 .fb-meal .fb-name { margin: 5px 0 8px; }
 .fb-meal .pills { gap: 6px; }
@@ -765,8 +776,8 @@ body.cooking .view { padding-top: calc(env(safe-area-inset-top) + 60px); }
 .scan-frame { position: relative; width: min(78vw, 320px); height: 150px; border-radius: 18px; border: 3px solid rgba(255, 255, 255, 0.9); box-shadow: 0 0 0 100vmax rgba(0, 0, 0, 0.45); }
 .scan-frame i { position: absolute; left: 8%; right: 8%; top: 50%; height: 2px; background: #ff4d4d; box-shadow: 0 0 8px #ff4d4d; animation: scanLine 1.6s ease-in-out infinite alternate; }
 @keyframes scanLine { from { transform: translateY(-55px); } to { transform: translateY(55px); } }
-.scan-hint { position: absolute; top: calc(env(safe-area-inset-top) + 28px); left: 0; right: 0; text-align: center; color: #fff; font-weight: 600; margin: 0; }
-.scan-close { position: absolute; bottom: calc(env(safe-area-inset-bottom) + 28px); left: 50%; transform: translateX(-50%); background: #fff; color: #000; border: 0; }
+.scan-hint { position: absolute; top: calc(var(--sat) + 28px); left: 0; right: 0; text-align: center; color: #fff; font-weight: 600; margin: 0; }
+.scan-close { position: absolute; bottom: calc(var(--sab) + 28px); left: 50%; transform: translateX(-50%); background: #fff; color: #000; border: 0; }
 
 /* Aufwendige Gerichte: besonders – orange statt grün */
 .badge.fancy { background: var(--fancy-soft); color: var(--fancy); font-weight: 600; }
@@ -788,11 +799,20 @@ body.fancy .rhero-art { background: linear-gradient(135deg, #ffd8ae, #ffc7c0 50%
 /* Kochmodus eines aufwendigen Gerichts: umlaufende Linie in Orange, Rot, Gelb und Lila */
 @property --mf { syntax: '<angle>'; inherits: false; initial-value: 0deg; }
 #magic-frame { position: fixed; inset: 0; z-index: 35; pointer-events: none; animation: viewIn 0.6s ease-out; }
-#magic-frame i { position: absolute; inset: 0; border-radius: var(--screen-r, 0px); padding: 4px;
+/* dezent wie die Kartenrahmen (3px), folgt den Rundungen des Displays */
+#magic-frame i { position: absolute; inset: 0; border-radius: var(--screen-r, 0px); padding: 3px;
   background: conic-gradient(from var(--mf), #ff8a00, #ff3b3b, #ffd23f, #9b5cff, #ff8a00);
   -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
   animation: magicSpin 4s linear infinite; }
-#magic-frame i.glow { padding: 14px; filter: blur(12px); opacity: 0.5; }
+/* Knöpfe „Kochmodus starten“/„Weiter kochen“ bei besonderen Gerichten: derselbe wandernde Farbverlauf als Rand */
+.btn.magic, #cook-resume.magic { border: 3px solid transparent;
+  background: linear-gradient(var(--accent), var(--accent)) padding-box, conic-gradient(from var(--mf), #ff8a00, #ff3b3b, #ffd23f, #9b5cff, #ff8a00) border-box;
+  animation: magicSpin 4s linear infinite; }
+#cook-resume.magic { --accent: var(--fancy); }
 @keyframes magicSpin { to { --mf: 360deg; } }
-@media (prefers-reduced-motion: reduce) { #magic-frame i { animation: none; } }
+@media (prefers-reduced-motion: reduce) { #magic-frame i, .btn.magic, #cook-resume.magic { animation: none; } }
 .off-results .list-btn { padding: 10px 0; }
+
+/* Woche: Tage ohne Kochen eingeklappt */
+.hidden-days { display: block; width: 100%; text-align: left; margin: 0 0 12px; padding: 14px 16px; border-radius: var(--radius); background: var(--card); border: 1px solid var(--line); color: var(--muted); font: inherit; font-size: 0.95rem; cursor: pointer; }
+.hidden-days b { color: var(--text); font-weight: 600; }

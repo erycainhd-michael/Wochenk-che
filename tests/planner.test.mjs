@@ -147,7 +147,7 @@ test('Studi-Modus: günstiger, Ziele bleiben', () => {
   assert.ok(costs.studi < costs.normal * 0.95, `Studi ${costs.studi.toFixed(2)} vs normal ${costs.normal.toFixed(2)}`);
 });
 
-test('Wochenende: kein Mittagessen, sondern Kaffee & Kuchen (Sa und So verschieden)', () => {
+test('Wochenende: kein Mittagessen, sondern Kaffee & Kuchen (Sa und So derselbe)', () => {
   const ids = [];
   for (const d of [5, 6]) {
     const m = plan.days[d].meals.find((x) => x.slot === 'mittag');
@@ -158,7 +158,7 @@ test('Wochenende: kein Mittagessen, sondern Kaffee & Kuchen (Sa und So verschied
     ids.push(m.recipeId);
   }
   assert.ok(ids.length >= 1);
-  assert.equal(new Set(ids).size, ids.length, 'Samstag und Sonntag verschiedene Kuchen');
+  assert.equal(new Set(ids).size, 1, 'Samstag und Sonntag derselbe Kuchen');
   const sun = plan.days[6].meals.find((m) => m.slot === 'mittag');
   const swapped = swapMeal(plan, '6-mittag', { recipes, idx, settings: settings(), weekStart: '2026-10-05' });
   const sun2 = swapped.days[6].meals.find((m) => m.slot === 'mittag');
