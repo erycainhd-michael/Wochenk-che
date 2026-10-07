@@ -98,6 +98,10 @@ function macroFit(m, goals) {
 // ---------------------------------------------------------------------------
 
 const slotKey = (day, slot) => `${day}-${slot}`;
+// Tage mit „Kaffee & Kuchen“ statt Mittagessen (Samstag, Sonntag)
+const CAKE_DAYS = [5, 6];
+/** Kuchen-Mahlzeiten eines Plans (ältere Pläne kannten nur den Sonntag) */
+export const cakesOf = (structure) => structure.cakes || (structure.sunday ? [structure.sunday] : []);
 
 function eatOutSet(settings) {
   return new Set((settings.eatOut || []).map((e) => slotKey(e.day, e.slot)));
@@ -170,10 +174,9 @@ export function buildStructure(ctx, rng, mode = {}) {
   const variety = sl.variety / 100;
   const eatOut = eatOutSet(settings);
   for (const d of ctx.away || []) for (const slot of ['fruehstueck', ...MAIN_SLOTS]) eatOut.add(slotKey(d, slot));
-  // Sonntag kein Mittagessen, sondern „Kaffee & Kuchen“ (wenn es passende Rezepte gibt)
-  const sundayKey = slotKey(6, 'mittag');
-  const sunday = ctx.snacks?.length && !eatOut.has(sundayKey);
-  const complex = complexSlots(settings, sunday ? new Set([...eatOut, sundayKey]) : eatOut);
+  // Am Wochenende kein Mittagessen, sondern „Kaffee & Kuchen“ (wenn es passende Rezepte gibt)
+  const cakeKeys = ctx.snacks?.length ? CAKE_DAYS.map((d) => slotKey(d, 'mittag')).filter((k) => !eatOut.has(k)) : [];
+  const complex = complexSlots(settings, new Set([...eatOut, ...cakeKeys]));
   const stock = new Stock(ctx.pantry, idx, ctx.priceOf);
   const used = new Set();
   const usedColors = new Set();
@@ -181,7 +184,7 @@ export function buildStructure(ctx, rng, mode = {}) {
   let pastaLast = false;
   const cooks = [];
   const covered = new Map();
-  if (sunday) covered.set(sundayKey, 'sunday');
+  for (const k of cakeKeys) covered.set(k, 'cake');
 
   const weightOf = (r, { isLunch, isComplex }) => {
     const inf = info.get(r.id);
@@ -192,8 +195,9 @@ export function buildStructure(ctx, rng, mode = {}) {
       const maxTime = simple >= 0.9 ? 15 : simple >= 0.5 ? 30 : 999;
       if (r.time > maxTime) w *= 0.25;
       w *= 1 - 0.4 * simple * clamp((r.time - 15) / 25, 0, 1);
-      if (dishes >= 0.8 && r.dishes > 2) w *= 0.4;
-      w *= 1 - 0.5 * dishes * clamp((r.dishes - 1) / 2, 0, 1);
+      // Abwasch = alle Teile (Töpfe, Pfannen, Schüsseln, Siebe …): bis 2 gilt als wenig
+      if (dishes >= 0.8 && r.dishes > 3) w *= 0.4;
+      w *= 1 - 0.5 * dishes * clamp((r.dishes - 2) / 2, 0, 1);
     }
     if (isLunch) w *= 1 - 0.5 * clamp((r.time - 20) / 15, 0, 1);
     else if (r.mealPrep) w *= 1 + 2 * dishes + (mode.cheap ? 1.5 : 0);
@@ -263,17 +267,19 @@ export function buildStructure(ctx, rng, mode = {}) {
   }
   const breakfasts = Array.from({ length: 7 }, (_, d) => (eatOut.has(slotKey(d, 'fruehstueck')) ? null : chosen[d % chosen.length]));
 
-  let sundaySnack = null;
-  if (sunday) {
-    const pool = ctx.snacks;
+  // Samstag und Sonntag: zwei verschiedene Kuchen/Süßspeisen (wenn möglich)
+  const cakes = [];
+  for (const key of cakeKeys) {
+    let pool = ctx.snacks.filter((r) => !cakes.some((c) => c.recipeId === r.id));
+    if (!pool.length) pool = ctx.snacks;
     const weights = pool.map((r) => {
       const inf = info.get(r.id);
       return Math.pow(inf.weight * macroFit(inf.macros, settings.goals) * (mode.cheap ? 1 / Math.max(0.5, inf.cost) : 1), 1.5);
     });
-    sundaySnack = { key: sundayKey, recipeId: pickWeighted(pool, weights, rng).id };
+    cakes.push({ key, recipeId: pickWeighted(pool, weights, rng).id });
   }
 
-  return { cooks, breakfasts, eatOut: [...eatOut], complex: [...complex], away: [...(ctx.away || [])], sunday: sundaySnack };
+  return { cooks, breakfasts, eatOut: [...eatOut], complex: [...complex], away: [...(ctx.away || [])], cakes };
 }
 
 // ---------------------------------------------------------------------------
@@ -365,7 +371,7 @@ function fitDay({ ctx, fixed, breakfast, mains, combos, extra = 0 }) {
 function absorbLeftovers(days, ctx) {
   const { idx, settings } = ctx;
   const need = new Map();
-  for (const d of days) for (const m of d.meals) for (const it of m.items || []) need.set(it.id, (need.get(it.id) || 0) + it.g);
+  for (const d of days) for (const m of d.meals) for (const it of m.items || []) need.set(it.id, (need.get(it.id) || 0) + it.g * (m.people || 1));
   const leftovers = [];
   for (const [id, g] of need) {
     const ing = idx.get(id);
@@ -384,11 +390,12 @@ function absorbLeftovers(days, ctx) {
         const it = m.items.find((x) => x.id === lo.ing.id);
         if (!it) continue;
         const room = ((d.goalKcal || settings.goals.kcal) * 1.02 - d.totals.kcal) / (lo.ing.kcal / 100 || 0.01);
-        const add = Math.floor(Math.min(lo.left, it.g * 0.4, Math.max(0, room)));
+        const pp = m.people || 1;
+        const add = Math.floor(Math.min(lo.left / pp, it.g * 0.4, Math.max(0, room)));
         if (add < 5) continue;
         it.g += add;
         it.extra = (it.extra || 0) + add;
-        lo.left -= add;
+        lo.left -= add * pp;
         const delta = itemsMacros([{ id: lo.ing.id, g: add }], idx);
         m.macros = addMacros(m.macros, delta);
         d.totals = addMacros(d.totals, delta);
@@ -409,6 +416,7 @@ export function finalizePlan(structure, ctx) {
   const addonCombosAll = addonCombos(ctx.addons);
 
   const away = new Set(structure.away || []);
+  const people = structure.people || {};
   const days = [];
   for (let d = 0; d < 7; d++) {
     if (away.has(d)) {
@@ -418,7 +426,7 @@ export function finalizePlan(structure, ctx) {
     let fixed = emptyMacros();
     for (const slot of ['fruehstueck', ...MAIN_SLOTS]) if (eatOut.has(slotKey(d, slot))) fixed = addMacros(fixed, eo);
     const breakfast = structure.breakfasts[d];
-    const sun = structure.sunday && Number(structure.sunday.key.split('-')[0]) === d && !eatOut.has(structure.sunday.key) ? structure.sunday : null;
+    const sun = cakesOf(structure).find((c) => Number(c.key.split('-')[0]) === d && !eatOut.has(c.key)) || null;
     const mains = [...MAIN_SLOTS.map((s) => slotCook.get(slotKey(d, s))?.recipeId), sun?.recipeId].filter(Boolean);
     const sportKcal = daySportKcal(structure, d);
     const fit = fitDay({ ctx, fixed, breakfast, mains, combos: breakfast ? addonCombosAll : [[]], extra: sportKcal });
@@ -451,10 +459,12 @@ export function finalizePlan(structure, ctx) {
       else {
         const c = slotCook.get(key);
         if (c) meals.push(mk(slot, c.recipeId, fit.fm, { cookId: c.id, leftover: c.portions[0] !== key }));
-        else if (sun?.key === key) meals.push(mk(slot, sun.recipeId, fit.fm, { sunday: true }));
+        else if (sun?.key === key) meals.push(mk(slot, sun.recipeId, fit.fm, { cake: true }));
       }
     }
 
+    // Mitesser: weitere Personen bekommen dieselbe Menge (zählt für den Einkauf, nicht für deine Makros)
+    for (const m of meals) if (m.kind === 'recipe' && people[m.key] > 1) m.people = people[m.key];
     const totals = meals.reduce((a, m) => addMacros(a, m.macros), emptyMacros());
     days.push({
       day: d,
@@ -476,14 +486,14 @@ export function finalizePlan(structure, ctx) {
     const portions = c.portions.map((key) => {
       const [d, slot] = key.split('-');
       const meal = days[Number(d)].meals.find((m) => m.key === key);
-      return { key, day: Number(d), slot, factor: meal?.factor || 1, items: meal?.items || [] };
+      return { key, day: Number(d), slot, factor: meal?.factor || 1, people: meal?.people || 1, items: meal?.items || [] };
     });
     const merged = new Map();
     for (const p of portions)
       for (const it of p.items) {
         const e = merged.get(it.id) || { id: it.id, g: 0, extra: 0, note: it.note };
-        e.g += it.g;
-        e.extra += it.extra || 0;
+        e.g += it.g * p.people;
+        e.extra += (it.extra || 0) * p.people;
         merged.set(it.id, e);
       }
     return {
@@ -567,7 +577,7 @@ export function scorePlan(plan, ctx) {
   s.taste =
     6 * taste +
     2 * (1 - (sl.simple / 100) * clamp((avgTime - 15) / 20, 0, 1)) +
-    2 * (1 - (sl.dishes / 100) * clamp((plan.cooks.length * avgDishes - 6) / 14, 0, 1));
+    2 * (1 - (sl.dishes / 100) * clamp((plan.cooks.length * avgDishes - 10) / 18, 0, 1));
 
   // 6. Fettqualität/-menge (5) & 7. Energie im Alltag (5)
   const kcal = sum(days, (d) => d.totals.kcal);
@@ -665,8 +675,8 @@ export function setEatOut(plan, mealKey, on, input) {
       const counts = {};
       structure.breakfasts.filter(Boolean).forEach((id) => (counts[id] = (counts[id] || 0) + 1));
       structure.breakfasts[d] = Object.keys(counts).sort((a, b) => counts[b] - counts[a])[0] || ctx.breakfasts[0]?.id || null;
-    } else if (structure.sunday?.key === mealKey) {
-      // Sonntag: „Kaffee & Kuchen“ ist wieder da
+    } else if (cakesOf(structure).some((c) => c.key === mealKey)) {
+      // Wochenende: „Kaffee & Kuchen“ ist wieder da
     } else {
       const usedIds = new Set(structure.cooks.map((c) => c.recipeId));
       let pool = ctx.mains.filter((r) => r.effort < 3 && !usedIds.has(r.id));
@@ -678,7 +688,7 @@ export function setEatOut(plan, mealKey, on, input) {
   }
   structure.eatOut = [...eat];
   const next = finalizePlan(structure, ctx);
-  Object.assign(next, { seed: plan.seed, weekNo: plan.weekNo, pantryUsed: plan.pantryUsed, createdAt: plan.createdAt, done: plan.done || {} });
+  Object.assign(next, { seed: plan.seed, weekNo: plan.weekNo, pantryUsed: plan.pantryUsed, createdAt: plan.createdAt, done: plan.done || {}, studi: plan.studi });
   next.evaluation = evaluatePlan(next, ctx);
   return next;
 }
@@ -690,7 +700,7 @@ export function setEatOut(plan, mealKey, on, input) {
 export function refitPlan(plan, input) {
   const ctx = prepareContext({ ...input, pantry: plan.pantryUsed || input.pantry, weekNo: plan.weekNo });
   const next = finalizePlan(clone(plan.structure), ctx);
-  Object.assign(next, { seed: plan.seed, weekNo: plan.weekNo, pantryUsed: plan.pantryUsed, createdAt: plan.createdAt, done: plan.done || {} });
+  Object.assign(next, { seed: plan.seed, weekNo: plan.weekNo, pantryUsed: plan.pantryUsed, createdAt: plan.createdAt, done: plan.done || {}, studi: plan.studi });
   next.evaluation = evaluatePlan(next, ctx);
   return next;
 }
@@ -702,11 +712,14 @@ export function swapMeal(plan, mealKey, input, chosenId = null) {
   const rng = mulberry32((Date.now() & 0xffff) + mealKey.length);
   const [dStr, slot] = mealKey.split('-');
   const d = Number(dStr);
-  if (structure.sunday?.key === mealKey) {
-    const pool = ctx.snacks.filter((r) => r.id !== structure.sunday.recipeId);
-    if (chosenId) structure.sunday.recipeId = chosenId;
+  const cake = cakesOf(structure).find((c) => c.key === mealKey);
+  if (cake) {
+    const taken = new Set(cakesOf(structure).map((c) => c.recipeId));
+    let pool = ctx.snacks.filter((r) => !taken.has(r.id));
+    if (!pool.length) pool = ctx.snacks.filter((r) => r.id !== cake.recipeId);
+    if (chosenId) cake.recipeId = chosenId;
     else if (!pool.length) return plan;
-    else structure.sunday.recipeId = pickWeighted(pool, pool.map((r) => ctx.info.get(r.id).weight), rng).id;
+    else cake.recipeId = pickWeighted(pool, pool.map((r) => ctx.info.get(r.id).weight), rng).id;
   } else if (slot === 'fruehstueck') {
     const current = structure.breakfasts[d];
     const pool = ctx.breakfasts.filter((r) => r.id !== current);
@@ -729,6 +742,7 @@ export function swapMeal(plan, mealKey, input, chosenId = null) {
   next.weekNo = plan.weekNo;
   next.pantryUsed = plan.pantryUsed;
   next.createdAt = plan.createdAt;
+  next.studi = plan.studi;
   next.evaluation = evaluatePlan(next, ctx);
   return next;
 }
@@ -762,19 +776,19 @@ export function evaluatePlan(plan, ctx) {
   const lowMeals = plan.days.flatMap((d) => d.meals.filter((m) => m.kind === 'recipe' && m.slot !== 'snack' && m.macros.p < 25).map((m) => `${d.short} ${ctx.recipesById.get(m.recipeId).name}`));
   out.push({
     level: st.pRatio >= 0.97 ? 'ok' : 'hint',
-    title: `Protein: Ø ${num(avgP)} g/Tag`,
+    title: `Protein: Ø ${num(avgP)}g/Tag`,
     text:
-      (st.pRatio >= 0.97 ? `Ziel ${g.protein} g erreicht. ` : `Etwas unter dem Ziel von ${g.protein} g – ein Proteinshake oder Skyr zum Frühstück gleicht das leicht aus. `) +
-      (lowMeals.length ? `Mahlzeiten mit weniger als 25 g: ${lowMeals.slice(0, 3).join(', ')}${lowMeals.length > 3 ? ' …' : ''}.` : 'Jede Hauptmahlzeit hat mindestens 25 g – gut über den Tag verteilt.'),
+      (st.pRatio >= 0.97 ? `Ziel ${g.protein}g erreicht. ` : `Etwas unter dem Ziel von ${g.protein}g – ein Proteinshake oder Skyr zum Frühstück gleicht das leicht aus. `) +
+      (lowMeals.length ? `Mahlzeiten mit weniger als 25g: ${lowMeals.slice(0, 3).join(', ')}${lowMeals.length > 3 ? ' …' : ''}.` : 'Jede Hauptmahlzeit hat mindestens 25g – gut über den Tag verteilt.'),
   });
 
   // 3. Gemüse, Obst, Ballaststoffe
   out.push({
     level: st.veg >= 380 && Math.abs(st.fib - st.fiberTarget) <= 6 ? 'ok' : 'hint',
-    title: `Gemüse & Obst: Ø ${num(st.veg)} g/Tag · Ballaststoffe Ø ${num(st.fib)} g`,
+    title: `Gemüse & Obst: Ø ${num(st.veg)}g/Tag · Ballaststoffe Ø ${num(st.fib)}g`,
     text:
       (st.veg >= 380 ? 'Gute Menge an Gemüse und Obst. ' : 'Ergänzen lässt sich leicht: eine Handvoll Cherrytomaten zum Abendessen oder ein Apfel zum Frühstück. ') +
-      `Ballaststoffe: ausgewogen um ca. ${st.fiberTarget} g pro Tag – über die Woche verteilt, nicht gehäuft.` +
+      `Ballaststoffe: ausgewogen um ca. ${st.fiberTarget}g pro Tag – über die Woche verteilt, nicht gehäuft.` +
       (st.fib > st.fiberTarget + 6 ? ' Diese Woche etwas mehr – viel trinken hilft.' : ''),
   });
 
@@ -799,7 +813,7 @@ export function evaluatePlan(plan, ctx) {
   if (Math.abs(cDev) > 0.12 || Math.abs(fDev) > 0.15) {
     out.push({
       level: 'hint',
-      title: `Makros: Ø ${num(avgC)} g Kohlenhydrate · ${num(avgF)} g Fett`,
+      title: `Makros: Ø ${num(avgC)}g Kohlenhydrate · ${num(avgF)}g Fett`,
       text:
         fDev > 0.15
           ? 'Etwas mehr Fett als geplant – kein Problem. Wer mag, nimmt bei Sahnesaucen halb Skyr.'
@@ -827,7 +841,7 @@ export function evaluatePlan(plan, ctx) {
       title: `Einkauf: ca. ${euro(plan.cost)} – ${euro(plan.cost - b)} über Budget`,
       text:
         (info
-          ? `Mit ${euro(b)} lassen sich deine Ziele (${num(g.kcal)} kcal, ${g.protein} g Protein) mit den aktuellen Rezepten nicht ganz erreichen – der günstigste gefundene Plan kostet ${euro(info.cheapest)}. `
+          ? `Mit ${euro(b)} lassen sich deine Ziele (${num(g.kcal)} kcal, ${g.protein}g Protein) mit den aktuellen Rezepten nicht ganz erreichen – der günstigste gefundene Plan kostet ${euro(info.cheapest)}. `
           : '') +
         'Möglichkeiten: Budget anheben, den Regler „Angebote berücksichtigen“ erhöhen, Reste der Vorwoche eintragen oder Gerichte mit Lachs/Garnelen gegen Hähnchen, Eier, Quark oder Linsen tauschen.',
     });

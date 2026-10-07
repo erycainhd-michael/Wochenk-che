@@ -12,11 +12,13 @@ export function buildShopping({ plan, idx, pantry = {}, priceOf, recipesById }) 
   for (const day of plan.days) {
     for (const meal of day.meals) {
       if (!meal.items) continue;
+      // für mehrere Personen entsprechend mehr einkaufen
+      const people = meal.people || 1;
       for (const it of meal.items) {
         const rid = it.addon || meal.recipeId;
         const rname = recipesById?.get(rid)?.name || rid;
         const e = need.get(it.id) || { g: 0, uses: new Set(), useIds: new Map() };
-        e.g += it.g;
+        e.g += it.g * people;
         e.uses.add(rname);
         e.useIds.set(rid, rname);
         need.set(it.id, e);
@@ -98,7 +100,7 @@ export function packText(item) {
 
 /** Zutatenmenge, z. B. "120 g (2 Eier)" oder "110 g" */
 export function amountText(ing, g) {
-  const grams = `${g < 10 ? (Math.round(g * 2) / 2).toLocaleString('de-DE') : Math.round(g)} g`;
+  const grams = `${g < 10 ? (Math.round(g * 2) / 2).toLocaleString('de-DE') : Math.round(g)}g`;
   if (ing.piece && !ing.staple && g >= ing.piece * 0.6) {
     const step = ing.piece <= 130 ? 2 : 4;
     const n = Math.round((g / ing.piece) * step) / step;

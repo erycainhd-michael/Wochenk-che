@@ -147,14 +147,38 @@ test('Studi-Modus: günstiger, Ziele bleiben', () => {
   assert.ok(costs.studi < costs.normal * 0.95, `Studi ${costs.studi.toFixed(2)} vs normal ${costs.normal.toFixed(2)}`);
 });
 
-test('Sonntag: kein Mittagessen, sondern Kaffee & Kuchen', () => {
+test('Wochenende: kein Mittagessen, sondern Kaffee & Kuchen (Sa und So verschieden)', () => {
+  const ids = [];
+  for (const d of [5, 6]) {
+    const m = plan.days[d].meals.find((x) => x.slot === 'mittag');
+    if (m?.kind === 'eatout') continue;
+    assert.ok(m && m.cake, `${plan.days[d].name}-Mittag ist Kaffee & Kuchen`);
+    assert.equal(recipes.find((r) => r.id === m.recipeId).type, 'snack');
+    assert.ok(!plan.cooks.some((c) => c.portions.some((p) => p.key === m.key)), 'nichts fürs Wochenend-Mittag vorkochen');
+    ids.push(m.recipeId);
+  }
+  assert.ok(ids.length >= 1);
+  assert.equal(new Set(ids).size, ids.length, 'Samstag und Sonntag verschiedene Kuchen');
   const sun = plan.days[6].meals.find((m) => m.slot === 'mittag');
-  assert.ok(sun && sun.sunday, 'Sonntag-Mittag ist Kaffee & Kuchen');
-  assert.equal(recipes.find((r) => r.id === sun.recipeId).type, 'snack');
-  assert.ok(!plan.cooks.some((c) => c.portions.some((p) => p.key === '6-mittag')), 'nichts für Sonntagmittag vorkochen');
   const swapped = swapMeal(plan, '6-mittag', { recipes, idx, settings: settings(), weekStart: '2026-10-05' });
   const sun2 = swapped.days[6].meals.find((m) => m.slot === 'mittag');
-  assert.ok(sun2.sunday && sun2.recipeId !== sun.recipeId);
+  assert.ok(sun2.cake && sun2.recipeId !== sun.recipeId);
+});
+
+test('Mehrere Personen: Einkauf wächst mit, deine Makros bleiben gleich', () => {
+  const c = plan.cooks.find((x) => x.portions.length === 1);
+  const key = c.portions[0].key;
+  const input = { recipes, idx, settings: settings(), weekStart: '2026-10-05' };
+  const next = refitPlan({ ...plan, structure: { ...plan.structure, people: { [key]: 3 } } }, input);
+  const before = refitPlan(plan, input);
+  const meal = (p) => p.days[Number(key.split('-')[0])].meals.find((m) => m.key === key);
+  assert.equal(meal(next).people, 3);
+  assert.equal(Math.round(meal(next).macros.kcal), Math.round(meal(before).macros.kcal));
+  const main = meal(before).items.reduce((a, b) => (b.g > a.g ? b : a));
+  const need = (p) => p.shopping.items.find((i) => i.id === main.id)?.need || p.shopping.staples.find((i) => i.id === main.id)?.g;
+  assert.ok(need(next) >= need(before) + main.g * 2 - 2, `${main.id}: ${need(before)} → ${need(next)}`);
+  const cook = next.cooks.find((x) => x.id === c.id);
+  assert.ok(cook.items.find((i) => i.id === main.id).g >= main.g * 3 - 2, 'Kochmenge für 3 Personen');
 });
 
 test('Sport-kcal nach MET: (MET − 1) × kg × Stunden', () => {

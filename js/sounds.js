@@ -43,6 +43,37 @@ function tone(f, at, dur, { type = 'sine', vol = 0.18 } = {}) {
   osc.stop(t + dur + 0.02);
 }
 
+/** Rauschen mit wanderndem Filter – der „Swoosh“ */
+function swoosh(at, dur, [f0, f1], vol = 0.16) {
+  const t = ctx.currentTime + at;
+  const len = Math.ceil(ctx.sampleRate * dur);
+  const buf = ctx.createBuffer(1, len, ctx.sampleRate);
+  const data = buf.getChannelData(0);
+  for (let i = 0; i < len; i++) data[i] = Math.random() * 2 - 1;
+  const src = ctx.createBufferSource();
+  src.buffer = buf;
+  const bp = ctx.createBiquadFilter();
+  bp.type = 'bandpass';
+  bp.Q.value = 1.2;
+  bp.frequency.setValueAtTime(f0, t);
+  bp.frequency.exponentialRampToValueAtTime(f1, t + dur * 0.85);
+  const gain = ctx.createGain();
+  gain.gain.setValueAtTime(0.0001, t);
+  gain.gain.exponentialRampToValueAtTime(vol, t + dur * 0.45);
+  gain.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  src.connect(bp).connect(gain).connect(ctx.destination);
+  src.start(t);
+  src.stop(t + dur + 0.02);
+}
+
+/** Funkeln: viele kurze, hohe Glöckchen in einer Tonleiter */
+function sparkle(at, notes, step = 0.05, vol = 0.07) {
+  notes.forEach((f, i) => {
+    tone(f, at + i * step, 0.35, { type: 'sine', vol });
+    tone(f * 2.01, at + i * step + 0.01, 0.2, { type: 'sine', vol: vol * 0.35 }); // leicht verstimmter Oberton = Glitzern
+  });
+}
+
 function play(fn, force = false) {
   if (!enabled && !force) return;
   try {
@@ -78,6 +109,24 @@ export const sound = {
         const fade = 1 - i / 26;
         tone(i % 2 ? 2349 : 2093, i * 0.038, 0.07, { type: 'triangle', vol: 0.11 * fade });
       }
+    }),
+  /** Aufwendiges Gericht: magischer Swoosh mit Glitzern statt Kochlöffel */
+  magicStart: () =>
+    play(() => {
+      swoosh(0, 0.7, [350, 4200], 0.14);
+      sparkle(0.28, [C6, 1174.7, E6, 1568, 1760, 2093], 0.055, 0.06);
+      [C5, G5, E6].forEach((f, i) => tone(f, 0.55 + i * 0.02, 0.9, { type: 'triangle', vol: 0.07 }));
+    }),
+  /** Aufwendiges Gericht fertig: verzauberte Eieruhr – Rasseln, das in Glöckchen übergeht */
+  magicDone: () =>
+    play(() => {
+      for (let i = 0; i < 16; i++) {
+        const fade = 1 - i / 20;
+        tone(i % 2 ? 2349 : 2093, i * 0.038, 0.07, { type: 'triangle', vol: 0.09 * fade });
+      }
+      swoosh(0.5, 0.6, [1800, 6000], 0.06);
+      sparkle(0.62, [G6, E6, C6 * 2, G6 * 1.5, C6 * 2.5], 0.07, 0.06);
+      tone([C6, C6 * 2], 0.95, 1.1, { type: 'sine', vol: 0.05 });
     }),
   /** Start-Jingle zur Blatt-Animation: kurzes, helles Arpeggio */
   jingle: () =>

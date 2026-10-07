@@ -128,7 +128,7 @@ export function plausibility(goals) {
     message =
       `Deine Makros ergeben ${Math.round(fromMacros)} kcal – das sind ${Math.abs(Math.round(diff))} kcal ${dir} als dein Kalorienziel. ` +
       (fixCarbs > 0
-        ? `Passend wären z. B. ${fixCarbs} g Kohlenhydrate bei gleichem Protein und Fett.`
+        ? `Passend wären z. B. ${fixCarbs}g Kohlenhydrate bei gleichem Protein und Fett.`
         : 'Bitte Protein oder Fett etwas reduzieren oder das Kalorienziel erhöhen.');
   }
   return { fromMacros: Math.round(fromMacros), diff: Math.round(diff), rel, ok: Math.abs(rel) <= 0.05, message, suggestedCarbs: Math.round((goals.kcal - goals.protein * 4 - goals.fat * 9) / 4) };
