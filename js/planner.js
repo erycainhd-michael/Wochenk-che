@@ -72,6 +72,7 @@ export function prepareContext(input) {
     mains,
     breakfasts: byType('breakfast'),
     // Studi-Modus: keine teure Großpackung (z. B. Proteinpulver) für eine Ergänzung anbrechen – nur aus dem Vorrat
+    snacks: byType('snack'),
     addons: byType('addon').filter((r) => !settings.studi || r.ingredients.every((l) => (idx.get(l.id)?.price || 0) < 6 || (input.pantry || {})[l.id] > 0)),
     avgMainCost: avg(mains, (r) => info.get(r.id).cost) || 3,
     fiberTarget: fiberTargetFor(settings),
@@ -169,7 +170,10 @@ export function buildStructure(ctx, rng, mode = {}) {
   const variety = sl.variety / 100;
   const eatOut = eatOutSet(settings);
   for (const d of ctx.away || []) for (const slot of ['fruehstueck', ...MAIN_SLOTS]) eatOut.add(slotKey(d, slot));
-  const complex = complexSlots(settings, eatOut);
+  // Sonntag kein Mittagessen, sondern „Kaffee & Kuchen“ (wenn es passende Rezepte gibt)
+  const sundayKey = slotKey(6, 'mittag');
+  const sunday = ctx.snacks?.length && !eatOut.has(sundayKey);
+  const complex = complexSlots(settings, sunday ? new Set([...eatOut, sundayKey]) : eatOut);
   const stock = new Stock(ctx.pantry, idx, ctx.priceOf);
   const used = new Set();
   const usedColors = new Set();
@@ -177,6 +181,7 @@ export function buildStructure(ctx, rng, mode = {}) {
   let pastaLast = false;
   const cooks = [];
   const covered = new Map();
+  if (sunday) covered.set(sundayKey, 'sunday');
 
   const weightOf = (r, { isLunch, isComplex }) => {
     const inf = info.get(r.id);
@@ -258,7 +263,17 @@ export function buildStructure(ctx, rng, mode = {}) {
   }
   const breakfasts = Array.from({ length: 7 }, (_, d) => (eatOut.has(slotKey(d, 'fruehstueck')) ? null : chosen[d % chosen.length]));
 
-  return { cooks, breakfasts, eatOut: [...eatOut], complex: [...complex], away: [...(ctx.away || [])] };
+  let sundaySnack = null;
+  if (sunday) {
+    const pool = ctx.snacks;
+    const weights = pool.map((r) => {
+      const inf = info.get(r.id);
+      return Math.pow(inf.weight * macroFit(inf.macros, settings.goals) * (mode.cheap ? 1 / Math.max(0.5, inf.cost) : 1), 1.5);
+    });
+    sundaySnack = { key: sundayKey, recipeId: pickWeighted(pool, weights, rng).id };
+  }
+
+  return { cooks, breakfasts, eatOut: [...eatOut], complex: [...complex], away: [...(ctx.away || [])], sunday: sundaySnack };
 }
 
 // ---------------------------------------------------------------------------
@@ -403,7 +418,8 @@ export function finalizePlan(structure, ctx) {
     let fixed = emptyMacros();
     for (const slot of ['fruehstueck', ...MAIN_SLOTS]) if (eatOut.has(slotKey(d, slot))) fixed = addMacros(fixed, eo);
     const breakfast = structure.breakfasts[d];
-    const mains = MAIN_SLOTS.map((s) => slotCook.get(slotKey(d, s))?.recipeId).filter(Boolean);
+    const sun = structure.sunday && Number(structure.sunday.key.split('-')[0]) === d && !eatOut.has(structure.sunday.key) ? structure.sunday : null;
+    const mains = [...MAIN_SLOTS.map((s) => slotCook.get(slotKey(d, s))?.recipeId), sun?.recipeId].filter(Boolean);
     const sportKcal = daySportKcal(structure, d);
     const fit = fitDay({ ctx, fixed, breakfast, mains, combos: breakfast ? addonCombosAll : [[]], extra: sportKcal });
 
@@ -435,6 +451,7 @@ export function finalizePlan(structure, ctx) {
       else {
         const c = slotCook.get(key);
         if (c) meals.push(mk(slot, c.recipeId, fit.fm, { cookId: c.id, leftover: c.portions[0] !== key }));
+        else if (sun?.key === key) meals.push(mk(slot, sun.recipeId, fit.fm, { sunday: true }));
       }
     }
 
@@ -648,6 +665,8 @@ export function setEatOut(plan, mealKey, on, input) {
       const counts = {};
       structure.breakfasts.filter(Boolean).forEach((id) => (counts[id] = (counts[id] || 0) + 1));
       structure.breakfasts[d] = Object.keys(counts).sort((a, b) => counts[b] - counts[a])[0] || ctx.breakfasts[0]?.id || null;
+    } else if (structure.sunday?.key === mealKey) {
+      // Sonntag: „Kaffee & Kuchen“ ist wieder da
     } else {
       const usedIds = new Set(structure.cooks.map((c) => c.recipeId));
       let pool = ctx.mains.filter((r) => r.effort < 3 && !usedIds.has(r.id));
@@ -683,7 +702,12 @@ export function swapMeal(plan, mealKey, input, chosenId = null) {
   const rng = mulberry32((Date.now() & 0xffff) + mealKey.length);
   const [dStr, slot] = mealKey.split('-');
   const d = Number(dStr);
-  if (slot === 'fruehstueck') {
+  if (structure.sunday?.key === mealKey) {
+    const pool = ctx.snacks.filter((r) => r.id !== structure.sunday.recipeId);
+    if (chosenId) structure.sunday.recipeId = chosenId;
+    else if (!pool.length) return plan;
+    else structure.sunday.recipeId = pickWeighted(pool, pool.map((r) => ctx.info.get(r.id).weight), rng).id;
+  } else if (slot === 'fruehstueck') {
     const current = structure.breakfasts[d];
     const pool = ctx.breakfasts.filter((r) => r.id !== current);
     if (chosenId) structure.breakfasts[d] = chosenId;
