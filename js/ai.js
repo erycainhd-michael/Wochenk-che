@@ -19,7 +19,7 @@ function schema(ids) {
     properties: {
       name: { type: 'string' },
       time: { type: 'integer', description: 'Gesamtzeit in Minuten' },
-      dishes: { type: 'integer', description: 'Anzahl Töpfe/Pfannen/Bleche (1-3)' },
+      dishes: { type: 'integer', description: 'Teile Abwasch: Anzahl aller Teile aus steps[].tools' },
       effort: { type: 'integer', enum: [1, 2, 3] },
       mealPrep: { type: 'boolean', description: 'Schmeckt aufgewärmt am Folgetag (Lunchbox)' },
       protein: { type: 'string', description: 'Hauptproteinquelle, kurz' },
@@ -42,9 +42,10 @@ function schema(ids) {
         items: {
           type: 'object',
           additionalProperties: false,
-          required: ['t', 'timer', 'label'],
+          required: ['t', 'timer', 'label', 'tools'],
           properties: {
             t: { type: 'string' },
+            tools: { type: 'array', items: { type: 'string' }, description: 'Küchengeschirr, das in diesem Schritt NEU gebraucht wird, z. B. „großer Topf“, „Pfanne“, „kleine Schüssel“, „Sieb“, „Backblech“ – sonst leer' },
             timer: { type: 'integer', description: 'Timer in Sekunden, 0 = kein Timer' },
             label: { type: 'string', description: 'kurzer Timer-Name oder leer' },
           },
@@ -95,12 +96,15 @@ export async function inventRecipe({ apiKey, title = '', type = 'main', ingredie
 export function cleanRecipe(r, type, ingredients) {
   const ids = new Set(ingredients.map((i) => i.id));
   const clampInt = (v, lo, hi, d) => Math.min(hi, Math.max(lo, Math.round(Number(v) || d)));
+  // Abwasch = Anzahl der Teile, wenn das Geschirr je Schritt angegeben ist
+  const toolCount = (r.steps || []).reduce((a, s) => a + (Array.isArray(s.tools) ? s.tools.filter((x) => String(x).trim()).length : 0), 0);
+  if (toolCount) r = { ...r, dishes: toolCount };
   return {
     id: r.id || `u_${Date.now().toString(36)}`,
     name: String(r.name || 'Neues Rezept').trim(),
     type,
     time: clampInt(r.time, 1, 240, 20),
-    dishes: clampInt(r.dishes, 0, 5, 1),
+    dishes: clampInt(r.dishes, 0, 8, 1),
     effort: clampInt(r.effort, 1, 3, 1),
     mealPrep: !!r.mealPrep,
     tags: Array.isArray(r.tags) ? r.tags.slice(0, 6).map(String) : [],
@@ -110,7 +114,11 @@ export function cleanRecipe(r, type, ingredients) {
       .map((l) => ({ id: l.id, g: Math.round(Number(l.g)), ...(l.note ? { note: String(l.note) } : {}) })),
     steps: (r.steps || [])
       .filter((s) => String(s.t || '').trim())
-      .map((s) => ({ t: String(s.t).trim(), ...(Number(s.timer) > 0 ? { timer: Math.round(Number(s.timer)), label: String(s.label || '').trim() || 'Timer' } : {}) })),
+      .map((s) => ({
+        t: String(s.t).trim(),
+        ...(Number(s.timer) > 0 ? { timer: Math.round(Number(s.timer)), label: String(s.label || '').trim() || 'Timer' } : {}),
+        ...(Array.isArray(s.tools) && s.tools.some((x) => String(x).trim()) ? { tools: s.tools.map((x) => String(x).trim()).filter(Boolean).slice(0, 6) } : {}),
+      })),
     ...(r.tip ? { tip: String(r.tip) } : {}),
     source: r.source || 'eigen',
   };

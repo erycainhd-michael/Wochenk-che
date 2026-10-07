@@ -5,6 +5,7 @@
 import fs from 'node:fs';
 import { buildIndex, recipeMacros } from '../js/nutrition.js';
 import { shortName } from '../js/util.js';
+import { stepTools } from '../js/tools.js';
 
 const file = process.argv[2];
 if (!file) {
@@ -38,7 +39,10 @@ for (const raw of incoming) {
   if (ingredients.some((l) => !(l.g > 0))) problems.push('Menge fehlt');
   const steps = (raw.steps || [])
     .filter((s) => String(s.t || '').trim())
-    .map((s) => ({ t: String(s.t).trim(), ...(Number(s.timer) > 0 ? { timer: Math.round(Number(s.timer)), label: String(s.label || 'Timer') } : {}) }));
+    .map((s) => ({ t: String(s.t).trim(), ...(Number(s.timer) > 0 ? { timer: Math.round(Number(s.timer)), label: String(s.label || 'Timer') } : {}), ...(Array.isArray(s.tools) && s.tools.length ? { tools: s.tools.map(String).slice(0, 6) } : {}) }));
+  // Geschirr je Schritt: angegeben oder aus dem Text erkannt; Abwasch = Anzahl der Teile
+  if (!steps.some((s) => s.tools)) stepTools({ steps }).forEach((t, i) => t.length && (steps[i].tools = t));
+  const toolCount = steps.reduce((a, s) => a + (s.tools?.length || 0), 0);
   if (!steps.length) problems.push('keine Anleitung');
   const effort = [1, 2, 3].includes(Number(raw.effort)) ? Number(raw.effort) : 1;
   const time = Math.round(Number(raw.time) || 0);
@@ -50,7 +54,7 @@ for (const raw of incoming) {
     short: raw.short ? String(raw.short).slice(0, 24) : shortName(name),
     type,
     time,
-    dishes: Math.max(0, Math.min(5, Math.round(Number(raw.dishes) || 1))),
+    dishes: toolCount || Math.max(0, Math.min(8, Math.round(Number(raw.dishes) || 1))),
     effort,
     mealPrep: !!raw.mealPrep,
     tags: Array.isArray(raw.tags) ? raw.tags.slice(0, 6).map(String) : [],

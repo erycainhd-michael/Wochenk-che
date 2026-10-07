@@ -304,8 +304,10 @@ input[type='checkbox']:checked::after { content: '✓'; color: var(--accent-text
 /* Schwebende Tab-Leiste, nur Symbole */
 .tabbar {
   position: fixed; left: 16px; right: 16px; z-index: 20;
-  /* tief unten wie bei nativen Apps: halb im Bereich des Home-Indikators */
-  bottom: max(8px, calc(env(safe-area-inset-bottom) - 14px));
+  /* tief unten wie bei nativen Apps: halb im Bereich des Home-Indikators.
+     --tab-bottom wird beim Start einmal gemessen, damit die Leiste beim Scrollen nicht mitwandert */
+  bottom: var(--tab-bottom, max(8px, calc(env(safe-area-inset-bottom) - 14px)));
+  transform: translate3d(0, 0, 0); will-change: transform;
   max-width: 648px; margin: 0 auto;
   display: grid; grid-template-columns: repeat(4, 1fr);
   background: var(--tabbar); border: 1px solid var(--line); border-radius: 999px; box-shadow: var(--shadow);
@@ -327,7 +329,8 @@ input[type='checkbox']:checked::after { content: '✓'; color: var(--accent-text
 
 #timer-dock {
   position: fixed; left: 16px; right: 16px; z-index: 19; max-width: 648px; margin: 0 auto;
-  bottom: calc(max(8px, calc(env(safe-area-inset-bottom) - 14px)) + 74px);
+  bottom: calc(var(--tab-bottom, max(8px, calc(env(safe-area-inset-bottom) - 14px))) + 74px);
+  transform: translate3d(0, 0, 0);
   display: flex; flex-direction: column; gap: 8px;
 }
 .timer {
@@ -674,8 +677,7 @@ textarea { font: inherit; color: var(--text); background: var(--field); border: 
 [data-action="replan-studi"] { margin: 4px 0 8px; }
 
 /* Mengen und Zahlen im Schritt-Text */
-.amt { color: var(--muted); font-weight: 500; }
-.cook .step-text .amt { font-weight: 600; }
+.amt { color: var(--muted); color: color-mix(in srgb, var(--text) 50%, transparent); font-weight: inherit; }
 /* Eigene Zutaten im Editor */
 .edit-list li { flex-wrap: wrap; }
 .edit-list li > input[list] { flex: 1; min-width: 0; }
@@ -684,7 +686,13 @@ textarea { font: inherit; color: var(--text); background: var(--field); border: 
 .own-grid label { font-size: 0.75rem; color: var(--muted); display: flex; flex-direction: column; gap: 2px; }
 .own-grid input { min-height: 40px; padding: 6px 10px; background: var(--card); font-size: 16px; }
 /* Studi-Modus neben dem Budget */
-.studi-toggle .row { min-height: 48px; margin-top: 6px; gap: 10px; font-size: 1.3rem; }
+.budget-row { align-items: end; }
+.studi-toggle { display: flex; align-items: center; gap: 10px; margin: 10px 0; min-height: 48px; font-size: 0.95rem; cursor: pointer; }
+.studi-toggle .big-check { width: 48px; height: 48px; margin: 0; }
+.studi-toggle .big-check:checked::after { font-size: 1.2rem; }
+.unit-input { display: block; position: relative; margin-top: 6px; }
+.field .unit-input input { display: block; margin-top: 0; padding-right: 42px; }
+.unit-input i { position: absolute; right: 18px; top: 50%; transform: translateY(-50%); font-style: normal; color: var(--muted); pointer-events: none; }
 /* Weiter kochen */
 #cook-resume { position: fixed; z-index: 40; top: calc(env(safe-area-inset-top) + 8px); right: 12px; display: flex; align-items: center; gap: 4px;
   background: var(--accent); border-radius: 999px; padding: 4px 4px 4px 14px; box-shadow: var(--shadow); animation: unfold 0.3s ease-out; }
@@ -695,3 +703,96 @@ body.cooking .view { padding-top: calc(env(safe-area-inset-top) + 60px); }
 .banner.backup .banner-btns { display: flex; gap: 6px; }
 .snap-row { display: grid; gap: 8px; margin: 8px 0 4px; }
 .snap-row .btn { width: 100%; }
+
+/* Geschirr je Schritt */
+:root { --fancy: #e2681a; --fancy-soft: #fdebdc; }
+.step-tools { display: flex; flex-wrap: wrap; gap: 4px; margin: 3px 0 2px; }
+.tool { font-size: 0.75rem; font-weight: 600; background: var(--accent-soft); color: var(--accent); border-radius: 999px; padding: 2px 10px; }
+.step-tools .tool::before { content: '+ '; }
+.chips.tools .chip { font-size: 0.9rem; }
+.cook-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 16px; }
+.cook-tools span { font-size: 0.85rem; color: var(--muted); }
+.cook-tools .tool { font-size: 0.95rem; padding: 4px 12px; }
+.tools-field { display: flex; align-items: center; gap: 8px; margin: 6px 0 2px; font-size: 1rem; }
+.tools-field input { min-height: 40px; padding: 6px 14px; font-size: 16px; }
+
+/* Rezeptfilter: Gruppen durch Linien getrennt */
+.chips .chip-sep { flex-basis: 100%; height: 1px; background: var(--line); margin: 4px 0; }
+.new-recipe h2 { margin-bottom: 10px; }
+
+/* Rückblick: KW-Leiste zum Wischen, rastet je Woche ein */
+.kw-strip { display: flex; gap: 6px; overflow-x: auto; scroll-snap-type: x mandatory; padding: 4px calc(50% - 38px) 6px; margin: 4px -16px 12px;
+  scrollbar-width: none; overscroll-behavior-x: contain; -webkit-mask-image: linear-gradient(90deg, transparent, #000 14%, #000 86%, transparent); mask-image: linear-gradient(90deg, transparent, #000 14%, #000 86%, transparent); }
+.kw-strip::-webkit-scrollbar { display: none; }
+.kw { flex: none; width: 76px; min-height: 52px; scroll-snap-align: center; scroll-snap-stop: always; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  border-radius: 999px; background: var(--field); color: var(--muted); line-height: 1.15; transition: background 0.2s, color 0.2s, transform 0.2s; }
+.kw b { font-size: 0.95rem; }
+.kw small { font-size: 0.7rem; color: inherit; opacity: 0.85; }
+.kw.cur { background: var(--accent); color: var(--accent-text); }
+.kw.near:not(.cur) { color: var(--text); transform: scale(1.05); }
+
+/* Rückblick: Skala über die ganze Breite */
+.scale > span { font-weight: 600; }
+.pills.spread { display: grid; grid-template-columns: repeat(5, 1fr); justify-items: center; gap: 0; }
+
+/* Rückblick: Gerichte nach Tagen */
+.fb-days { list-style: none; margin: 0; padding: 0; }
+.fb-day { display: flex; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--line); }
+.fb-day:first-child { padding-top: 2px; }
+.fb-day:last-child { border-bottom: 0; padding-bottom: 0; }
+.day-dot { flex: none; width: 34px; height: 34px; border-radius: 50%; background: var(--accent-soft); color: var(--accent); font-weight: 700; font-size: 0.85rem; display: grid; place-items: center; }
+.fb-meals { flex: 1; min-width: 0; display: grid; gap: 14px; }
+.fb-meal .fb-name { margin: 5px 0 8px; }
+.fb-meal .pills { gap: 6px; }
+.fb-meal .pill.circle { width: 42px; height: 42px; }
+
+/* Eigene Zutaten: Nährwerte finden */
+.own-ing.needs { background: var(--accent-soft); }
+.own-src { display: block; font-size: 0.75rem; color: var(--muted); }
+.own-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 8px; }
+.own-actions input { grid-column: 1 / -1; min-height: 40px; padding: 6px 14px; background: var(--card); font-size: 16px; }
+.own-actions .btn { margin: 0; white-space: nowrap; background: var(--card); }
+.own-ing details summary { font-size: 0.85rem; color: var(--accent); cursor: pointer; margin-top: 10px; }
+.off-results { list-style: none; margin: 8px 0 0; padding: 0 10px; max-height: 300px; overflow: auto; background: var(--card); border-radius: 14px; }
+.off-results li { border-bottom: 1px solid var(--line); }
+.off-results li:last-child { border-bottom: 0; }
+.edit-add { display: flex; gap: 8px; flex-wrap: wrap; }
+
+/* Barcode-Scanner */
+.scanner { position: fixed; inset: 0; z-index: 90; background: #000; display: grid; place-items: center; animation: viewIn 0.2s ease-out; transition: opacity 0.25s; }
+.scanner.out { opacity: 0; }
+.scanner video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.scan-frame { position: relative; width: min(78vw, 320px); height: 150px; border-radius: 18px; border: 3px solid rgba(255, 255, 255, 0.9); box-shadow: 0 0 0 100vmax rgba(0, 0, 0, 0.45); }
+.scan-frame i { position: absolute; left: 8%; right: 8%; top: 50%; height: 2px; background: #ff4d4d; box-shadow: 0 0 8px #ff4d4d; animation: scanLine 1.6s ease-in-out infinite alternate; }
+@keyframes scanLine { from { transform: translateY(-55px); } to { transform: translateY(55px); } }
+.scan-hint { position: absolute; top: calc(env(safe-area-inset-top) + 28px); left: 0; right: 0; text-align: center; color: #fff; font-weight: 600; margin: 0; }
+.scan-close { position: absolute; bottom: calc(env(safe-area-inset-bottom) + 28px); left: 50%; transform: translateX(-50%); background: #fff; color: #000; border: 0; }
+
+/* Aufwendige Gerichte: besonders – orange statt grün */
+.badge.fancy { background: var(--fancy-soft); color: var(--fancy); font-weight: 600; }
+.meal.fancy { background: linear-gradient(90deg, var(--fancy-soft), transparent 80%); box-shadow: inset 3px 0 0 var(--fancy); border-radius: 14px; margin: 2px -8px; padding-left: 12px; padding-right: 8px; }
+.meal.fancy .ml { color: var(--fancy); font-weight: 600; }
+.list li.fancy { background: linear-gradient(90deg, var(--fancy-soft), transparent 85%); box-shadow: inset 3px 0 0 var(--fancy); border-radius: 12px; margin: 2px -8px; padding-left: 12px; padding-right: 8px; }
+.list li.fancy .rl-n { color: var(--fancy); }
+body.fancy { --accent: #e2681a; --accent-soft: #fdebdc; --accent-text: #ffffff; --hero: #d9611a; }
+body.fancy .rhero-art { background: linear-gradient(135deg, #ffd8ae, #ffc7c0 50%, #e7d6ff); }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) { --fancy: #f5953f; --fancy-soft: #3a2516; }
+  :root:not([data-theme='light']) body.fancy { --accent: #f5953f; --accent-soft: #3a2516; --accent-text: #1c0e03; --hero: #b9551a; }
+  :root:not([data-theme='light']) body.fancy .rhero-art { background: linear-gradient(135deg, #4a2a12, #47201f 50%, #33244d); }
+}
+:root[data-theme='dark'] { --fancy: #f5953f; --fancy-soft: #3a2516; }
+:root[data-theme='dark'] body.fancy { --accent: #f5953f; --accent-soft: #3a2516; --accent-text: #1c0e03; --hero: #b9551a; }
+:root[data-theme='dark'] body.fancy .rhero-art { background: linear-gradient(135deg, #4a2a12, #47201f 50%, #33244d); }
+
+/* Kochmodus eines aufwendigen Gerichts: umlaufende Linie in Orange, Rot, Gelb und Lila */
+@property --mf { syntax: '<angle>'; inherits: false; initial-value: 0deg; }
+#magic-frame { position: fixed; inset: 0; z-index: 35; pointer-events: none; animation: viewIn 0.6s ease-out; }
+#magic-frame i { position: absolute; inset: 0; border-radius: var(--screen-r, 0px); padding: 4px;
+  background: conic-gradient(from var(--mf), #ff8a00, #ff3b3b, #ffd23f, #9b5cff, #ff8a00);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+  animation: magicSpin 4s linear infinite; }
+#magic-frame i.glow { padding: 14px; filter: blur(12px); opacity: 0.5; }
+@keyframes magicSpin { to { --mf: 360deg; } }
+@media (prefers-reduced-motion: reduce) { #magic-frame i { animation: none; } }
+.off-results .list-btn { padding: 10px 0; }
