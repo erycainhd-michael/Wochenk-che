@@ -13,7 +13,7 @@ import { setSoundsEnabled, sound } from './sounds.js';
 import { LEVELS, SPORTS, sportById, sportKcal } from './sport.js';
 import { NAV_ICONS } from './navicons.js';
 import { autoSnapshot, getSnapshot, listSnapshots } from './backup.js';
-import { haptic, hapticBurst } from './haptics.js';
+import { haptic, hapticBurst, setHapticsEnabled } from './haptics.js';
 import { stepTools } from './tools.js';
 import { lookupBarcode, searchProducts, scanBarcode } from './foodlookup.js';
 
@@ -82,8 +82,30 @@ function applyOrientation() {
     const angle = screen.orientation?.angle ?? window.orientation ?? 90;
     rot = angle === 270 || angle === -90 ? 'rot-r' : 'rot-l';
   }
+  const was = root.classList.contains('rot-l') ? 'rot-l' : root.classList.contains('rot-r') ? 'rot-r' : '';
+  // Beim Drehen kurz ausblenden und weich wieder einblenden, statt sichtbar umzuspringen
+  if (was !== rot && pinnedKey) {
+    root.classList.add('rotating');
+    setTimeout(() => root.classList.remove('rotating'), 120);
+  }
   root.classList.toggle('rot-l', rot === 'rot-l');
   root.classList.toggle('rot-r', rot === 'rot-r');
+  // Als Home-Bildschirm-App: echte Displaygröße verwenden. iOS meldet die Fensterhöhe dort teils
+  // ohne den Bereich am Home-Indikator – dann wäre unten ein schwarzer Streifen.
+  const standalone = navigator.standalone || matchMedia('(display-mode: standalone)').matches;
+  const sw = Math.min(screen.width, screen.height);
+  const sh = Math.max(screen.width, screen.height);
+  const st = root.style;
+  if (phone && standalone && rot) {
+    st.setProperty('--rot-w', `${sh}px`);
+    st.setProperty('--rot-h', `${sw}px`);
+    st.setProperty('--app-h', '100%');
+  } else if (phone && standalone) {
+    st.setProperty('--app-h', `${Math.max(sh, innerHeight)}px`);
+  } else {
+    st.removeProperty('--app-h');
+  }
+  if (!rot) st.removeProperty('--rot-w'), st.removeProperty('--rot-h');
   pinChrome();
 }
 
@@ -112,8 +134,14 @@ async function init() {
   applyTheme();
   applyOrientation();
   addEventListener('resize', applyOrientation);
-  addEventListener('orientationchange', () => setTimeout(applyOrientation, 50));
+  // Drehen beginnt: sofort ausblenden, damit die Dreh-Animation von iOS nicht sichtbar ruckelt
+  addEventListener('orientationchange', () => {
+    document.documentElement.classList.add('rotating');
+    setTimeout(applyOrientation, 50);
+    setTimeout(() => document.documentElement.classList.remove('rotating'), 380);
+  });
   setSoundsEnabled(S.settings.sounds);
+  setHapticsEnabled(S.settings.sounds);
   try {
     const [ing, rec] = await Promise.all([loadJSON('data/ingredients.json'), loadJSON('data/recipes.json')]);
     S.ingBase = ing.items;
@@ -258,7 +286,9 @@ const g_ = (x) => `${num(x)}g`;
 /** Abwasch = Töpfe, Pfannen, Schüsseln, Bleche … zusammen */
 const dishesText = (n) => (!n ? 'kein Abwasch' : n === 1 ? '1 Teil Abwasch' : `${n} Teile Abwasch`);
 /** Aufwendige Gerichte, Familienrezepte und Gourmet fühlen sich besonders an: orange statt grün */
-const isFancy = (r) => !!r && (r.effort === 3 || catsOf(r.id).some((c) => c === 'Familienrezepte' || c === 'Gourmet'));
+const isFancy = (r) => !!r && (timeClass(r) === 'aufwendig' || catsOf(r.id).some((c) => c === 'Familienrezepte' || c === 'Gourmet'));
+/** Kurzer Hinweis, warum ein Gericht besonders ist */
+const fancyLabel = (r) => (timeClass(r) === 'aufwendig' ? 'aufwendig' : catsOf(r.id).includes('Familienrezepte') ? 'Familienrezept' : 'Gourmet');
 /** Mahlzeit am Wochenende-Mittag: „Kaffee & Kuchen“ (ältere Pläne: nur Sonntag) */
 const isCake = (m) => !!(m?.cake || m?.sunday);
 /** Personen, für die diese Mahlzeit gekocht wird (1 = nur du) */
@@ -515,7 +545,7 @@ function render() {
   // Hülle nur einmal bauen, damit die Tab-Leiste weich animieren kann
   if (!document.getElementById('view')) {
     app.innerHTML = `
-    <main class="view" id="view"></main>
+    <div id="scroller"><main class="view" id="view"></main></div>
     <div id="timer-dock"></div>
     <nav class="tabbar">
       ${tabBtn('woche', 'Wochenübersicht')}
@@ -565,7 +595,7 @@ function render() {
   if (changed) view.querySelector('.charts')?.classList.add('play');
   renderTimerDock();
   setupKwStrip();
-  if (changed && !sameView) app.scrollTo(0, 0);
+  if (changed && !sameView) document.getElementById('scroller')?.scrollTo(0, 0);
 }
 
 /** Rezept zu einem Kochmodus-Schlüssel („r:id“ oder Mahlzeit wie „2-abend“) */
@@ -811,7 +841,7 @@ function daysHtml(plan, firstDay, todayIdx) {
   const btn = quiet.length
     ? `<button class="hidden-days" data-action="toggle-quiet">${show ? '▾ Tage ohne Kochen ausblenden' : `▸ <b>${quiet.length} ${quiet.length === 1 ? 'Tag' : 'Tage'} ohne Kochen</b> einblenden (${quiet.map((d) => d.short).join(', ')})`}</button>`
     : '';
-  return cards + btn;
+  return btn + cards;
 }
 
 /** „Woche später starten“: Plan ab einem gewählten Tag neu erstellen (z. B. nach dem Urlaub) */
@@ -845,7 +875,7 @@ function mealRow(plan, m) {
   const badges = [];
   if (m.leftover) badges.push('<span class="badge">Portion von gestern</span>');
   else if (cook && cook.portions.length > 1) badges.push('<span class="badge">+ Portion für morgen</span>');
-  if (isFancy(r)) badges.push('<span class="badge fancy">✨ aufwendig</span>');
+  if (isFancy(r)) badges.push(`<span class="badge fancy">✨ ${fancyLabel(r)}</span>`);
   if (peopleOf(m) > 1) badges.push(`<span class="badge">für ${peopleOf(m)} Personen</span>`);
   if (r.source === 'ki' || isFresh(r)) badges.push('<span class="badge new">neu</span>');
   for (const a of m.addons || []) badges.push(`<span class="badge">+ ${e(recipe(a)?.name || a)}</span>`);
@@ -1019,7 +1049,7 @@ const AUTO_CATS = {
   Salat: (r) => /salat|bowl/i.test(r.name) || (r.tags || []).includes('salat'),
   Kuchen: (r) => r.type === 'snack' || (r.tags || []).includes('kuchen') || (/kuchen|cake|muffin|brownie|tarte/i.test(r.name) && !/flammkuchen|pfannkuchen/i.test(r.name)),
   Brot: (r) => /brot|toast|stulle|sandwich/i.test(r.name),
-  Gourmet: (r) => r.effort === 3 || (r.tags || []).includes('gourmet'),
+  Gourmet: (r) => timeClass(r) === 'aufwendig' || (r.tags || []).includes('gourmet'),
   Fleisch: (r) => hasMeat(r),
   Fisch: (r) => hasFishIng(r),
   Vegetarisch: (r) => !hasMeat(r) && !hasFishIng(r),
@@ -1360,7 +1390,7 @@ function recipeHtml(r, items, macros, subtitle, back, info, cookKey, withServing
       <div class="rhero-art slot-${r.type === 'breakfast' ? 'fruehstueck' : 'abend'}"><span>${recipeEmoji(r)}</span></div>
       <div class="card-head"><div class="sub">${e(subtitle)}</div><a class="btn small pill" href="#/bearbeiten/${r.id}">✏️ Ändern</a></div>
       <h1 class="rtitle">${e(r.name)}</h1>
-      <div class="chips"><span class="chip on">⏱️ ${r.time} Min.</span><span class="chip">🧽 ${dishesText(allTools.length || r.dishes)}</span><span class="chip">${isFancy(r) ? '✨ ' : ''}${['', 'einfach', 'normal', 'aufwendig'][r.effort]}</span>${r.protein ? `<span class="chip">${e(r.protein)}</span>` : ''}</div>
+      <div class="chips"><span class="chip on">⏱️ ${r.time} Min.</span><span class="chip">🧽 ${dishesText(allTools.length || r.dishes)}</span><span class="chip">${isFancy(r) ? `✨ ${fancyLabel(r)}` : ['', 'einfach', 'normal', 'aufwendig'][r.effort]}</span>${r.protein ? `<span class="chip">${e(r.protein)}</span>` : ''}</div>
       <div class="mtiles">
         <div class="mt-k"><b>${num(macros.kcal)}</b><span>kcal</span></div>
         <div><b>${g_(macros.c)}</b><span>Kohlenhydrate</span></div>
@@ -1879,8 +1909,13 @@ function checkGoal(before, now) {
   const goal = S.settings.goalWeight;
   if (!goal || now == null) return;
   const hit = Math.abs(now - goal) < 0.05 || (before != null && Math.abs(before - goal) >= 0.05 && (before - goal) * (now - goal) < 0);
-  if (!hit) return;
-  celebrate(now);
+  if (hit) return celebrate(now);
+  // Schritt in Richtung Ziel: kurz bestärken
+  if (before != null && Math.abs(now - goal) < Math.abs(before - goal) - 0.05) {
+    sound.progress();
+    haptic();
+    toast(`${now < before ? '−' : '+'}${fmtKg(Math.abs(now - before))} kg – in die richtige Richtung`, { icon: '💪', sub: `Noch ${fmtKg(Math.abs(now - goal))} kg bis zum Ziel` });
+  }
 }
 
 /** Letztes eingetragenes Gewicht vor der Woche ws */
@@ -1979,7 +2014,7 @@ function viewSettings() {
     <label class="field">Design<select data-set="theme"><option value="auto" ${!st.theme || st.theme === 'auto' ? 'selected' : ''}>Automatisch</option><option value="dark" ${st.theme === 'dark' ? 'selected' : ''}>Dunkel</option><option value="light" ${st.theme === 'light' ? 'selected' : ''}>Hell</option></select></label>
     <label class="field">Dein Name (für die Begrüßung)<input type="text" autocomplete="given-name" data-set="name" value="${e(st.name || '')}" placeholder="z. B. Michael"></label>
     ${field('planHour', 'Neuer Plan montags ab (Uhr)', 'min="0" max="23"')}
-    <label class="row"><input type="checkbox" data-set="sounds" ${st.sounds !== false ? 'checked' : ''}> Töne (nur wenn das iPhone nicht lautlos ist)</label>
+    <label class="row"><input type="checkbox" data-set="sounds" ${st.sounds !== false ? 'checked' : ''}> Töne und Vibration (Töne nur, wenn das iPhone nicht lautlos ist)</label>
   </section>
 
   <section class="card"><h2>KI-Rezepte <span class="sub">(optional, kostenpflichtig)</span></h2>
@@ -2061,6 +2096,7 @@ async function onClick(ev) {
       const on = (S.ui.mep[el.dataset.k] = !S.ui.mep[el.dataset.k]);
       el.classList.toggle('on', on);
       if (on) sound.check();
+      haptic();
       return;
     }
     case 'later-open':
@@ -2108,6 +2144,7 @@ async function onClick(ev) {
       S.ui.lastSport = f.type;
       S.ui.sport = null;
       sound.check();
+      haptic();
       toast(`+${num(kcal)} kcal am ${DAY_NAMES[f.day]}`, { icon: sportById(f.type).icon, sub: 'Kalorienziel und Portionen angepasst' });
       return render();
     }
@@ -2212,6 +2249,7 @@ async function onClick(ev) {
       S.plans[plan.weekStart] = next;
       savePlans();
       toast(chosen ? 'Neues Rezept eingeplant' : 'Gericht getauscht', { icon: chosen ? '✨' : '🔄', sub: 'Einkaufsliste ist aktualisiert' });
+      haptic();
       fx(`.meal[data-key="${key}"]`, 'swapped');
       return render();
     }
@@ -2221,6 +2259,7 @@ async function onClick(ev) {
       S.plans[plan.weekStart] = next;
       savePlans();
       S.ui.search = '';
+      haptic();
       fx(`.meal[data-key="${el.dataset.key}"]`, 'swapped');
       location.hash = '#/woche';
       toast('Rezept übernommen', { icon: '🔄', sub: 'Einkaufsliste ist aktualisiert' });
@@ -2383,6 +2422,7 @@ async function onClick(ev) {
     case 'timer':
       timers.start(el.dataset.label, Number(el.dataset.sec), el.dataset.ctx);
       sound.timerStart();
+      haptic();
       toast(`Timer läuft`, { icon: '⏱️', sub: el.dataset.label });
       return;
     case 't-toggle':
@@ -2391,6 +2431,7 @@ async function onClick(ev) {
       return timers.remove(el.dataset.id);
     case 'cook-step':
       S.ui.cookStep = Math.max(0, S.ui.cookStep + Number(el.dataset.d));
+      haptic();
       fx('.step-text', Number(el.dataset.d) > 0 ? 'step-next' : 'step-prev');
       return render();
     case 'snap-restore': {
@@ -2447,7 +2488,15 @@ async function onClick(ev) {
       S.checks[ws] ||= {};
       const on = (S.checks[ws][el.dataset.id] = !S.checks[ws][el.dataset.id]);
       store.set('checks', S.checks);
-      if (on) sound.check();
+      haptic();
+      // Letzter Artikel abgehakt: kleiner Erfolgsmoment
+      const items = plan.shopping.items.filter((i) => i.packs > 0);
+      const allDone = on && items.length && items.every((i) => S.checks[ws][i.id]);
+      if (allDone) {
+        sound.allDone();
+        hapticBurst(2);
+        toast('Alles eingekauft!', { icon: '🛒', sub: 'Die Woche kann kommen.' });
+      } else if (on) sound.check();
       else sound.uncheck();
       if (on) fx(`.shop-item[data-id="${el.dataset.id}"] .check`);
       return render();
@@ -2462,6 +2511,7 @@ async function onClick(ev) {
         if (field === 'rating') r.rating = r.rating === Number(val) ? 0 : Number(val);
         else r[field] = !r[field];
       });
+      haptic();
       fx(`[data-action="fb"][data-id="${id}"][data-field="${field}"][data-val="${val}"].on`);
       return render();
     }
@@ -2470,6 +2520,7 @@ async function onClick(ev) {
         fb.week ||= {};
         fb.week[el.dataset.field] = Number(el.dataset.val);
       });
+      haptic();
       fx(`[data-action="fbw"][data-field="${el.dataset.field}"].on`);
       return render();
     case 'fix-carbs':
@@ -2545,6 +2596,7 @@ function onChange(ev) {
     if (/^(goals\.|stores\.|mainStore$)/.test(el.dataset.set)) refitCurrent();
     if (el.dataset.set === 'theme') applyTheme();
     setSoundsEnabled(S.settings.sounds);
+    setHapticsEnabled(S.settings.sounds);
     render();
     return;
   }
