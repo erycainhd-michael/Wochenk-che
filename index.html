@@ -22,7 +22,6 @@
   <body>
     <div id="splash" aria-hidden="true">
       <div class="splash-icon"><div class="splash-board">
-        <img class="sp-bg" src="icons/splash/brett.webp" alt="" />
         <div class="sp-items">
           <img class="sp" data-n="onions" src="icons/splash/onions.webp" alt="" style="left:0.0%;top:52.17%;width:49.0%;height:41.85%" />
           <img class="sp" data-n="beans" src="icons/splash/beans.webp" alt="" style="left:52.54%;top:4.08%;width:47.46%;height:53.8%" />
@@ -37,13 +36,14 @@
           <img class="sp" data-n="clove1" src="icons/splash/clove1.webp" alt="" style="left:39.13%;top:6.52%;width:9.69%;height:9.33%" />
           <img class="sp" data-n="clove2" src="icons/splash/clove2.webp" alt="" style="left:7.52%;top:19.38%;width:8.7%;height:10.05%" />
         </div>
-        <img class="sp-full" src="icons/splash/icon-rund.webp" alt="" />
+        <img class="sp-full" src="icons/splash/lunchbox.webp" alt="" />
       </div></div>
       <div class="splash-name">Mise</div>
     </div>
     <script>
-      // Startanimation: Stop-Motion – die Schüsseln wandern über das Brett, füllen und leeren sich
-      // und landen am Ende an ihrem Platz (= App-Icon). Läuft sofort, noch bevor die App geladen ist.
+      // Startanimation: Stop-Motion – die Schüsseln wandern über das Brett, füllen und leeren sich und
+      // ordnen sich (Mise en Place). Dann wird alles in die Mitte „eingepackt“ und dort springt die Lunchbox
+      // (= App-Icon) auf. Läuft sofort, noch bevor die App geladen ist.
       (function () {
         var sp = document.getElementById('splash');
         if (matchMedia('(prefers-reduced-motion: reduce)').matches) { sp.classList.add('done'); return; }
@@ -77,7 +77,18 @@
           });
           sp.classList.add('go');
           if (++i < frames.length) setTimeout(step, 150);
-          else setTimeout(function () { sp.classList.add('done'); }, 160);
+          else setTimeout(pack, 260);
+        }
+        // Einpacken: alle Zutaten fliegen nacheinander in die Mitte, die Lunchbox wächst aus diesem Punkt
+        function pack() {
+          var c = [board.offsetWidth / 2, board.offsetHeight / 2];
+          sp.classList.add('pack');
+          els.forEach(function (e, k) {
+            var a = center(e);
+            e.style.transitionDelay = k * 28 + 'ms';
+            e.style.transform = 'translate(' + (c[0] - a[0]) + 'px,' + (c[1] - a[1]) + 'px) rotate(' + (k % 2 ? 40 : -40) + 'deg) scale(0.12)';
+          });
+          setTimeout(function () { sp.classList.add('done'); }, 260);
         }
         setTimeout(step, 120);
       })();

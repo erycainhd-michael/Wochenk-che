@@ -544,31 +544,30 @@ textarea { font: inherit; color: var(--text); background: var(--field); border: 
   55% { transform: scale(1.18) rotate(-9deg); }
 }
 
-/* Start: Blatt-Animation */
+/* Start: Stop-Motion der Schüsseln, dann springt die Lunchbox (App-Icon) auf */
 #splash {
   position: fixed; inset: 0; z-index: 100; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 22px;
   background: radial-gradient(circle at 50% 42%, #0f4a2e 0%, #0b3524 55%, #072619 100%); transition: opacity 0.45s ease;
 }
-/* Das Brett des App-Icons; die Zutaten springen als Stop-Motion darüber, am Ende liegt das Icon da */
 /* Außen: Schatten + Ein-/Auszoomen. Innen: das Brett, hart auf runde Ecken beschnitten.
    clip-path statt nur overflow/border-radius – Safari schneidet sonst bei Überblendungen eckig ab */
 .splash-icon {
-  width: min(66vw, 46vh, 300px); aspect-ratio: 1; border-radius: 22.5%;
+  width: min(66vw, 46vh, 300px); aspect-ratio: 1; border-radius: 24%;
   box-shadow: 0 18px 50px rgba(0, 0, 0, 0.35); animation: boardIn 0.35s cubic-bezier(0.2, 0.9, 0.3, 1.2) both;
 }
 .splash-board {
-  position: relative; width: 100%; height: 100%; border-radius: 22.5%; overflow: hidden;
-  clip-path: inset(0 round 22.5%); -webkit-clip-path: inset(0 round 22.5%); transform: translateZ(0);
+  position: relative; width: 100%; height: 100%; border-radius: 24%; overflow: hidden;
+  clip-path: inset(0 round 24%); -webkit-clip-path: inset(0 round 24%); transform: translateZ(0);
   background: radial-gradient(circle at 40% 39%, #135e38 0%, #0f5030 45%, #08301d 100%);
 }
-.splash-board { container-type: inline-size; }
-/* Brett aus dem echten Icon (ohne Schüsseln): gleiche Farbe, Kante, Kräuter und Salzkörner wie im Endbild */
-.splash-board .sp-bg { position: absolute; inset: 0; width: 100%; height: 100%; }
-/* Schatten wie im App-Icon (weich, nach unten rechts), damit Animation und Endbild gleich aussehen */
-.splash-board .sp { position: absolute; max-width: none; opacity: 0; will-change: transform; filter: drop-shadow(0.9cqw 1.5cqw 2.2cqw rgba(0, 12, 6, 0.5)); }
+.splash-board .sp { position: absolute; max-width: none; opacity: 0; will-change: transform; }
 #splash.go .sp { opacity: 1; }
-.splash-board .sp-full { position: absolute; inset: 0; width: 100%; height: 100%; border-radius: 22.5%; opacity: 0; transition: opacity 0.3s ease; }
-#splash.done .sp-full { opacity: 1; }
+.splash-board .sp-full {
+  position: absolute; inset: 0; width: 100%; height: 100%; border-radius: 24%; opacity: 0; transform: scale(0.18) rotate(-12deg);
+  transition: opacity 0.16s ease, transform 0.55s cubic-bezier(0.3, 1.45, 0.5, 1);
+}
+#splash.pack .sp { transition: transform 0.34s cubic-bezier(0.55, 0, 0.8, 0.3), opacity 0.2s 0.2s ease; opacity: 0; }
+#splash.done .sp-full { opacity: 1; transform: none; }
 @keyframes boardIn { from { transform: scale(0.7); opacity: 0; } }
 .splash-name { font-size: 1.7rem; font-weight: 700; letter-spacing: 0.04em; color: #eaf6ee; opacity: 0; transform: translateY(8px); transition: opacity 0.35s ease, transform 0.35s ease; }
 #splash.done .splash-name { opacity: 1; transform: none; }
