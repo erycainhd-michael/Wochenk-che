@@ -1,0 +1,61 @@
+name: Rezept für alle übernehmen
+
+# In der App erstellte Rezepte werden als Issue „Rezept: …“ eingereicht (mit dem Freigabe-Schlüssel
+# des Repository-Inhabers). Dieser Ablauf prüft das Rezept, ergänzt es in data/recipes.json und
+# schließt das Issue. Danach erscheint es auf allen Geräten.
+
+on:
+  issues:
+    types: [opened]
+
+permissions:
+  contents: write
+  issues: write
+  pages: write
+
+concurrency:
+  group: recipes
+  cancel-in-progress: false
+
+jobs:
+  import:
+    # Nur Einreichungen des Inhabers (über den Schlüssel aus der App), keine fremden Issues
+    if: startsWith(github.event.issue.title, 'Rezept:') && github.event.issue.user.login == github.repository_owner
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Rezept prüfen und übernehmen
+        id: imp
+        env:
+          ISSUE_BODY: ${{ github.event.issue.body }}
+        run: |
+          set +e
+          node scripts/import-recipe-issue.mjs > result.txt 2>&1
+          echo "code=$?" >> "$GITHUB_OUTPUT"
+          cat result.txt
+      - name: Daten prüfen
+        run: node scripts/validate-data.mjs
+      - name: Speichern
+        run: |
+          if git diff --quiet; then echo "Keine Änderung"; exit 0; fi
+          git config user.name "mise-bot"
+          git config user.email "mise-bot@users.noreply.github.com"
+          git add data/recipes.json data/ingredients.json
+          git commit -m "Rezept aus der App: ${{ github.event.issue.number }}"
+          for i in 1 2 3; do git pull --rebase origin main && git push origin HEAD:main && break; sleep 5; done
+      - name: Seite neu veröffentlichen
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh api -X POST "repos/${{ github.repository }}/pages/builds" || true
+      - name: Issue schließen
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh issue close ${{ github.event.issue.number }} --repo ${{ github.repository }} --comment "$(printf 'Übernommen ✓\n\n```\n%s\n```\n\n---\n_Mise-Rezeptfreigabe_' "$(cat result.txt)")"

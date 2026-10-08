@@ -475,9 +475,13 @@ export function finalizePlan(structure, ctx) {
     if (eatOut.has(slotKey(d, 'fruehstueck'))) meals.push(eatOutMeal('fruehstueck'));
     else if (breakfast) meals.push(mk('fruehstueck', breakfast, fit.fb));
     // Ergänzungen als eigene kleine Mahlzeit „Snack“ (zwischen Mittag und Abend)
-    const snacks = fit.addons.map((a, i) => {
+    // getauschte Snacks (structure.snackSwap[key] = Rezept-ID) ersetzen die automatische Wahl
+    const swapped = structure.snackSwap || {};
+    const snacks = fit.addons.map((auto, i) => {
+      const key = slotKey(d, i ? `snack${i + 1}` : 'snack');
+      const a = ctx.recipesById.has(swapped[key]) ? swapped[key] : auto;
       const items = recipeItems(ctx.recipesById.get(a), 1, settings, idx);
-      return { key: slotKey(d, i ? `snack${i + 1}` : 'snack'), slot: 'snack', kind: 'recipe', recipeId: a, factor: 1, items, macros: itemsMacros(items, idx), cost: itemsCost(items, idx, ctx.priceOf).cost };
+      return { key, slot: 'snack', kind: 'recipe', recipeId: a, factor: 1, items, macros: itemsMacros(items, idx), cost: itemsCost(items, idx, ctx.priceOf).cost };
     });
     for (const slot of MAIN_SLOTS) {
       if (slot === 'abend') meals.push(...snacks);
@@ -740,7 +744,13 @@ export function swapMeal(plan, mealKey, input, chosenId = null) {
   const [dStr, slot] = mealKey.split('-');
   const d = Number(dStr);
   const cake = cakesOf(structure).find((c) => c.key === mealKey);
-  if (cake) {
+  if (/-snack\d*$/.test(mealKey)) {
+    // Snack tauschen: anderer Snack (oder der gewählte)
+    const cur = plan.days[d]?.meals.find((m) => m.key === mealKey)?.recipeId;
+    const pool = ctx.addons.filter((r) => r.id !== cur);
+    if (!chosenId && !pool.length) return plan;
+    structure.snackSwap = { ...(structure.snackSwap || {}), [mealKey]: chosenId || pickWeighted(pool, pool.map((r) => ctx.info.get(r.id).weight), rng).id };
+  } else if (cake) {
     const pool = ctx.snacks.filter((r) => r.id !== cake.recipeId);
     if (chosenId) cake.recipeId = chosenId;
     else if (!pool.length) return plan;

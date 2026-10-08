@@ -155,6 +155,8 @@ async function init() {
   });
   checkSchedule();
   setInterval(checkSchedule, 60_000);
+  sendShares();
+  addEventListener('online', () => sendShares());
 }
 
 /** Zutaten-Datenbank + eigene Zutaten (aus dem Rezept-Editor) */
@@ -178,6 +180,11 @@ const slugify = (s) =>
 
 /** Eingebaute Rezepte + eigene/KI-Rezepte (eigene Änderungen überschreiben das Original). */
 function rebuildRecipes() {
+  // Geteilte Rezepte, die inzwischen in der gemeinsamen Sammlung sind, nicht mehr doppelt lokal halten
+  const builtinIds = new Set(S.builtin.map((r) => r.id));
+  const before = S.custom.length;
+  S.custom = S.custom.filter((r) => !(r.shared && builtinIds.has(r.id)));
+  if (S.custom.length !== before) store.set('customRecipes', S.custom);
   const byId = new Map(S.builtin.map((r) => [r.id, r]));
   for (const r of S.custom) byId.set(r.id, r);
   S.recipes = [...byId.values()];
@@ -215,7 +222,69 @@ async function aiRecipe({ title = '', type = 'main' } = {}) {
   r.source = 'ki';
   r.createdAt = new Date().toISOString();
   saveCustom(r);
+  shareRecipe(r);
   return r;
+}
+
+// --- Rezepte für alle Geräte teilen ---------------------------------------------
+// Neue Rezepte werden als GitHub-Issue „Rezept: …“ eingereicht. Ein GitHub-Ablauf prüft sie und
+// nimmt sie in data/recipes.json auf – danach erscheinen sie auf allen Geräten.
+const REPO = 'erycainhd-michael/Wochenk-che';
+
+function shareRecipe(r, announce = true) {
+  const q = store.get('shareQueue', []).filter((x) => x.recipe.id !== r.id);
+  // eigene Zutaten (mit Nährwerten) mitschicken, damit das Rezept überall berechnet werden kann
+  const baseIds = new Set(S.ingBase.map((i) => i.id));
+  const ingredients = r.ingredients
+    .map((l) => S.customIng.find((i) => i.id === l.id))
+    .filter((i) => i && !baseIds.has(i.id))
+    .map(({ id, name, cat, kcal, p, c, f, fib, pack, price, shelf, piece, tags }) => ({ id, name, cat, kcal, p, c, f, fib, pack, price, shelf, piece, tags }));
+  q.push({ recipe: r, ingredients, at: new Date().toISOString() });
+  store.set('shareQueue', q);
+  const own = S.custom.find((c) => c.id === r.id);
+  if (own) {
+    own.shared = true;
+    store.set('customRecipes', S.custom);
+  }
+  sendShares(announce);
+}
+
+let sharing = false;
+async function sendShares(announce = false) {
+  const token = S.settings.shareToken;
+  const q = store.get('shareQueue', []);
+  if (!q.length || sharing) return;
+  if (!token) {
+    if (announce) toast('Rezept gespeichert – nur auf diesem Gerät', { icon: '📱', sub: 'Für alle Geräte: Freigabe-Schlüssel in den Einstellungen eintragen' });
+    return;
+  }
+  if (navigator.onLine === false) return;
+  sharing = true;
+  try {
+    while (q.length) {
+      const item = q[0];
+      const res = await fetch(`https://api.github.com/repos/${REPO}/issues`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json', 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: `Rezept: ${item.recipe.name}`.slice(0, 120),
+          body: `Neues Rezept aus Mise (${S.settings.name || 'ohne Namen'}).\n\n\`\`\`json\n${JSON.stringify({ recipes: [item.recipe], ingredients: item.ingredients })}\n\`\`\`\n`,
+        }),
+      });
+      if (res.status === 401 || res.status === 403 || res.status === 404) {
+        toast('Teilen hat nicht geklappt', { icon: '🔑', sub: 'Der Freigabe-Schlüssel ist ungültig oder abgelaufen', kind: 'warn' });
+        break;
+      }
+      if (!res.ok) break;
+      q.shift();
+      store.set('shareQueue', q);
+      if (announce) toast('Rezept wird für alle Geräte übernommen', { icon: '🌍', sub: 'In ein paar Minuten überall verfügbar' });
+    }
+  } catch {
+    /* offline – später nochmal */
+  } finally {
+    sharing = false;
+  }
 }
 
 function registerSW() {
@@ -375,8 +444,8 @@ async function createPlanFromDraft() {
 }
 
 /** Laufende Woche ab Tag `start` neu planen (Auswärtstage und Vorrat bleiben). false = abgebrochen */
-function replanWeek(plan, start) {
-  if (Object.values(S.checks[plan.weekStart] || {}).some(Boolean) && !confirm('Die Woche neu planen? Haken auf der Einkaufsliste werden zurückgesetzt.')) return false;
+async function replanWeek(plan, start) {
+  if (Object.values(S.checks[plan.weekStart] || {}).some(Boolean) && !(await confirmBox('Woche neu planen?', 'Haken auf der Einkaufsliste werden zurückgesetzt.', 'Neu planen'))) return false;
   const eatOut = (plan.structure?.eatOut || []).map((k) => ({ day: Number(k.split('-')[0]), slot: k.split('-')[1] })).filter((x) => x.day >= start && !(plan.structure.away || []).includes(x.day));
   createPlan({ pantry: plan.pantryUsed || {}, eatOut, start });
   return true;
@@ -496,6 +565,17 @@ function route() {
 
 let lastRoute = '';
 function render() {
+  // Einladungslink (#/einladung/SCHLÜSSEL): Freigabe-Schlüssel übernehmen, dann normal weiter
+  if (location.hash.startsWith('#/einladung/')) {
+    const token = decodeURIComponent(location.hash.slice('#/einladung/'.length)).trim();
+    if (token.length > 20) {
+      S.settings.shareToken = token;
+      saveSettings();
+      toast('Rezepte werden jetzt mit allen Geräten geteilt', { icon: '🌍' });
+      sendShares();
+    }
+    history.replaceState(null, '', '#/woche');
+  }
   const r = route();
   if (lastRoute.startsWith('kochen/') && r.name !== 'kochen') keepAwake(false);
   const key = r.name + '/' + r.args.join('/');
@@ -887,14 +967,10 @@ function mealRow(plan, m) {
       <div class="mm">${num(m.macros.kcal)} kcal · ${g_(m.macros.p)} Protein</div>
       ${badges.length ? `<div class="badges">${badges.join('')}</div>` : ''}
     </a>
-    ${
-      !isSnack
-        ? `<div class="meal-btns">
+    <div class="meal-btns">
       <button class="round-btn" data-action="swap" data-key="${m.key}" aria-label="Neues Rezept vorschlagen">🔄</button>
       <a class="round-btn" href="#/waehlen/${m.key}" aria-label="Rezept aus der Sammlung wählen">🔎</a>
-    </div>`
-        : ''
-    }
+    </div>
   </li>`;
 }
 
@@ -1124,12 +1200,17 @@ function viewRecipes() {
     .map((g, i) =>
       g.length
         ? sep +
-          g.map((n) => `<button class="chip ${sel[i] === n ? 'on' : ''}" data-action="rfilter-cat" data-group="${i}" data-val="${e(n)}">${e(n)} <small>${all.filter((r) => match(r, i) && catsOf(r.id).includes(n)).length}</small></button>`).join('') +
-          (i === groups.length - 1 ? '<button class="chip add" data-action="cat-new">+ Kategorie</button>' : '')
+          g
+            .map((n) =>
+              S.ui.catEdit
+                ? `<button class="chip del" data-action="cat-del" data-val="${e(n)}" aria-label="${e(n)} löschen">✕ ${e(n)}</button>`
+                : `<button class="chip ${sel[i] === n ? 'on' : ''}" data-action="rfilter-cat" data-group="${i}" data-val="${e(n)}">${e(n)} <small>${all.filter((r) => match(r, i) && catsOf(r.id).includes(n)).length}</small></button>`
+            )
+            .join('') +
+          (i === groups.length - 1 && !S.ui.catEdit ? '<button class="chip add" data-action="cat-new">+ Kategorie</button>' : '')
         : ''
     )
     .join('');
-  const last = S.ui.rLast && Object.values(sel).includes(S.ui.rLast) ? S.ui.rLast : null;
   return `<header class="top col"><a class="back" href="#/woche">‹ Woche</a><h1><span class="h-count">${list.length}</span> ${list.length === 1 ? 'Rezept' : 'Rezepte'}</h1></header>
     <section class="card accent filters">
       <div class="chips cats">
@@ -1137,7 +1218,13 @@ function viewRecipes() {
         ${sep}${timeChips}${groupChips}
       </div>
       ${tf !== 'all' ? `<p class="hint">${TIME_FILTERS.find(([v]) => v === tf)[1]}: ${hints[tf]}</p>` : ''}
-      ${last ? `<button class="link danger small" data-action="cat-delete" data-val="${e(last)}">Kategorie „${e(last)}“ löschen</button>` : ''}
+      ${catNewRow()}
+      ${
+        S.ui.catEdit
+          ? `<p class="hint">Tippe auf eine Kategorie, um sie zu löschen. Die Rezepte bleiben erhalten.</p>
+        <div class="cat-tools">${(S.cats.removed || []).length ? `<button class="link small" data-action="cat-restore">Standard-Kategorien wiederherstellen</button>` : '<span></span>'}<button class="btn small pill primary" data-action="cat-edit">Fertig</button></div>`
+          : `<div class="cat-tools"><span></span><button class="link small" data-action="cat-edit">✏️ Kategorien bearbeiten</button></div>`
+      }
     </section>
     <section class="card new-recipe">${H2('✏️', 'Neues Rezept')}
       <div class="add-row"><input placeholder="z. B. Pilzrisotto" data-new-title="main" value="${e(S.ui.newTitle.main || '')}"><button class="btn pill" data-action="new-recipe" data-type="main">Erstellen</button></div>
@@ -1158,12 +1245,49 @@ function viewRecipes() {
     </section>`;
 }
 
+/** Eingabezeile für eine neue Kategorie (in der Rezeptliste oder auf einer Rezeptseite) */
+function catNewRow(id = '') {
+  if (!S.ui.catNew || S.ui.catNew.id !== id) return '';
+  return `<div class="add-row cat-new"><input data-cat-name="${e(id)}" placeholder="z. B. Familienrezepte" maxlength="30" enterkeyhint="done"><button class="btn pill primary" data-action="cat-add" data-id="${e(id)}">Anlegen</button></div>`;
+}
+
+/** Neue Kategorie anlegen (optional direkt einem Rezept zuordnen) */
+function addCategory(raw, id = '') {
+  const name = String(raw || '').trim().slice(0, 30);
+  if (!name) return toast('Bitte einen Namen eintragen', { icon: '✏️', kind: 'warn' });
+  if (!S.cats.names.includes(name)) S.cats.names.push(name);
+  S.cats.removed = (S.cats.removed || []).filter((n) => n !== name);
+  if (id) S.cats.map[id] = [...new Set([...(S.cats.map[id] || []), name])];
+  saveCats();
+  S.ui.catNew = null;
+  haptic();
+  toast('Kategorie angelegt', { icon: '🏷️', sub: name });
+  render();
+}
+
+/** Bestätigen ohne System-Dialog (die werden in iPhone-Web-Apps teils nicht angezeigt) */
+function confirmBox(title, text, okLabel = 'Löschen') {
+  return new Promise((resolve) => {
+    const ov = document.createElement('div');
+    ov.className = 'confirm-box';
+    ov.innerHTML = `<div class="cb-card"><h2>${e(title)}</h2><p class="sub">${e(text)}</p><div class="grid2"><button class="btn" data-cb="0">Abbrechen</button><button class="btn primary danger-fill" data-cb="1">${e(okLabel)}</button></div></div>`;
+    document.body.appendChild(ov);
+    ov.addEventListener('click', (ev) => {
+      const b = ev.target.closest('[data-cb]');
+      if (!b && ev.target !== ov) return;
+      ev.stopPropagation();
+      ov.remove();
+      resolve(b?.dataset.cb === '1');
+    });
+  });
+}
+
 /** 🔎 Rezept aus der Sammlung für eine Mahlzeit auswählen */
 function viewChoose(key) {
   const plan = displayedPlan();
   const meal = findMeal(plan, key);
   if (!meal) return `<div class="card">Mahlzeit nicht gefunden. <a href="#/woche">Zur Woche</a></div>`;
-  const type = isCake(meal) ? 'snack' : meal.slot === 'fruehstueck' ? 'breakfast' : 'main';
+  const type = isCake(meal) ? 'snack' : meal.slot === 'snack' ? 'addon' : meal.slot === 'fruehstueck' ? 'breakfast' : 'main';
   const q = S.ui.search.toLowerCase().trim();
   const list = S.recipes
     .filter((r) => r.type === type && r.id !== meal.recipeId)
@@ -1416,6 +1540,7 @@ function recipeHtml(r, items, macros, subtitle, back, info, cookKey, withServing
       <div class="chips cats">${S.cats.names
         .map((n) => `<button class="chip ${catsOf(r.id).includes(n) ? 'on' : ''}" data-action="rcat-toggle" data-id="${r.id}" data-val="${e(n)}">${catsOf(r.id).includes(n) ? '✓ ' : ''}${e(n)}</button>`)
         .join('')}<button class="chip add" data-action="cat-new" data-id="${r.id}">+ Neue Kategorie</button></div>
+      ${catNewRow(r.id)}
     </section>
     ${info}
     ${servings}
@@ -2057,6 +2182,13 @@ function viewSettings() {
     ${field('planHour', 'Neuer Plan montags ab (Uhr)', 'min="0" max="23"')}
   </section>
 
+  <section class="card"><h2>Rezepte für alle Geräte</h2>
+    <p class="sub">Neue Rezepte – von dir, deiner Familie oder der KI – landen in der gemeinsamen Sammlung und erscheinen nach ein paar Minuten auf allen Geräten. Dafür braucht jedes Gerät einmal den Freigabe-Schlüssel.</p>
+    <label class="field">Freigabe-Schlüssel<input type="password" autocomplete="off" placeholder="github_pat_…" data-set="shareToken" value="${e(st.shareToken || '')}"></label>
+    <p class="hint">${st.shareToken ? `✓ Teilen ist aktiv.${store.get('shareQueue', []).length ? ` ${store.get('shareQueue', []).length} Rezept(e) warten auf Internet.` : ''}` : 'Ohne Schlüssel bleiben neue Rezepte nur auf diesem Gerät.'}</p>
+    ${st.shareToken ? `<button class="btn small pill" data-action="share-invite">📨 Einladungslink für ein anderes Gerät</button>` : ''}
+  </section>
+
   <section class="card"><h2>KI-Rezepte <span class="sub">(optional, kostenpflichtig)</span></h2>
     <p class="sub">Mit einem eigenen Claude-API-Schlüssel erfindet Mise neue Gerichte: jeden Montag eines für deinen Plan, bei ↻ in der Woche und wenn du unter „Rezepte“ nur einen Titel einträgst. Kosten: ca. 3–5 Cent pro Rezept auf deinem Anthropic-Konto. Der Schlüssel bleibt nur auf diesem Gerät.</p>
     <label class="field">API-Schlüssel<input type="password" autocomplete="off" placeholder="sk-ant-…" data-set="aiKey" value="${e(st.aiKey || '')}"></label>
@@ -2154,7 +2286,7 @@ async function onClick(ev) {
       return render();
     case 'later-go': {
       const start = Number(el.dataset.day);
-      if (!replanWeek(plan, start)) return;
+      if (!(await replanWeek(plan, start))) return;
       S.ui.laterOpen = false;
       S.ui.openDays = {};
       toast(start ? `Plan ab ${DAY_NAMES[start]} erstellt` : 'Plan für die ganze Woche erstellt', { icon: '📅', sub: 'Einkaufsliste nur für die restlichen Tage' });
@@ -2162,7 +2294,7 @@ async function onClick(ev) {
     }
     case 'replan-studi': {
       const p = S.plans[currentWeek()];
-      if (!p || !replanWeek(p, p.days.find((d) => !d.away)?.day || 0)) return;
+      if (!p || !(await replanWeek(p, p.days.find((d) => !d.away)?.day || 0))) return;
       toast(S.settings.studi ? 'Woche im Studi-Modus neu geplant' : 'Woche neu geplant', { icon: S.settings.studi ? '🎓' : '📅', sub: `Einkauf jetzt ${euro(S.plans[currentWeek()].cost)}` });
       return render();
     }
@@ -2215,18 +2347,26 @@ async function onClick(ev) {
       else sel[g] = S.ui.rLast = el.dataset.val;
       return render();
     }
-    case 'cat-new': {
-      const name = (prompt('Name der neuen Kategorie, z. B. „Familienrezepte“') || '').trim().slice(0, 30);
-      if (!name) return;
-      if (!S.cats.names.includes(name)) S.cats.names.push(name);
-      if (el.dataset.id) S.cats.map[el.dataset.id] = [...new Set([...catsOf(el.dataset.id), name])];
-      saveCats();
-      toast('Kategorie angelegt', { icon: '🏷️', sub: name });
+    case 'cat-new':
+      S.ui.catNew = S.ui.catNew?.id === (el.dataset.id || '') ? null : { id: el.dataset.id || '' };
+      render();
+      document.querySelector('[data-cat-name]')?.focus();
+      return;
+    case 'cat-add':
+      return addCategory(document.querySelector('[data-cat-name]')?.value, el.dataset.id);
+    case 'cat-edit':
+      S.ui.catEdit = !S.ui.catEdit;
+      S.ui.catNew = null;
       return render();
-    }
-    case 'cat-delete': {
+    case 'cat-restore':
+      S.cats.removed = [];
+      for (const n of Object.keys(AUTO_CATS)) if (!S.cats.names.includes(n)) S.cats.names.push(n);
+      saveCats();
+      toast('Standard-Kategorien sind wieder da', { icon: '🏷️' });
+      return render();
+    case 'cat-del': {
       const name = el.dataset.val;
-      if (!confirm(`Kategorie „${name}“ löschen? Die Rezepte selbst bleiben erhalten.`)) return;
+      if (!(await confirmBox(`„${name}“ löschen?`, 'Die Kategorie verschwindet aus allen Rezepten. Die Rezepte selbst bleiben erhalten.'))) return;
       S.cats.names = S.cats.names.filter((n) => n !== name);
       if (AUTO_CATS[name]) S.cats.removed = [...new Set([...(S.cats.removed || []), name])];
       for (const id of Object.keys(S.cats.map)) {
@@ -2235,6 +2375,8 @@ async function onClick(ev) {
       }
       saveCats();
       S.ui.rSel = {};
+      haptic();
+      toast('Kategorie gelöscht', { icon: '🗑️', sub: name });
       return render();
     }
     case 'rcat-toggle': {
@@ -2276,8 +2418,8 @@ async function onClick(ev) {
       const key = el.dataset.key;
       const type = key.endsWith('fruehstueck') ? 'breakfast' : 'main';
       let chosen = null;
-      // „Kaffee & Kuchen“ am Wochenende: aus der Sammlung tauschen
-      if (S.settings.aiKey && !isCake(findMeal(plan, key))) {
+      // „Kaffee & Kuchen“ und Snacks: aus der Sammlung tauschen
+      if (S.settings.aiKey && !isCake(findMeal(plan, key)) && !/-snack/.test(key)) {
         busy('Mise erfindet ein neues Rezept …');
         try {
           chosen = (await aiRecipe({ type })).id;
@@ -2344,9 +2486,22 @@ async function onClick(ev) {
       toast('Tagesziele übernommen', { icon: '🎯', sub: 'Dein Wochenplan ist angepasst' });
       location.hash = '#/einstellungen';
       return;
+    case 'share-invite': {
+      const url = `${location.origin}${location.pathname}#/einladung/${encodeURIComponent(S.settings.shareToken)}`;
+      try {
+        if (navigator.share) await navigator.share({ title: 'Mise', text: 'Öffne den Link auf deinem iPhone (in Mise bzw. Safari), dann teilt Mise neue Rezepte mit allen:', url });
+        else {
+          await navigator.clipboard.writeText(url);
+          toast('Link kopiert', { icon: '📋' });
+        }
+      } catch {
+        /* abgebrochen */
+      }
+      return;
+    }
     case 'reset-app': {
-      if (!confirm('Mise wirklich zurücksetzen? Pläne, Einkaufslisten, Rückblick, eigene Rezepte und Einstellungen werden auf diesem Gerät gelöscht.')) return;
-      if (!confirm('Ganz sicher? Tipp: Vorher unter „Datensicherung“ sichern. Danach startet die Einführung neu.')) return;
+      if (!(await confirmBox('Mise zurücksetzen?', 'Pläne, Einkaufslisten, Rückblick, eigene Rezepte und Einstellungen werden auf diesem Gerät gelöscht.', 'Weiter'))) return;
+      if (!(await confirmBox('Ganz sicher?', 'Tipp: Vorher unter „Datensicherung“ sichern. Danach startet die Einführung neu.', 'Zurücksetzen'))) return;
       for (const k of store.keys()) store.del(k);
       location.hash = '#/woche';
       location.reload();
@@ -2460,16 +2615,19 @@ async function onClick(ev) {
       if (!r.ingredients.length) return toast('Bitte mindestens eine Zutat eintragen', { icon: '✏️', kind: 'warn' });
       if (!r.steps.length) return toast('Bitte mindestens einen Schritt eintragen', { icon: '✏️', kind: 'warn' });
       r.source = d.source || 'eigen';
+      // Neue Rezepte (nicht Änderungen an vorhandenen) gehen in die gemeinsame Sammlung
+      const isNew = !recipe(r.id) || (S.custom.find((c) => c.id === r.id)?.shared && !S.builtin.some((b) => b.id === r.id));
       saveCustom(r);
+      if (isNew) shareRecipe(r, false);
       S.ui.edit = null;
       location.hash = `#/rezept/${r.id}`;
-      toast('Rezept gespeichert', { icon: '📖' });
+      toast('Rezept gespeichert', { icon: '📖', sub: !isNew ? 'Änderungen gelten auf diesem Gerät' : S.settings.shareToken ? 'Erscheint in ein paar Minuten auf allen Geräten' : 'Nur auf diesem Gerät – Freigabe-Schlüssel fehlt' });
       return;
     }
     case 'edit-delete': {
       const id = S.ui.edit.id;
       const builtin = S.builtin.some((b) => b.id === id);
-      if (!confirm(builtin ? 'Deine Änderungen verwerfen und das Original wiederherstellen?' : 'Dieses Rezept löschen?')) return;
+      if (!(await confirmBox(builtin ? 'Original wiederherstellen?' : 'Rezept löschen?', builtin ? 'Deine Änderungen an diesem Rezept werden verworfen.' : 'Das Rezept wird von diesem Gerät gelöscht.', builtin ? 'Wiederherstellen' : 'Löschen'))) return;
       S.custom = S.custom.filter((r) => r.id !== id);
       store.set('customRecipes', S.custom);
       rebuildRecipes();
@@ -2525,7 +2683,7 @@ async function onClick(ev) {
       const day = document.getElementById('snap-pick')?.value;
       const snap = day && (await getSnapshot(day));
       if (!snap) return toast('Sicherung nicht gefunden', { icon: '⚠️', kind: 'warn' });
-      if (!confirm(`Daten auf den Stand vom ${fmtDateTime(snap.savedAt)} zurücksetzen? Neuere Änderungen gehen verloren.`)) return;
+      if (!(await confirmBox('Sicherung wiederherstellen?', `Daten auf den Stand vom ${fmtDateTime(snap.savedAt)} zurücksetzen? Neuere Änderungen gehen verloren.`, 'Wiederherstellen'))) return;
       importAll(snap.data);
       toast('Sicherung wiederhergestellt', { icon: '💾' });
       setTimeout(() => location.reload(), 700);
@@ -2642,7 +2800,7 @@ async function onClick(ev) {
     case 'export':
       return doExport();
     case 'reset-settings':
-      if (confirm('Alle Einstellungen auf Standard zurücksetzen? Pläne und Feedback bleiben erhalten.')) {
+      if (await confirmBox('Einstellungen zurücksetzen?', 'Alle Einstellungen gehen auf Standard. Pläne und Feedback bleiben erhalten.', 'Zurücksetzen')) {
         S.settings = clone(DEFAULT_SETTINGS);
         saveSettings();
         applyTheme();
@@ -2664,6 +2822,10 @@ function onChange(ev) {
     if (res.search) return runLookup(Number(el.dataset.editIng), name);
     if (S.ui.lookup?.n === Number(el.dataset.editIng)) S.ui.lookup = null;
     return render();
+  }
+  if (el.dataset.catName !== undefined) {
+    if (el.value.trim()) addCategory(el.value, el.dataset.catName);
+    return;
   }
   if (el.dataset.lookupQ !== undefined) {
     // Enter in der Produktsuche startet die Suche
@@ -2696,6 +2858,11 @@ function onChange(ev) {
     saveSettings();
     if (/^(goals\.|stores\.|mainStore$)/.test(el.dataset.set)) refitCurrent();
     if (el.dataset.set === 'theme') applyTheme();
+    if (el.dataset.set === 'shareToken') {
+      S.settings.shareToken = String(S.settings.shareToken || '').trim();
+      saveSettings();
+      sendShares(true);
+    }
     render();
     return;
   }
@@ -2743,7 +2910,7 @@ function onChange(ev) {
         toast('Sicherung importiert', { icon: '📦' });
         setTimeout(() => location.reload(), 600);
       } catch (err) {
-        alert(err.message);
+        toast('Import hat nicht geklappt', { icon: '⚠️', sub: err.message, kind: 'warn' });
       }
     };
     reader.readAsText(el.files[0]);

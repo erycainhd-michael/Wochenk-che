@@ -295,3 +295,14 @@ test('Einführung: Tagesziele aus Geschlecht, Alter, Größe, Gewicht, Aktivitä
   assert.ok(woman.kcal >= 1300 && woman.kcal <= 1700, `Frau abnehmen ${woman.kcal} kcal`);
   for (const g of [man, woman]) assert.ok(Math.abs(g.protein * 4 + g.carbs * 4 + g.fat * 9 - g.kcal) / g.kcal < 0.03, 'Makros ergeben die Kalorien');
 });
+
+test('Snacks lassen sich tauschen', () => {
+  const p = generatePlan({ recipes, idx, settings: settings(), weekStart: '2026-10-05', seed: 9, candidates: 10 });
+  const day = p.days.find((d) => d.meals.some((m) => m.slot === 'snack'));
+  const snack = day.meals.find((m) => m.slot === 'snack');
+  const next = swapMeal(p, snack.key, { recipes, idx, settings: settings(), weekStart: '2026-10-05' });
+  const after = next.days[day.day].meals.find((m) => m.key === snack.key);
+  assert.ok(after && after.recipeId !== snack.recipeId, `${snack.recipeId} → ${after?.recipeId}`);
+  const chosen = swapMeal(p, snack.key, { recipes, idx, settings: settings(), weekStart: '2026-10-05' }, 'snack_apfel_nuesse');
+  assert.equal(chosen.days[day.day].meals.find((m) => m.key === snack.key).recipeId, 'snack_apfel_nuesse');
+});

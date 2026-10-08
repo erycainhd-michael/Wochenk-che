@@ -159,3 +159,12 @@ Lokal testen (für Neugierige): `npm test` und `npm start`, dann http://localhos
 Eine Claude-Routine läuft jeden Sonntagabend über dein Claude-Abo (keine API-Kosten), erfindet 5 neue Gerichte nach deinen Prinzipien und trägt sie mit `node scripts/add-recipes.mjs` geprüft in `data/recipes.json` ein. Neue Rezepte sind in der App mit „neu“ markiert und werden in den ersten zwei Wochen bevorzugt eingeplant. Dein Feedback (😍 👍 👎 🧽 ⏱️) entscheidet danach, wie oft sie wiederkommen.
 
 Läden: Lidl, Aldi Nord, Edeka (Schloßstraße), dm und Rossmann sind auswählbar. Echte Wochenangebote gibt es automatisch nur von Edeka; für die anderen gelten Richtpreise.
+
+## Rezepte für alle Geräte teilen
+
+Neue Rezepte, die in der App entstehen (selbst geschrieben oder per KI), landen automatisch in der gemeinsamen Sammlung `data/recipes.json` und erscheinen nach ein paar Minuten auf allen Geräten:
+
+1. Die App reicht das Rezept als GitHub-Issue „Rezept: …“ ein (mit dem Freigabe-Schlüssel aus den Einstellungen).
+2. Der Ablauf `.github/workflows/recipe-share.yml` prüft es (`scripts/import-recipe-issue.mjs` → `scripts/add-recipes.mjs`), ergänzt eigene Zutaten in `data/ingredients.json`, speichert und schließt das Issue.
+
+**Freigabe-Schlüssel einrichten (einmalig):** github.com → Profilbild → Settings → Developer settings → Personal access tokens → Fine-grained tokens → „Generate new token“. Repository access: „Only select repositories“ → `Wochenk-che`. Permissions → Repository permissions → **Issues: Read and write** (sonst nichts). Den Schlüssel in Mise unter Einstellungen → „Rezepte für alle Geräte“ eintragen. Weitere Geräte bekommen ihn über „Einladungslink für ein anderes Gerät“.

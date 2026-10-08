@@ -35,9 +35,9 @@
     --text: #e8efe9;
     --muted: #9aaba0;
     --line: #2a362f;
-    --accent: #3fb97a;
+    --accent: #2e9e66;
     --accent-soft: #1d3227;
-    --accent-text: #08130d;
+    --accent-text: #ffffff;
     --chip: #26322b;
     --badge: #1e2a44;
     --badge-text: #93c5fd;
@@ -62,9 +62,9 @@
   --text: #e8efe9;
   --muted: #9aaba0;
   --line: #2a362f;
-  --accent: #3fb97a;
+  --accent: #2e9e66;
   --accent-soft: #1d3227;
-  --accent-text: #08130d;
+  --accent-text: #ffffff;
   --chip: #26322b;
   --badge: #1e2a44;
   --badge-text: #93c5fd;
@@ -709,7 +709,7 @@ body.cooking .view { padding-top: calc(var(--sat) + 60px); }
 .snap-row .btn { width: 100%; }
 
 /* Geschirr je Schritt */
-:root { --fancy: #e2681a; --fancy-soft: #fdebdc; --green: #1f7a4d; --gourmet: #8c1c32; --gourmet-soft: #f7e4e7;
+:root { --fancy: #e2681a; --fancy-soft: #fdebdc; --green: #1f7a4d; --gourmet: #8c1c32; --gourmet-ink: #8c1c32; --gourmet-soft: #f7e4e7;
   --magic: #ff8a00, #ff3b3b, #ffd23f, #9b5cff, #ff8a00; }
 .step-tools { display: flex; flex-wrap: wrap; gap: 4px; margin: 3px 0 2px; }
 .tool { font-size: 0.75rem; font-weight: 600; background: var(--accent-soft); color: var(--accent); border-radius: 999px; padding: 2px 10px; }
@@ -782,12 +782,12 @@ body.cooking .view { padding-top: calc(var(--sat) + 60px); }
 body.fancy { --accent: #e2681a; --accent-soft: #fdebdc; --accent-text: #ffffff; --hero: #d9611a; }
 body.fancy .rhero-art { background: linear-gradient(135deg, #ffd8ae, #ffc7c0 50%, #e7d6ff); }
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme='light']) { --fancy: #f5953f; --fancy-soft: #3a2516; --green: #3fb97a; --gourmet: #d65a71; --gourmet-soft: #3a1820; }
-  :root:not([data-theme='light']) body.fancy { --accent: #f5953f; --accent-soft: #3a2516; --accent-text: #1c0e03; --hero: #b9551a; }
+  :root:not([data-theme='light']) { --fancy: #e8752b; --fancy-soft: #3a2516; --green: #2e9e66; --gourmet: #a3223a; --gourmet-ink: #cc4560; --gourmet-soft: #3a1820; }
+  :root:not([data-theme='light']) body.fancy { --accent: #e8752b; --accent-soft: #3a2516; --accent-text: #ffffff; --hero: #b9551a; }
   :root:not([data-theme='light']) body.fancy .rhero-art { background: linear-gradient(135deg, #4a2a12, #47201f 50%, #33244d); }
 }
-:root[data-theme='dark'] { --fancy: #f5953f; --fancy-soft: #3a2516; --green: #3fb97a; --gourmet: #d65a71; --gourmet-soft: #3a1820; }
-:root[data-theme='dark'] body.fancy { --accent: #f5953f; --accent-soft: #3a2516; --accent-text: #1c0e03; --hero: #b9551a; }
+:root[data-theme='dark'] { --fancy: #e8752b; --fancy-soft: #3a2516; --green: #2e9e66; --gourmet: #a3223a; --gourmet-ink: #cc4560; --gourmet-soft: #3a1820; }
+:root[data-theme='dark'] body.fancy { --accent: #e8752b; --accent-soft: #3a2516; --accent-text: #ffffff; --hero: #b9551a; }
 :root[data-theme='dark'] body.fancy .rhero-art { background: linear-gradient(135deg, #4a2a12, #47201f 50%, #33244d); }
 
 /* Kochmodus eines aufwendigen Gerichts: umlaufende Linie in Orange, Rot, Gelb und Lila */
@@ -812,7 +812,7 @@ body.fancy .rhero-art { background: linear-gradient(135deg, #ffd8ae, #ffc7c0 50%
 .hidden-days b { color: var(--text); font-weight: 600; }
 
 /* Gourmet: Bordeauxrot mit Silber, Serifenschrift */
-.gourmet { --fancy: var(--gourmet); --fancy-soft: var(--gourmet-soft); --magic: #6e1023, #cfd0d8, #a3223a, #f4f4f8, #6e1023; }
+.gourmet { --fancy: var(--gourmet-ink); --fancy-soft: var(--gourmet-soft); --magic: #6e1023, #cfd0d8, #a3223a, #f4f4f8, #6e1023; }
 body.fancy.gourmet { --accent: var(--gourmet); --accent-soft: var(--gourmet-soft); --accent-text: #ffffff; --hero: #7a1a2c; }
 body.gourmet .rhero-art { background: linear-gradient(135deg, #f1dce1, #ececf1 55%, #dcc4ca); }
 @media (prefers-color-scheme: dark) { :root:not([data-theme='light']) body.gourmet .rhero-art { background: linear-gradient(135deg, #3d1520, #2b2b31 55%, #4a1a27); } }
@@ -886,3 +886,14 @@ body { min-height: calc(100vh + 1px); min-height: calc(100lvh + 1px); }
 .ob-nav .btn { margin: 0; }
 .grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0 10px; }
 .grid3 input { text-align: center; padding: 10px 8px; }
+
+/* Kategorien bearbeiten */
+.chips.cats .chip.del { background: var(--warn-bg); color: var(--warn); }
+.cat-tools { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-top: 8px; }
+.cat-tools .btn { margin: 0; }
+.add-row.cat-new { margin-top: 10px; }
+.confirm-box { position: fixed; inset: 0; z-index: 85; display: grid; place-items: center; padding: 24px; background: rgba(0, 0, 0, 0.45); animation: viewIn 0.2s ease-out; }
+.cb-card { width: 100%; max-width: 360px; background: var(--card); border-radius: var(--radius); padding: 18px; box-shadow: var(--shadow); }
+.cb-card .grid2 { margin-top: 14px; }
+.cb-card .btn { margin: 0; }
+.btn.danger-fill { background: #c0392b; border-color: #c0392b; color: #fff; }
