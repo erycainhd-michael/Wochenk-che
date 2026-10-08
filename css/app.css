@@ -561,7 +561,11 @@ textarea { font: inherit; color: var(--text); background: var(--field); border: 
   clip-path: inset(0 round 22.5%); -webkit-clip-path: inset(0 round 22.5%); transform: translateZ(0);
   background: radial-gradient(circle at 40% 39%, #135e38 0%, #0f5030 45%, #08301d 100%);
 }
-.splash-board .sp { position: absolute; max-width: none; opacity: 0; will-change: transform; }
+.splash-board { container-type: inline-size; }
+/* Brett aus dem echten Icon (ohne Schüsseln): gleiche Farbe, Kante, Kräuter und Salzkörner wie im Endbild */
+.splash-board .sp-bg { position: absolute; inset: 0; width: 100%; height: 100%; }
+/* Schatten wie im App-Icon (weich, nach unten rechts), damit Animation und Endbild gleich aussehen */
+.splash-board .sp { position: absolute; max-width: none; opacity: 0; will-change: transform; filter: drop-shadow(0.9cqw 1.5cqw 2.2cqw rgba(0, 12, 6, 0.5)); }
 #splash.go .sp { opacity: 1; }
 .splash-board .sp-full { position: absolute; inset: 0; width: 100%; height: 100%; border-radius: 22.5%; opacity: 0; transition: opacity 0.3s ease; }
 #splash.done .sp-full { opacity: 1; }
