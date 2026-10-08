@@ -1,6 +1,6 @@
 // Kurze, synthetische Soundeffekte (Web Audio, keine Dateien).
-// iOS: Mit audioSession „ambient“ respektieren die Töne den Lautlos-Schalter und
-// unterbrechen keine laufende Musik – mit Kopfhörern sind sie zu hören.
+// iOS: Kleine Töne laufen als „ambient“ (mischen sich mit Musik, folgen dem Lautlos-Schalter).
+// Timer-Alarm und „Fertig“ im Kochmodus laufen als „playback“: laut, auch wenn das iPhone lautlos ist.
 
 let ctx = null;
 let enabled = true;
@@ -74,9 +74,27 @@ function sparkle(at, notes, step = 0.05, vol = 0.07) {
   });
 }
 
-function play(fn, force = false) {
+let loudUntil = 0;
+/** Für wichtige Töne kurz auf „playback“ umschalten (ignoriert den Lautlos-Schalter) */
+export function setAudioSession(type) {
+  try {
+    if (navigator.audioSession) navigator.audioSession.type = type;
+  } catch {
+    /* nicht unterstützt */
+  }
+}
+function loud(ms) {
+  setAudioSession('playback');
+  loudUntil = Math.max(loudUntil, Date.now() + ms);
+  setTimeout(() => {
+    if (Date.now() >= loudUntil - 20) setAudioSession('ambient');
+  }, ms);
+}
+
+function play(fn, force = false, loudMs = 0) {
   if (!enabled && !force) return;
   try {
+    if (loudMs) loud(loudMs);
     if (!ctx) unlockAudio();
     if (!ctx) return;
     if (ctx.state === 'suspended') ctx.resume();
@@ -107,9 +125,9 @@ export const sound = {
     play(() => {
       for (let i = 0; i < 22; i++) {
         const fade = 1 - i / 26;
-        tone(i % 2 ? 2349 : 2093, i * 0.038, 0.07, { type: 'triangle', vol: 0.11 * fade });
+        tone(i % 2 ? 2349 : 2093, i * 0.038, 0.07, { type: 'triangle', vol: 0.5 * fade });
       }
-    }),
+    }, true, 2500),
   /** Aufwendiges Gericht: magischer Swoosh mit Glitzern statt Kochlöffel */
   magicStart: () =>
     play(() => {
@@ -122,12 +140,12 @@ export const sound = {
     play(() => {
       for (let i = 0; i < 16; i++) {
         const fade = 1 - i / 20;
-        tone(i % 2 ? 2349 : 2093, i * 0.038, 0.07, { type: 'triangle', vol: 0.09 * fade });
+        tone(i % 2 ? 2349 : 2093, i * 0.038, 0.07, { type: 'triangle', vol: 0.45 * fade });
       }
       swoosh(0.5, 0.6, [1800, 6000], 0.06);
       sparkle(0.62, [G6, E6, C6 * 2, G6 * 1.5, C6 * 2.5], 0.07, 0.06);
-      tone([C6, C6 * 2], 0.95, 1.1, { type: 'sine', vol: 0.05 });
-    }),
+      tone([C6, C6 * 2], 0.95, 1.1, { type: 'sine', vol: 0.12 });
+    }, true, 3000),
   /** Gewicht in Richtung Ziel: zwei weiche Töne aufwärts */
   progress: () => play(() => [E5, A5].forEach((f, i) => tone(f, i * 0.12, 0.3, { type: 'triangle', vol: 0.12 }))),
   /** Einkauf komplett: kurzer, heller Akkord mit Funkeln */
@@ -151,6 +169,6 @@ export const sound = {
   /** Timer abgelaufen (klingelt, bis er bestätigt wird) */
   alarm: (times = 3) =>
     play(() => {
-      for (let i = 0; i < times; i++) for (const [o, f] of [[0, A5], [0.18, 1175]]) tone(f, i * 0.7 + o, 0.16, { vol: 0.5 });
-    }, true),
+      for (let i = 0; i < times; i++) for (const [o, f] of [[0, A5], [0.18, 1175]]) tone(f, i * 0.7 + o, 0.16, { type: 'square', vol: 0.6 });
+    }, true, 3500),
 };
