@@ -67,7 +67,7 @@ function hideSplash() {
   if (reducedMotion()) return out();
   // Die Stop-Motion zu Ende laufen lassen, dann das fertige Icon noch kurz zeigen (höchstens 3 s insgesamt)
   const t0 = performance.now();
-  const wait = () => (el.classList.contains('done') || performance.now() - t0 > 3000 ? setTimeout(out, 550) : setTimeout(wait, 50));
+  const wait = () => (el.classList.contains('done') || performance.now() - t0 > 3000 ? setTimeout(out, 800) : setTimeout(wait, 50));
   wait();
 }
 
