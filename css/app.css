@@ -887,11 +887,7 @@ body { min-height: calc(100vh + 1px); min-height: calc(100lvh + 1px); }
 .grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0 10px; }
 .grid3 input { text-align: center; padding: 10px 8px; }
 
-/* Kategorien bearbeiten */
-.chips.cats .chip.del { background: var(--warn-bg); color: var(--warn); }
-.cat-tools { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-top: 8px; }
-.cat-tools .btn { margin: 0; }
-.add-row.cat-new { margin-top: 10px; }
+/* Eigener Bestätigungsdialog */
 .confirm-box { position: fixed; inset: 0; z-index: 85; display: grid; place-items: center; padding: 24px; background: rgba(0, 0, 0, 0.45); animation: viewIn 0.2s ease-out; }
 .cb-card { width: 100%; max-width: 360px; background: var(--card); border-radius: var(--radius); padding: 18px; box-shadow: var(--shadow); }
 .cb-card .grid2 { margin-top: 14px; }
