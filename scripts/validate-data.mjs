@@ -26,6 +26,7 @@ for (const r of rec) {
   for (const f of ['name', 'type', 'time', 'dishes', 'effort', 'tags', 'protein', 'ingredients', 'steps']) if (r[f] === undefined) errors.push(`${r.id}: Feld ${f} fehlt`);
   for (const l of r.ingredients) if (!idx.has(l.id)) errors.push(`${r.id}: Zutat ${l.id} fehlt in der Datenbank`);
   for (const s of r.steps) if (s.timer !== undefined && !(s.timer > 0)) errors.push(`${r.id}: ungültiger Timer`);
+  if (r.img && !fs.existsSync(r.img)) errors.push(`${r.id}: Bild ${r.img} fehlt`);
   const m = recipeMacros(r, idx, {}, 1);
   // Eingereichte Rezepte (source „nutzer“) haben keine Protein-/Zeit-Vorgaben
   if (r.source !== 'nutzer' && r.type !== 'snack' && r.type !== 'addon' && m.p < 25) errors.push(`${r.id}: nur ${Math.round(m.p)} g Protein pro Portion`);
