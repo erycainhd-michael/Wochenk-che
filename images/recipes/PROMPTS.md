@@ -351,3 +351,88 @@ Datei: `images/recipes/snack_toast_honig.webp`
 Datei: `images/recipes/snack_hafer_milch.webp`
 
 > Photorealistic overhead food photo, square-friendly 3:2 landscape (main subject centered so a square center crop works), served on a rich deep-green matte surface (#0e5a34, soft radial light from the upper left, dark vignette at the edges), warm natural studio light, soft shadow to the lower right, vivid fresh colors, glossy appetizing textures, a few scattered fresh herbs and spices as garnish, clean minimal composition, no text, no hands, no logos, high detail, same visual style as a premium iOS app icon of a meal-prep lunchbox. Dish: „Haferflocken mit Milch & Apfel“ – Milch 1,5 %, Äpfel, Haferflocken (zart), in a small bowl, glass or on a small plate.
+
+## Pasta Aglio e Olio mit Garnelen
+Datei: `images/recipes/aglio_olio_garnelen.webp`
+
+> Photorealistic overhead food photo, square-friendly 3:2 landscape (main subject centered so a square center crop works), served on a rich deep-green matte surface (#0e5a34, soft radial light from the upper left, dark vignette at the edges), warm natural studio light, soft shadow to the lower right, vivid fresh colors, glossy appetizing textures, a few scattered fresh herbs and spices as garnish, clean minimal composition, no text, no hands, no logos, high detail, same visual style as a premium iOS app icon of a meal-prep lunchbox. Dish: „Pasta Aglio e Olio mit Garnelen“ – Garnelen (TK, roh), Spaghetti, Grana Padano / Parmesan (Stück), Knoblauch, Zitronen (Bio, unbehandelt), Kräuter (TK, z. B. Petersilie/8-Kräuter), on a ceramic plate or in a shallow bowl.
+
+## Coq au Vin mit Champignons & Kartoffeln
+Datei: `images/recipes/coq_au_vin.webp`
+
+> Photorealistic overhead food photo, square-friendly 3:2 landscape (main subject centered so a square center crop works), served on a rich deep-green matte surface (#0e5a34, soft radial light from the upper left, dark vignette at the edges), warm natural studio light, soft shadow to the lower right, vivid fresh colors, glossy appetizing textures, a few scattered fresh herbs and spices as garnish, clean minimal composition, no text, no hands, no logos, high detail, same visual style as a premium iOS app icon of a meal-prep lunchbox. Dish: „Coq au Vin mit Champignons & Kartoffeln“ – Kartoffeln, festkochend, Hähnchen-Oberkeulen (ohne Haut & Knochen), Rotwein, trocken (zum Kochen), Champignons braun, Zwiebeln, Möhren (roh verwendet), on a ceramic plate or in a shallow bowl.
+
+## Miesmuscheln in Weißweinsud mit Baguette
+Datei: `images/recipes/miesmuscheln_weisswein.webp`
+
+> Photorealistic overhead food photo, square-friendly 3:2 landscape (main subject centered so a square center crop works), served on a rich deep-green matte surface (#0e5a34, soft radial light from the upper left, dark vignette at the edges), warm natural studio light, soft shadow to the lower right, vivid fresh colors, glossy appetizing textures, a few scattered fresh herbs and spices as garnish, clean minimal composition, no text, no hands, no logos, high detail, same visual style as a premium iOS app icon of a meal-prep lunchbox. Dish: „Miesmuscheln in Weißweinsud mit Baguette“ – Miesmuscheln (frisch, im Netz – Gewicht mit Schale), Weißwein, trocken (zum Kochen), Baguette, Zwiebeln, Butter, Knoblauch, on a ceramic plate or in a shallow bowl.
+
+## Pflaumen im Speckmantel
+Datei: `images/recipes/pflaumen_im_speckmantel.webp`
+
+> Photorealistic overhead food photo, square-friendly 3:2 landscape (main subject centered so a square center crop works), served on a rich deep-green matte surface (#0e5a34, soft radial light from the upper left, dark vignette at the edges), warm natural studio light, soft shadow to the lower right, vivid fresh colors, glossy appetizing textures, a few scattered fresh herbs and spices as garnish, clean minimal composition, no text, no hands, no logos, high detail, same visual style as a premium iOS app icon of a meal-prep lunchbox. Dish: „Pflaumen im Speckmantel“ – Trockenpflaumen (entsteint), Bacon / Frühstücksspeck (Scheiben), as an appetizer on a small plate or board.
+
+## Honigmelone mit Serranoschinken
+Datei: `images/recipes/melone_serrano.webp`
+
+> Photorealistic overhead food photo, square-friendly 3:2 landscape (main subject centered so a square center crop works), served on a rich deep-green matte surface (#0e5a34, soft radial light from the upper left, dark vignette at the edges), warm natural studio light, soft shadow to the lower right, vivid fresh colors, glossy appetizing textures, a few scattered fresh herbs and spices as garnish, clean minimal composition, no text, no hands, no logos, high detail, same visual style as a premium iOS app icon of a meal-prep lunchbox. Dish: „Honigmelone mit Serranoschinken“ – Honigmelone, Serrano-/Parmaschinken, Basilikum (Topf), as an appetizer on a small plate or board.
+
+## Französische Zwiebelsuppe mit Käse-Croûtons
+Datei: `images/recipes/franzoesische_zwiebelsuppe.webp`
+
+> Photorealistic overhead food photo, square-friendly 3:2 landscape (main subject centered so a square center crop works), served on a rich deep-green matte surface (#0e5a34, soft radial light from the upper left, dark vignette at the edges), warm natural studio light, soft shadow to the lower right, vivid fresh colors, glossy appetizing textures, a few scattered fresh herbs and spices as garnish, clean minimal composition, no text, no hands, no logos, high detail, same visual style as a premium iOS app icon of a meal-prep lunchbox. Dish: „Französische Zwiebelsuppe mit Käse-Croûtons“ – Zwiebeln, Gruyère / Bergkäse, Weißwein, trocken (zum Kochen), Baguette, Butter, Gemüsebrühe (Pulver), on a ceramic plate or in a shallow bowl.
+
+## Klassische Gazpacho mit Knoblauch-Garnelen
+Datei: `images/recipes/gazpacho_garnelen.webp`
+
+> Photorealistic overhead food photo, square-friendly 3:2 landscape (main subject centered so a square center crop works), served on a rich deep-green matte surface (#0e5a34, soft radial light from the upper left, dark vignette at the edges), warm natural studio light, soft shadow to the lower right, vivid fresh colors, glossy appetizing textures, a few scattered fresh herbs and spices as garnish, clean minimal composition, no text, no hands, no logos, high detail, same visual style as a premium iOS app icon of a meal-prep lunchbox. Dish: „Klassische Gazpacho mit Knoblauch-Garnelen“ – Tomaten (Rispe), Garnelen (TK, roh), Salatgurke, Paprika rot/gelb, Baguette, Rote Zwiebeln, on a ceramic plate or in a shallow bowl.
+
+## Soleier
+Datei: `images/recipes/soleier.webp`
+
+> Photorealistic overhead food photo, square-friendly 3:2 landscape (main subject centered so a square center crop works), served on a rich deep-green matte surface (#0e5a34, soft radial light from the upper left, dark vignette at the edges), warm natural studio light, soft shadow to the lower right, vivid fresh colors, glossy appetizing textures, a few scattered fresh herbs and spices as garnish, clean minimal composition, no text, no hands, no logos, high detail, same visual style as a premium iOS app icon of a meal-prep lunchbox. Dish: „Soleier“ – Eier (Freiland, M), Zwiebeln, Senf, as an appetizer on a small plate or board.
+
+## Pochierte Eier auf Lachsbrot mit Hollandaise
+Datei: `images/recipes/pochierte_eier_lachsbrot.webp`
+
+> Photorealistic overhead food photo, square-friendly 3:2 landscape (main subject centered so a square center crop works), served on a rich deep-green matte surface (#0e5a34, soft radial light from the upper left, dark vignette at the edges), warm natural studio light, soft shadow to the lower right, vivid fresh colors, glossy appetizing textures, a few scattered fresh herbs and spices as garnish, clean minimal composition, no text, no hands, no logos, high detail, same visual style as a premium iOS app icon of a meal-prep lunchbox. Dish: „Pochierte Eier auf Lachsbrot mit Hollandaise“ – Eier (Freiland, M), Vollkornbrot (geschnitten), Räucherlachs, Skyr natur, Babyspinat, Butter, in a ceramic bowl or on a plate.
+
+## Fisch aus dem Ofen mit Tomaten, Oliven & Süßkartoffeln
+Datei: `images/recipes/fisch_aus_dem_ofen.webp`
+
+> Photorealistic overhead food photo, square-friendly 3:2 landscape (main subject centered so a square center crop works), served on a rich deep-green matte surface (#0e5a34, soft radial light from the upper left, dark vignette at the edges), warm natural studio light, soft shadow to the lower right, vivid fresh colors, glossy appetizing textures, a few scattered fresh herbs and spices as garnish, clean minimal composition, no text, no hands, no logos, high detail, same visual style as a premium iOS app icon of a meal-prep lunchbox. Dish: „Fisch aus dem Ofen mit Tomaten, Oliven & Süßkartoffeln“ – Süßkartoffeln, Seelachs-/Kabeljaufilet (TK, natur), Cherrytomaten, Zucchini, Rote Zwiebeln, Oliven, schwarz (entsteint), on a ceramic plate or in a shallow bowl.
+
+## Artischocken-Pesto-Pizza mit Burrata & Zitronen-Rucola
+Datei: `images/recipes/artischocken_burrata_pizza.webp`
+
+> Photorealistic overhead food photo, square-friendly 3:2 landscape (main subject centered so a square center crop works), served on a rich deep-green matte surface (#0e5a34, soft radial light from the upper left, dark vignette at the edges), warm natural studio light, soft shadow to the lower right, vivid fresh colors, glossy appetizing textures, a few scattered fresh herbs and spices as garnish, clean minimal composition, no text, no hands, no logos, high detail, same visual style as a premium iOS app icon of a meal-prep lunchbox. Dish: „Artischocken-Pesto-Pizza mit Burrata & Zitronen-Rucola“ – Pizzateig (Kühlregal), Artischockenherzen (Glas/Dose), Mozzarella, Burrata, Rucola, Grana Padano / Parmesan (Stück), on a ceramic plate or in a shallow bowl.
+
+## Tagliatelle Funghi con Salsiccia
+Datei: `images/recipes/tagliatelle_funghi_salsiccia.webp`
+
+> Photorealistic overhead food photo, square-friendly 3:2 landscape (main subject centered so a square center crop works), served on a rich deep-green matte surface (#0e5a34, soft radial light from the upper left, dark vignette at the edges), warm natural studio light, soft shadow to the lower right, vivid fresh colors, glossy appetizing textures, a few scattered fresh herbs and spices as garnish, clean minimal composition, no text, no hands, no logos, high detail, same visual style as a premium iOS app icon of a meal-prep lunchbox. Dish: „Tagliatelle Funghi con Salsiccia“ – Champignons braun, Tagliatelle (Eier-Bandnudeln), Salsiccia / grobe Bratwurst, Kochsahne 15 %, Zwiebeln, Weißwein, trocken (zum Kochen), on a ceramic plate or in a shallow bowl.
+
+## Polenta-Zitronenkuchen mit Pinienkernen
+Datei: `images/recipes/polenta_zitronenkuchen.webp`
+
+> Photorealistic overhead food photo, square-friendly 3:2 landscape (main subject centered so a square center crop works), served on a rich deep-green matte surface (#0e5a34, soft radial light from the upper left, dark vignette at the edges), warm natural studio light, soft shadow to the lower right, vivid fresh colors, glossy appetizing textures, a few scattered fresh herbs and spices as garnish, clean minimal composition, no text, no hands, no logos, high detail, same visual style as a premium iOS app icon of a meal-prep lunchbox. Dish: „Polenta-Zitronenkuchen mit Pinienkernen“ – Zucker (auch Puder-/Vanillezucker), Zitronen (Bio, unbehandelt), Eier (Freiland, M), Polenta / Maisgrieß, Mandeln (gehobelt/Splitter), Schlagsahne 30 %, in a small bowl, glass or on a small plate.
+
+## Waffeln
+Datei: `images/recipes/waffeln.webp`
+
+> Photorealistic overhead food photo, square-friendly 3:2 landscape (main subject centered so a square center crop works), served on a rich deep-green matte surface (#0e5a34, soft radial light from the upper left, dark vignette at the edges), warm natural studio light, soft shadow to the lower right, vivid fresh colors, glossy appetizing textures, a few scattered fresh herbs and spices as garnish, clean minimal composition, no text, no hands, no logos, high detail, same visual style as a premium iOS app icon of a meal-prep lunchbox. Dish: „Waffeln“ – Weizenmehl (Type 405), Zucker (auch Puder-/Vanillezucker), Butter, Eier (Freiland, M), Zitronen (Bio, unbehandelt), Backpulver, in a small bowl, glass or on a small plate.
+
+## Frühlingssuppe mit Fleischwurst
+Datei: `images/recipes/fruehlingssuppe.webp`
+
+> Photorealistic overhead food photo, square-friendly 3:2 landscape (main subject centered so a square center crop works), served on a rich deep-green matte surface (#0e5a34, soft radial light from the upper left, dark vignette at the edges), warm natural studio light, soft shadow to the lower right, vivid fresh colors, glossy appetizing textures, a few scattered fresh herbs and spices as garnish, clean minimal composition, no text, no hands, no logos, high detail, same visual style as a premium iOS app icon of a meal-prep lunchbox. Dish: „Frühlingssuppe mit Fleischwurst“ – Kartoffeln, festkochend, Erbsen (TK), Fleischwurst (gern Geflügel), Porree / Lauch, Möhren (roh verwendet), Gemüsebrühe (Pulver), on a ceramic plate or in a shallow bowl.
+
+## Zwiebel-Blätterteigröllchen
+Datei: `images/recipes/zwiebel_blaetterteigroellchen.webp`
+
+> Photorealistic overhead food photo, square-friendly 3:2 landscape (main subject centered so a square center crop works), served on a rich deep-green matte surface (#0e5a34, soft radial light from the upper left, dark vignette at the edges), warm natural studio light, soft shadow to the lower right, vivid fresh colors, glossy appetizing textures, a few scattered fresh herbs and spices as garnish, clean minimal composition, no text, no hands, no logos, high detail, same visual style as a premium iOS app icon of a meal-prep lunchbox. Dish: „Zwiebel-Blätterteigröllchen“ – Blätterteig (Kühlregal, ausgerollt), Crème fraîche, Zwiebelsuppe (Instant-Päckchen), as an appetizer on a small plate or board.
+
+## Tiramisu mit Amaretto
+Datei: `images/recipes/tiramisu_amaretto.webp`
+
+> Photorealistic overhead food photo, square-friendly 3:2 landscape (main subject centered so a square center crop works), served on a rich deep-green matte surface (#0e5a34, soft radial light from the upper left, dark vignette at the edges), warm natural studio light, soft shadow to the lower right, vivid fresh colors, glossy appetizing textures, a few scattered fresh herbs and spices as garnish, clean minimal composition, no text, no hands, no logos, high detail, same visual style as a premium iOS app icon of a meal-prep lunchbox. Dish: „Tiramisu mit Amaretto“ – Mascarpone, Espresso/Kaffee (für Tiramisu), Löffelbiskuits, Schlagsahne 30 %, Zucker (auch Puder-/Vanillezucker), Amaretto, in a small bowl, glass or on a small plate.

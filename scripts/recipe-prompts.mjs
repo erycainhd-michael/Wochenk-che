@@ -19,7 +19,7 @@ const lines = rec.map((r) => {
     .sort((a, b) => b.g - a.g)
     .slice(0, 6)
     .map((l) => name[l.id] || l.id);
-  const vessel = r.type === 'breakfast' ? 'in a ceramic bowl or on a plate' : r.type === 'snack' || r.type === 'addon' ? 'in a small bowl, glass or on a small plate' : 'on a ceramic plate or in a shallow bowl';
+  const vessel = r.type === 'extra' ? 'as an appetizer on a small plate or board' : r.type === 'breakfast' ? 'in a ceramic bowl or on a plate' : r.type === 'snack' || r.type === 'addon' ? 'in a small bowl, glass or on a small plate' : 'on a ceramic plate or in a shallow bowl';
   return `## ${r.name}\nDatei: \`images/recipes/${r.id}.webp\`\n\n> ${STYLE} Dish: „${r.name}“ – ${main.join(', ')}, ${vessel}.\n`;
 });
 fs.writeFileSync(

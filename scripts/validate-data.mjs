@@ -29,7 +29,7 @@ for (const r of rec) {
   if (r.img && !fs.existsSync(r.img)) errors.push(`${r.id}: Bild ${r.img} fehlt`);
   const m = recipeMacros(r, idx, {}, 1);
   // Eingereichte Rezepte (source „nutzer“) haben keine Protein-/Zeit-Vorgaben
-  if (r.source !== 'nutzer' && r.type !== 'snack' && r.type !== 'addon' && m.p < 25) errors.push(`${r.id}: nur ${Math.round(m.p)} g Protein pro Portion`);
+  if (r.source !== 'nutzer' && !['snack', 'addon', 'extra'].includes(r.type) && m.p < 25) errors.push(`${r.id}: nur ${Math.round(m.p)} g Protein pro Portion`);
   if (r.source !== 'nutzer' && r.type === 'main' && r.effort < 3 && r.time > 35) errors.push(`${r.id}: ${r.time} Min. – zu lang für ein schnelles Gericht`);
 }
 if (counts.main < 30) errors.push(`Nur ${counts.main} Hauptgerichte (mind. 30)`);
