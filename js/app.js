@@ -70,6 +70,11 @@ function hideSplash() {
 // Eckenradius der iPhone-Displays (Punkte), nach Bildschirmgröße im Hochformat
 const SCREEN_RADIUS = { '375x812': 41, '414x896': 41.5, '390x844': 47.33, '428x926': 53.33, '393x852': 55, '430x932': 55, '402x874': 62, '440x956': 62, '420x912': 60 };
 
+/** Sichtbare Höhe für Layouts, die genau den Bildschirm füllen (Rückblick) */
+function setVh() {
+  document.documentElement.style.setProperty('--vh', `${innerHeight}px`);
+}
+
 /**
  * Abstand der Tab-Leiste zum unteren Rand einmal messen und festhalten (neu nur beim Drehen),
  * dazu der Eckenradius des Displays für den Rahmen im Kochmodus.
@@ -95,7 +100,8 @@ async function init() {
   window.__miseStarted = true;
   applyTheme();
   pinChrome();
-  addEventListener('resize', pinChrome);
+  setVh();
+  addEventListener('resize', () => (pinChrome(), setVh()));
   // Töne sind immer an (Timer und „Fertig“ klingeln auch bei Lautlos)
   setSoundsEnabled(true);
   try {
@@ -1515,7 +1521,8 @@ const parseKg = (s) => {
  * Beim Öffnen des Rückblicks zeichnen sich die Linien animiert (Klasse .play am Container).
  */
 function lineChart({ weeks, series, min, max, ticks, fmt, labelFmt = fmt, goal, unit = '', forecastFrom = null }) {
-  const W = 320, H = 150, L = 30, R = 46, T = 12, B = 24;
+  // flach genug, dass beide Diagramme in die feste Rückblick-Karte passen
+  const W = 320, H = 112, L = 30, R = 46, T = 12, B = 22;
   const x = (i) => L + (i * (W - L - R)) / (weeks.length - 1);
   const y = (v) => T + (1 - (v - min) / (max - min)) * (H - T - B);
   const grid = ticks.map((t) => `<line class="grid" x1="${L}" x2="${W - R}" y1="${y(t)}" y2="${y(t)}"/><text class="axis" x="${L - 6}" y="${y(t) + 4}" text-anchor="end">${fmt(t)}</text>`).join('');
@@ -1564,7 +1571,7 @@ function weightTrend(points) {
   return points.reduce((a, p) => a + (p.i - mx) * (p.v - my), 0) / den;
 }
 
-function trendCard(ws) {
+function trendCard(ws, rateWs = null) {
   const weeks = [-21, -14, -7, 0].map((d) => addDays(ws, d));
   const val = (w, f) => feedbackFor(w)?.week?.[f] ?? null;
   const sat = weeks.map((w) => val(w, 'satiety'));
@@ -1576,15 +1583,15 @@ function trendCard(ws) {
     ? lineChart({
         weeks,
         min: 1,
-        max: 5,
-        ticks: [1, 3, 5],
+        max: 6,
+        ticks: [1, 6],
         fmt: (v) => num(v),
         series: [
           { name: 'Sättigung', cls: 's1', marker: 'circle', values: sat, nudge: close && lastOf(sat) >= lastOf(en) ? -7 : close ? 7 : 0 },
           { name: 'Energie', cls: 's2', marker: 'square', values: en, nudge: close && lastOf(sat) >= lastOf(en) ? 7 : close ? -7 : 0 },
         ],
       })
-    : `<p class="chart-empty">Noch keine Werte – bewerte unten Sättigung und Energie.</p>`;
+    : `<p class="chart-empty">Noch keine Werte – tippe unten auf Sättigung und Energie.</p>`;
 
   // Gewicht: 4 Wochen Verlauf + 2 Wochen Prognose aus dem Trend
   const goal = S.settings.goalWeight;
@@ -1653,7 +1660,27 @@ function trendCard(ws) {
       ${trendText ? `<p class="trend-text">${trendText}</p>` : ''}
     </div>
     ${has(sat) || has(en) || has(kg) ? `<p class="chart-tip sub" aria-live="polite">Punkt antippen für Details</p>` : ''}
+    ${rateWs ? weekRating(rateWs) : ''}
   </section>`;
+}
+
+/**
+ * „Wie war die Woche?“ in einer Zeile: Sättigung und Energie zählen bei jedem Tippen hoch (1–6,
+ * danach wieder leer), daneben Gewicht und Ziel.
+ */
+function weekRating(ws) {
+  const wk = feedbackFor(ws)?.week || {};
+  const rate = (field, label) => {
+    const v = wk[field] || 0;
+    return `<button class="rate-btn ${v ? 'on' : ''}" data-action="rate" data-week="${ws}" data-field="${field}" style="--p:${(v / 6) * 100}%" aria-label="${label}: ${v || 'nicht bewertet'} von 6">
+      <span class="rate-ring"><b>${v || '–'}</b></span><small>${label}</small></button>`;
+  };
+  return `<div class="week-rate">
+    ${rate('satiety', 'Sättigung')}
+    ${rate('energy', 'Energie')}
+    <label class="mini-field"><small>Gewicht</small><input type="text" inputmode="decimal" placeholder="kg" data-weight data-week="${ws}" value="${fmtKg(wk.weight)}"></label>
+    <label class="mini-field"><small>Ziel</small><input type="text" inputmode="decimal" placeholder="kg" data-goal-weight value="${fmtKg(S.settings.goalWeight)}"></label>
+  </div>`;
 }
 
 /**
@@ -1688,12 +1715,15 @@ function setupKwStrip() {
     return items.reduce((a, b) => (Math.abs(b.offsetLeft + b.offsetWidth / 2 - mid) < Math.abs(a.offsetLeft + a.offsetWidth / 2 - mid) ? b : a));
   };
   const settle = () => {
+    // Leiste wurde inzwischen neu gezeichnet: alte Leiste darf nicht mehr umschalten
+    if (!strip.isConnected) return;
     const el = centered();
     if (el && el !== cur) location.hash = `#/rueckblick/${el.dataset.week}`;
   };
   strip.addEventListener(
     'scroll',
     () => {
+      if (!strip.isConnected) return clearTimeout(timer);
       const el = centered();
       if (el !== last) {
         last?.classList.remove('near');
@@ -1786,9 +1816,11 @@ function viewReview(weekArg) {
   const valid = (w) => /^\d{4}-\d{2}-\d{2}$/.test(w || '') && w <= maxWeek;
   const ws = valid(weekArg) ? mondayOf(new Date(weekArg + 'T12:00:00')) : weeks[0] || currentWeek();
   const plan = S.plans[ws];
-  const head = `<header class="top col"><h1>Rückblick</h1><div class="sub">Dein Feedback beeinflusst, wie oft Gerichte künftig vorkommen.</div></header>`;
+  const head = `<header class="top col"><h1>Rückblick</h1></header>`;
+  // Oben: Diagramme samt Wochenbewertung und KW-Leiste füllen genau den Bildschirm
+  const top = (card) => `<div class="rb-top">${head}${card}${weekPager(ws, maxWeek)}</div>`;
   if (ws > currentWeek() && !plan) {
-    return `${head}${trendCard(currentWeek())}${weekPager(ws, maxWeek)}
+    return `${top(trendCard(currentWeek(), currentWeek()))}
       <section class="card tip"><p>🗓️ Der Plan für KW ${isoWeek(ws)} wird am Montag ab ${S.settings.planHour ?? 8}:00 Uhr erstellt. Hier kannst du ihn vorbereiten:</p></section>
       ${planningCards}`;
   }
@@ -1816,10 +1848,6 @@ function viewReview(weekArg) {
     const on = val === undefined ? !!cur : cur === val;
     return `<button class="pill circle ${on ? 'on' : ''}" data-action="fb" data-week="${ws}" data-id="${id}" data-field="${field}" data-val="${val ?? ''}" aria-label="${label}" title="${label}">${emoji}</button>`;
   };
-  const scale = (field, label) =>
-    `<div class="scale"><span>${label}</span><div class="pills spread">${[1, 2, 3, 4, 5]
-      .map((v) => `<button class="pill circle ${fb.week?.[field] === v ? 'on' : ''}" data-action="fbw" data-week="${ws}" data-field="${field}" data-val="${v}">${v}</button>`)
-      .join('')}</div></div>`;
   const dishesCard = () =>
     byDay.length
       ? `<section class="card"><h2>Gerichte der Woche</h2><ul class="fb-days">${byDay
@@ -1828,30 +1856,15 @@ function viewReview(weekArg) {
               .map((id) => {
                 const more = also.get(id).slice(1);
                 return `<div class="fb-meal"><div class="fb-name">${e(recipe(id)?.name || id)}${more.length ? ` <small class="muted">· auch ${more.join(', ')}</small>` : ''}</div><div class="pills">
-          ${icon(id, 'rating', 2, '😍', 'Ich liebe das')}${icon(id, 'rating', 1, '👍', 'War gut')}${icon(id, 'rating', -1, '👎', 'War schlecht')}${icon(id, 'dishes', undefined, '🧽', 'War zu viel Abwasch')}${icon(id, 'tooComplex', undefined, '⏱️', 'War zu aufwendig')}
+          ${icon(id, 'rating', 1, '👍', 'War gut')}${icon(id, 'rating', -1, '👎', 'War schlecht')}${icon(id, 'dishes', undefined, '🧽', 'War zu viel Abwasch')}${icon(id, 'tooComplex', undefined, '⏱️', 'War zu aufwendig')}${icon(id, 'tooExpensive', undefined, '💸', 'War zu teuer')}
         </div></div>`;
               })
               .join('')}</div></li>`
           )
           .join('')}</ul></section>`
       : '';
-  const w = fb.week?.weight;
-  const goal = S.settings.goalWeight;
-  const diff = w != null && goal ? Math.round((w - goal) * 10) / 10 : null;
-  const goalText = diff == null ? '' : Math.abs(diff) < 0.05 ? '🎉 Ziel erreicht!' : `Noch ${fmtKg(Math.abs(diff))} kg bis zum Ziel.`;
-  return `${head}
-    ${trendCard(ws)}
-    ${weekPager(ws, maxWeek)}
+  return `${top(trendCard(ws, ws))}
     ${hints.length ? `<section class="card tip">${hints.map((h) => `<p>💡 ${e(h)}</p>`).join('')}</section>` : ''}
-    <section class="card"><h2>Wie war die Woche?</h2>
-      ${scale('satiety', 'Sättigung')}
-      ${scale('energy', 'Energie')}
-      <div class="grid2">
-        <label class="field">Gewicht (kg)<input type="text" inputmode="decimal" placeholder="z. B. 82,4" data-weight data-week="${ws}" value="${fmtKg(w)}"></label>
-        <label class="field">Zielgewicht (kg)<input type="text" inputmode="decimal" placeholder="z. B. 80,0" data-goal-weight value="${fmtKg(goal)}"></label>
-      </div>
-      ${goalText ? `<p class="goal-text">${goalText}</p>` : ''}
-    </section>
     ${plan ? '' : `<p class="sub center">Für diese Woche gibt es keinen Plan – Sättigung, Energie und Gewicht kannst du trotzdem eintragen.</p>`}
     ${dishesCard()}
     ${ws === currentWeek() || ws === weeks[0] ? planningCards : ''}`;
@@ -2467,6 +2480,20 @@ async function onClick(ev) {
       });
       haptic();
       fx(`[data-action="fb"][data-id="${id}"][data-field="${field}"][data-val="${val}"].on`);
+      return render();
+    }
+    case 'rate': {
+      // Antippen zählt hoch: 1, 2 … 6, danach wieder leer
+      const { week, field } = el.dataset;
+      updateFeedback(week, (fb) => {
+        fb.week ||= {};
+        const v = (fb.week[field] || 0) + 1;
+        if (v > 6) delete fb.week[field];
+        else fb.week[field] = v;
+      });
+      haptic();
+      sound.check();
+      fx(`[data-action="rate"][data-field="${field}"] .rate-ring`);
       return render();
     }
     case 'fbw':
