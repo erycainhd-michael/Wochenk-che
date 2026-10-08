@@ -1216,7 +1216,7 @@ function viewRecipes() {
   const match = (r, skip = null, time = tf) =>
     (skip === 'time' || time === 'all' || timeClass(r) === time) && groups.every((_, i) => i === skip || !sel[i] || catsOf(r.id).includes(sel[i]));
   const list = all.filter((r) => match(r)).sort((a, b) => a.name.localeCompare(b.name, 'de'));
-  // Darstellung: Liste (ohne Bild) oder Raster (zwei quadratische Bilder nebeneinander, ohne Text)
+  // Darstellung: Liste (ohne Bild) oder Raster (zwei quadratische Bilder nebeneinander, darunter der Kurzname wie im Einkauf)
   const grid = store.get('recipeView', 'list') === 'grid';
   const any = tf !== 'all' || Object.keys(sel).length;
   const hints = { kurz: 'bis 15 Min.', mittel: '15–30 Min.', aufwendig: 'über 30 Min. oder aufwendig' };
@@ -1252,7 +1252,7 @@ function viewRecipes() {
       ${
         grid
           ? `<ul class="rgrid">${list
-              .map((r) => `<li class="${themeCls(r)}"><a class="rtile" href="#/rezept/${r.id}" aria-label="${e(r.name)}">${recipeArt(r)}${isFav(r.id) ? '<i class="rtile-fav" aria-hidden="true">⭐</i>' : ''}</a></li>`)
+              .map((r) => `<li class="${themeCls(r)}"><a class="rcell" href="#/rezept/${r.id}" aria-label="${e(r.name)}"><span class="rtile">${recipeArt(r)}${isFav(r.id) ? '<i class="rtile-fav" aria-hidden="true">⭐</i>' : ''}</span><span class="rtile-name">${e(shortName(r))}</span></a></li>`)
               .join('')}</ul>`
           : `<ul class="list">${list
         .map((r) => {
