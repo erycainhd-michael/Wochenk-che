@@ -132,7 +132,8 @@ test('Plan orientiert sich an allen Tageszielen (kcal, Protein, Kohlenhydrate, F
 
 test('Studi-Modus: günstiger, Ziele bleiben', () => {
   const costs = { normal: 0, studi: 0 };
-  for (const seed of [3, 4]) {
+  // über mehrere Wochen mitteln: eine einzelne Woche kann je nach Zufall auch mal gleich teuer sein
+  for (const seed of [1, 2, 3, 4, 5, 6]) {
     for (const mode of ['normal', 'studi']) {
       const s = settings();
       s.studi = mode === 'studi';
