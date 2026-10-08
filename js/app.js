@@ -1190,7 +1190,6 @@ function syncFav(id) {
   const on = isFav(id);
   document.querySelectorAll(`[data-action="fav-toggle"][data-id="${CSS.escape(id)}"]`).forEach((b) => {
     b.classList.toggle('on', on);
-    b.textContent = on ? '★' : '☆';
     b.setAttribute('aria-label', on ? 'Aus Favoriten entfernen' : 'Zu Favoriten hinzufügen');
   });
   document.querySelectorAll(`[data-action="rcat-toggle"][data-id="${CSS.escape(id)}"][data-val="Favoriten"]`).forEach((c) => {
@@ -1220,20 +1219,18 @@ function viewRecipes() {
   const timeChips = TIME_FILTERS.filter(([v]) => v !== 'all')
     .map(([v, l]) => `<button class="chip ${tf === v ? 'on' : ''}" data-action="rfilter-time" data-val="${v}" title="${hints[v]}">${l} <small>${all.filter((r) => match(r, 'time') && timeClass(r) === v).length}</small></button>`)
     .join('');
+  const chipsOf = (g, i) =>
+    g
+      .map((n) => `<button class="chip ${sel[i] === n ? 'on' : ''}" data-action="rfilter-cat" data-group="${i}" data-val="${e(n)}">${n === 'Favoriten' ? '⭐ ' : ''}${e(n)} <small>${all.filter((r) => match(r, i) && catsOf(r.id).includes(n)).length}</small></button>`)
+      .join('');
+  // Gruppe 0 = „Favoriten“: steht in der ersten Zeile direkt neben „Alle“
   const groupChips = groups
-    .map((g, i) =>
-      g.length
-        ? sep +
-          g
-            .map((n) => `<button class="chip ${sel[i] === n ? 'on' : ''}" data-action="rfilter-cat" data-group="${i}" data-val="${e(n)}">${e(n)} <small>${all.filter((r) => match(r, i) && catsOf(r.id).includes(n)).length}</small></button>`)
-            .join('')
-        : ''
-    )
+    .map((g, i) => (i > 0 && g.length ? sep + chipsOf(g, i) : ''))
     .join('');
   return `<header class="top col"><a class="back" href="#/woche">‹ Woche</a><h1><span class="h-count">${list.length}</span> ${list.length === 1 ? 'Rezept' : 'Rezepte'}</h1></header>
     <section class="card accent filters">
       <div class="chips cats">
-        <button class="chip ${!any ? 'on' : ''}" data-action="rfilter-all">Alle <small>${all.length}</small></button>
+        <button class="chip ${!any ? 'on' : ''}" data-action="rfilter-all">Alle <small>${all.length}</small></button>${chipsOf(groups[0], 0)}
         ${sep}${timeChips}${groupChips}
       </div>
       ${tf !== 'all' ? `<p class="hint">${TIME_FILTERS.find(([v]) => v === tf)[1]}: ${hints[tf]}</p>` : ''}
@@ -1519,7 +1516,7 @@ function recipeHtml(r, items, macros, subtitle, back, info, cookKey, withServing
   const star =
     fav === null
       ? ''
-      : `<button class="fav-btn ${fav ? 'on' : ''}" data-action="fav-toggle" data-id="${e(r.id)}" aria-label="${fav ? 'Aus Favoriten entfernen' : 'Zu Favoriten hinzufügen'}">${fav ? '★' : '☆'}</button>`;
+      : `<button class="fav-btn ${fav ? 'on' : ''}" data-action="fav-toggle" data-id="${e(r.id)}" aria-label="${fav ? 'Aus Favoriten entfernen' : 'Zu Favoriten hinzufügen'}">⭐</button>`;
   return `<header class="top">${back}<div class="top-actions">${star}${active ? `<a class="btn primary pill ${activeMagic}" href="${resumeHref}">👨‍🍳 Weiter kochen</a>` : startBtn('pill')}</div></header>
     <section class="card accent rhero">
       <div class="rhero-art slot-${r.type === 'breakfast' ? 'fruehstueck' : 'abend'}"><span>${recipeEmoji(r)}</span></div>
