@@ -61,11 +61,12 @@ export function partOf(ing) {
   return 'r';
 }
 
-/** Höchstmenge einer Beilage pro Portion in Gramm (Nudeln/Reis trocken 150g, Brot 180g, Kartoffeln 450g) */
+/** Höchstmenge einer Beilage pro Portion in Gramm – übliche große Portionen:
+ *  Nudeln/Reis/Getreide trocken 140g, Brot 150g, Kartoffeln 350g, Gnocchi/Rösti 280g */
 export function starchMax(ing) {
-  if (STARCH_IDS.has(ing.id)) return ing.id === 'gnocchi' || ing.id === 'roesti_tk' ? 300 : ing.id === 'pizzateig' || ing.id === 'flammkuchenteig' ? 400 : 450;
-  if (ing.cat === 'Brot & Backwaren') return 180;
-  return 150;
+  if (STARCH_IDS.has(ing.id)) return ing.id === 'gnocchi' || ing.id === 'roesti_tk' ? 280 : ing.id === 'pizzateig' || ing.id === 'flammkuchenteig' ? 400 : 350;
+  if (ing.cat === 'Brot & Backwaren') return 150;
+  return 140;
 }
 
 /** mix = { s, q }: Faktoren für Beilage und Proteinquelle (1 = wie im Rezept) */
@@ -88,13 +89,17 @@ export function recipeItems(recipe, factor, settings, idx, mix = null) {
 /** Makros eines Rezepts (Faktor 1) getrennt nach Baustein */
 export function recipeParts(recipe, idx, settings) {
   const parts = { s: [], q: [], r: [] };
+  // sCap: bis zu welchem Faktor die Beilage wachsen darf, bevor die Obergrenze pro Portion greift
+  let sCap = Infinity;
   for (const line of recipe.ingredients) {
     if (line.opt && !settings?.[line.opt]) continue;
     const ing = idx.get(line.id);
     if (!ing) continue;
-    parts[partOf(ing)].push({ id: line.id, g: line.g });
+    const part = partOf(ing);
+    parts[part].push({ id: line.id, g: line.g });
+    if (part === 's') sCap = Math.min(sCap, Math.max(line.g, starchMax(ing)) / line.g);
   }
-  return { s: itemsMacros(parts.s, idx), q: itemsMacros(parts.q, idx), r: itemsMacros(parts.r, idx) };
+  return { s: itemsMacros(parts.s, idx), q: itemsMacros(parts.q, idx), r: itemsMacros(parts.r, idx), sCap };
 }
 
 export function recipeMacros(recipe, idx, settings, factor = 1) {

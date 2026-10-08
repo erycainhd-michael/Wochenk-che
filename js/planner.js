@@ -293,8 +293,16 @@ function eatOutMacros(settings) {
 }
 
 /** Ergänzungen zum Frühstück (z. B. Proteinshake): keine oder eine */
+/** Ergänzungen pro Tag (Proteinshake, Snacks): keine, eine oder zwei verschiedene */
 function addonCombos(addons) {
-  return [[], ...addons.map((a) => [a])];
+  const out = [[], ...addons.map((a) => [a])];
+  for (let i = 0; i < addons.length; i++)
+    for (let j = i + 1; j < addons.length; j++) {
+      out.push([addons[i], addons[j]]);
+      // drei kleine Snacks nur für sehr hohe Ziele (z. B. Sporttage)
+      for (let k = j + 1; k < addons.length; k++) out.push([addons[i], addons[j], addons[k]]);
+    }
+  return out;
 }
 
 /** Tagesziele inkl. Sport: Mehrbedarf vor allem über Kohlenhydrate (≈60 %) und etwas Fett (≈25 %) */
@@ -304,27 +312,37 @@ function dayGoals(goals, extra) {
 }
 
 // Mögliche Anpassungen der Bausteine je Tag: Beilage (s) und Proteinquelle (q)
-// Beilage höchstens +40 %: mehr wäre auf dem Teller unrealistisch (z. B. 200g Nudeln statt 110g)
-const S_STEPS = [0.7, 0.85, 1, 1.15, 1.3, 1.4];
-const Q_STEPS = [0.5, 0.6, 0.7, 0.8, 0.9, 1, 1.15, 1.3];
+// Ein Gericht bleibt das Gericht: Beilage und Proteinquelle weichen höchstens ±20–25 % vom Rezept ab
+// (eine Carbonara bleibt eine Carbonara). Was dann zum Tagesziel fehlt, kommt über einen Snack.
+const S_STEPS = [0.85, 1, 1.15, 1.25];
+const Q_STEPS = [0.7, 0.8, 0.9, 1, 1.1, 1.2];
+// Portionsgröße: höchstens 30 % mehr als im Rezept, nach unten bis 60 % (für kleinere Tagesziele)
+const FM_MIN = 0.6, FM_MAX = 1.3, FB_MIN = 0.65, FB_MAX = 1.3;
 
 /**
  * Portionen eines Tages so wählen, dass kcal, Protein, Kohlenhydrate und Fett möglichst nah an den
  * eingestellten Zielen liegen. Gesucht wird über: Ergänzung zum Frühstück, Verhältnis Beilage/Protein
  * (z. B. mehr Reis, etwas weniger Hähnchen) und die Portionsgrößen von Frühstück und Hauptgerichten.
  */
-function fitDay({ ctx, fixed, breakfast, mains, combos, extra = 0 }) {
+function fitDay({ ctx, fixed, breakfast, mains, combos, extra = 0, usage = {} }) {
   const g = dayGoals(ctx.settings.goals, extra);
   const BP = breakfast ? ctx.info.get(breakfast).parts : null;
-  const MP = { s: emptyMacros(), q: emptyMacros(), r: emptyMacros() };
-  for (const id of mains) for (const k of ['s', 'q', 'r']) MP[k] = addMacros(MP[k], ctx.info.get(id).parts[k]);
-  const mix = (P, s, q) => addMacros(addMacros(P.r, P.s, s), P.q, q);
+  const MPs = mains.map((id) => ctx.info.get(id).parts);
+  // Makros eines Gerichts bei Portionsfaktor f: Beilage wächst nur bis zur Obergrenze pro Portion
+  const mix = (P, s, q, f = 1) => addMacros(addMacros(P.r, P.s, Math.min(s, (P.sCap ?? Infinity) / f)), P.q, q);
+  const mixMains = (s, q, f = 1) => MPs.reduce((a, P) => addMacros(a, mix(P, s, q, f)), emptyMacros());
   let best = null;
-  for (const combo of combos) {
+  // Erst ohne/mit bis zu zwei Snacks rechnen; drei nur, wenn das Kalorienziel sonst klar verfehlt wird
+  const small = combos.filter((c) => c.length <= 2);
+  const big = combos.filter((c) => c.length > 2);
+  const run = (list) => {
+  for (const combo of list) {
     let S = emptyMacros();
     let pref = 0;
     for (const a of combo) {
       const inf = ctx.info.get(a.id);
+      // Abwechslung: schon diese Woche gewählte Snacks etwas seltener
+      pref += 0.025 * (usage[a.id] || 0);
       S = addMacros(S, inf.macros);
       // Ergänzungen nur, wenn sie wirklich helfen
       pref += 0.04 + 0.03 * inf.cost * (ctx.settings.studi ? 3 : 1);
@@ -332,19 +350,26 @@ function fitDay({ ctx, fixed, breakfast, mains, combos, extra = 0 }) {
     const R = g.kcal - fixed.kcal - S.kcal;
     for (const s of S_STEPS)
       for (const q of Q_STEPS) {
-        const B = BP ? mix(BP, s, q) : null;
-        const M = mix(MP, s, q);
         let fb = 1;
         let fm = 1;
-        if (B && M.kcal > 0) {
-          const f0 = R / (B.kcal + M.kcal);
-          fb = round(clamp(f0, 0.8, 1.4), 0.05);
-          fm = round(clamp((R - B.kcal * fb) / M.kcal, 0.7, 1.7), 0.05);
-        } else if (M.kcal > 0) {
-          fm = round(clamp(R / M.kcal, 0.7, 1.7), 0.05);
-        } else if (B) {
-          fb = round(clamp(R / B.kcal, 0.8, 1.6), 0.05);
+        let B = null;
+        let M = null;
+        // zweimal rechnen: erst grob, dann mit den Obergrenzen beim gewählten Portionsfaktor
+        for (let it = 0; it < 2; it++) {
+          B = BP ? mix(BP, s, q, fb) : null;
+          M = mixMains(s, q, fm);
+          if (B && M.kcal > 0) {
+            const f0 = R / (B.kcal + M.kcal);
+            fb = round(clamp(f0, FB_MIN, FB_MAX), 0.05);
+            fm = round(clamp((R - B.kcal * fb) / M.kcal, FM_MIN, FM_MAX), 0.05);
+          } else if (M.kcal > 0) {
+            fm = round(clamp(R / M.kcal, FM_MIN, FM_MAX), 0.05);
+          } else if (B) {
+            fb = round(clamp(R / B.kcal, FB_MIN, FB_MAX), 0.05);
+          }
         }
+        B = BP ? mix(BP, s, q, fb) : null;
+        M = mixMains(s, q, fm);
         let T = addMacros(addMacros(fixed, S), M, fm);
         if (B) T = addMacros(T, B, fb);
         const kErr = Math.abs(T.kcal - g.kcal) / g.kcal;
@@ -356,10 +381,14 @@ function fitDay({ ctx, fixed, breakfast, mains, combos, extra = 0 }) {
         const fibOver = Math.max(0, T.fib - ctx.fiberTarget - 3) / ctx.fiberTarget;
         // Rezepte nicht unnötig verbiegen
         const bend = 0.08 * (Math.abs(Math.log(s)) + Math.abs(Math.log(q)));
-        const cost = 5 * Math.max(0, kErr - 0.03) + kErr + pCost + 1.6 * cErr + 1.6 * fErr + 3 * fibOver + 0.03 * combo.length + pref + bend;
-        if (!best || cost < best.cost) best = { cost, fb, fm, s, q, addons: combo.map((x) => x.id) };
+        // Kalorien zuerst: über ±3 % Abweichung wird es teuer
+        const cost = 9 * Math.max(0, kErr - 0.03) + 1.5 * kErr + pCost + 1.6 * cErr + 1.6 * fErr + 3 * fibOver + 0.03 * combo.length + pref + bend;
+        if (!best || cost < best.cost) best = { cost, kErr, fb, fm, s, q, addons: combo.map((x) => x.id) };
       }
   }
+  };
+  run(small);
+  if (best.kErr > 0.03 && big.length) run(big);
   return best;
 }
 
@@ -414,6 +443,7 @@ export function finalizePlan(structure, ctx) {
   const slotCook = new Map();
   for (const c of structure.cooks) for (const p of c.portions) slotCook.set(p, c);
   const addonCombosAll = addonCombos(ctx.addons);
+  const addonUse = {};
 
   const away = new Set(structure.away || []);
   const people = structure.people || {};
@@ -429,7 +459,8 @@ export function finalizePlan(structure, ctx) {
     const sun = cakesOf(structure).find((c) => Number(c.key.split('-')[0]) === d && !eatOut.has(c.key)) || null;
     const mains = [...MAIN_SLOTS.map((s) => slotCook.get(slotKey(d, s))?.recipeId), sun?.recipeId].filter(Boolean);
     const sportKcal = daySportKcal(structure, d);
-    const fit = fitDay({ ctx, fixed, breakfast, mains, combos: breakfast ? addonCombosAll : [[]], extra: sportKcal });
+    const fit = fitDay({ ctx, fixed, breakfast, mains, combos: addonCombosAll, extra: sportKcal, usage: addonUse });
+    for (const a of fit.addons) addonUse[a] = (addonUse[a] || 0) + 1;
 
     const meals = [];
     const mk = (slot, recipeId, factor, extra = {}) => {
@@ -442,18 +473,14 @@ export function finalizePlan(structure, ctx) {
     const eatOutMeal = (slot) => ({ key: slotKey(d, slot), slot, kind: 'eatout', macros: { ...eo }, cost: 0 });
 
     if (eatOut.has(slotKey(d, 'fruehstueck'))) meals.push(eatOutMeal('fruehstueck'));
-    else if (breakfast) {
-      const m = mk('fruehstueck', breakfast, fit.fb);
-      for (const a of fit.addons) {
-        const items = recipeItems(ctx.recipesById.get(a), 1, settings, idx);
-        m.items = [...m.items, ...items.map((it) => ({ ...it, addon: a }))];
-        m.macros = addMacros(m.macros, itemsMacros(items, idx));
-        m.cost += itemsCost(items, idx, ctx.priceOf).cost;
-        (m.addons ||= []).push(a);
-      }
-      meals.push(m);
-    }
+    else if (breakfast) meals.push(mk('fruehstueck', breakfast, fit.fb));
+    // Ergänzungen als eigene kleine Mahlzeit „Snack“ (zwischen Mittag und Abend)
+    const snacks = fit.addons.map((a, i) => {
+      const items = recipeItems(ctx.recipesById.get(a), 1, settings, idx);
+      return { key: slotKey(d, i ? `snack${i + 1}` : 'snack'), slot: 'snack', kind: 'recipe', recipeId: a, factor: 1, items, macros: itemsMacros(items, idx), cost: itemsCost(items, idx, ctx.priceOf).cost };
+    });
     for (const slot of MAIN_SLOTS) {
+      if (slot === 'abend') meals.push(...snacks);
       const key = slotKey(d, slot);
       if (eatOut.has(key)) meals.push(eatOutMeal(slot));
       else {

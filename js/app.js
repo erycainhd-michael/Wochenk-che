@@ -5,7 +5,7 @@ import { cakesOf, generatePlan, refitPlan, swapMeal } from './planner.js';
 import { mergeOffers, STORES, STORE_IDS } from './prices.js';
 import { amountText, packText } from './shopping.js';
 import { recipeWeights, weekHints } from './feedback.js';
-import { DEFAULT_SETTINGS, mergeSettings } from './settings.js';
+import { ACTIVITY, DEFAULT_SETTINGS, GOALS, calcGoals, mergeSettings } from './settings.js';
 import { exportAll, importAll, prunePlans, requestPersistence, store } from './storage.js';
 import { TimerManager, fmtTime, keepAwake, unlockAudio } from './timers.js';
 import { cleanRecipe, inventRecipe } from './ai.js';
@@ -250,7 +250,7 @@ const savePlans = () => {
 };
 const saveNext = () => store.set('nextWeek', S.next);
 // Erhöhen, wenn sich die Mengenberechnung des Planers ändert (laufende Woche wird dann neu berechnet)
-const PLANNER_VERSION = 2;
+const PLANNER_VERSION = 3;
 const currentWeek = () => mondayOf();
 const ing = (id) => S.idx.get(id);
 const recipe = (id) => S.recipesById.get(id);
@@ -512,6 +512,7 @@ function render() {
     rueckblick: viewReview,
     planen: viewReview,
     einstellungen: viewSettings,
+    start: viewStart,
     mahlzeit: viewMeal,
     rezepte: viewRecipes,
     rezept: viewRecipeBase,
@@ -705,23 +706,66 @@ function greeting() {
 
 // --- Woche -------------------------------------------------------------------
 
-function viewWelcome() {
-  const snap = S.snapshots[0];
-  const restore = snap
-    ? `<section class="card accent"><h2>Sicherung gefunden</h2><p class="sub">Auf diesem iPhone liegt eine automatische Sicherung vom ${fmtDateTime(snap.savedAt)}. Möchtest du deine Daten zurückholen?</p>
-      <select id="snap-pick" hidden><option value="${snap.day}"></option></select><button class="btn primary block" data-action="snap-restore">Wiederherstellen</button></section>`
-    : '';
-  return `${restore}<div class="welcome">
-      <img class="welcome-icon" src="icons/icon-512.png" alt="">
-      <h2>Willkommen bei Mise!</h2>
-    </div>
-    <section class="card"><label class="field">Wie heißt du?<input type="text" autocomplete="given-name" data-set="name" value="${e(S.settings.name || '')}" placeholder="Dein Vorname"></label>
-      <p class="hint">Deine Tagesziele (Kalorien, Protein …), Läden, Budget und Abneigungen stellst du unter Einstellungen ein. Alles bleibt nur auf diesem Gerät.</p></section>
-    <section class="card center">
+// --- Einführung (erster Start) ------------------------------------------------
+
+const profDraft = () => (S.ui.prof ||= { sex: '', age: '', height: '', weight: '', activity: 'wenig', goal: 'halten', goalWeight: '', ...(S.settings.profile || {}) });
+
+/** Einführung: 0 Willkommen · 1 Über dich · 2 Alltag & Ziel · 3 Tagesziele · 4 Einkauf. edit = später aus den Einstellungen */
+function viewStart(stepArg) {
+  const edit = !!store.get('welcomed');
+  const step = edit ? Math.min(3, Math.max(1, Number(stepArg) || 1)) : S.ui.ob || 0;
+  const p = profDraft();
+  const st = S.settings;
+  const dots = `<div class="ob-dots">${[0, 1, 2, 3, 4]
+    .filter((i) => !edit || (i >= 1 && i <= 3))
+    .map((i) => `<i class="${i === step ? 'on' : i < step ? 'done' : ''}"></i>`)
+    .join('')}</div>`;
+  const nav = (label, next) =>
+    `<div class="grid2 ob-nav">${step > (edit ? 1 : 0) ? `<button class="btn" data-action="ob-step" data-step="${step - 1}">Zurück</button>` : edit ? `<a class="btn" href="#/einstellungen">Abbrechen</a>` : '<span></span>'}<button class="btn primary" data-action="ob-step" data-step="${next}">${label}</button></div>`;
+  const pills = (field, opts) =>
+    `<div class="seg">${opts.map(([v, l]) => `<button class="pill ${p[field] === v ? 'on' : ''}" data-action="ob-set" data-field="${field}" data-val="${v}">${l}</button>`).join('')}</div>`;
+  const inp = (field, label, ph, mode = 'numeric') => `<label class="field">${label}<input type="text" inputmode="${mode}" data-ob="${field}" value="${e(String(p[field] ?? ''))}" placeholder="${ph}"></label>`;
+  let body = '';
+  if (step === 0) {
+    const snap = S.snapshots[0];
+    const restore = snap
+      ? `<section class="card accent"><h2>Sicherung gefunden</h2><p class="sub">Auf diesem iPhone liegt eine automatische Sicherung vom ${fmtDateTime(snap.savedAt)}. Möchtest du deine Daten zurückholen?</p>
+        <select id="snap-pick" hidden><option value="${snap.day}"></option></select><button class="btn primary block" data-action="snap-restore">Wiederherstellen</button></section>`
+      : '';
+    body = `${restore}<div class="welcome"><img class="welcome-icon" src="icons/icon-512.png" alt=""><h2>Willkommen bei Mise!</h2></div>
+      <section class="card"><p>Mise plant deine Woche so, dass dein Einkauf deine Kalorien- und Proteinziele schon erfüllt – ohne Kalorienzählen. In vier kurzen Schritten richten wir alles für dich ein.</p>
+        <label class="field">Wie heißt du?<input type="text" autocomplete="given-name" data-set="name" value="${e(st.name || '')}" placeholder="Dein Vorname"></label>
+        <p class="hint">Alles bleibt nur auf diesem Gerät.</p>${nav("Los geht's", 1)}</section>`;
+  } else if (step === 1) {
+    body = `<section class="card accent"><h2>Über dich</h2><p class="sub">Damit Mise deinen Bedarf berechnen kann.</p>
+      <div class="field">Geschlecht${pills('sex', [['m', 'Mann'], ['w', 'Frau']])}</div>
+      <div class="grid3">${inp('age', 'Alter', 'Jahre')}${inp('height', 'Größe', 'cm')}${inp('weight', 'Gewicht', 'kg', 'decimal')}</div>
+      ${nav('Weiter', 2)}</section>`;
+  } else if (step === 2) {
+    body = `<section class="card accent"><h2>Alltag & Ziel</h2>
+      <div class="field">Wie aktiv ist dein Alltag (ohne Sport)?${pills('activity', ACTIVITY.map(([v, l]) => [v, l]))}<p class="hint">${e(ACTIVITY.find((x) => x[0] === p.activity)?.[2] || '')}. Sport trägst du später pro Tag ein – dann gibt es an dem Tag mehr.</p></div>
+      <div class="field">Was ist dein Ziel? <span class="sub">(Aufbauen = Muskeln aufbauen)</span>${pills('goal', GOALS.map(([v, l]) => [v, l]))}</div>
+      ${p.goal !== 'halten' ? inp('goalWeight', 'Zielgewicht (optional)', 'kg', 'decimal') : ''}
+      ${nav('Berechnen', 3)}</section>`;
+  } else if (step === 3) {
+    const field = (path, label) => `<label class="field">${label}<input type="number" inputmode="numeric" data-set="${path}" value="${getPath(st, path)}"></label>`;
+    body = `<section class="card accent"><h2>Deine Tagesziele</h2>
+      <p class="sub">Berechnet aus deinen Angaben. Du kannst sie hier oder später in den Einstellungen anpassen.</p>
+      <div class="grid2">${field('goals.kcal', 'Kalorien (kcal)')}${field('goals.carbs', 'Kohlenhydrate (g)')}${field('goals.protein', 'Protein (g)')}${field('goals.fat', 'Fett (g)')}</div>
+      ${edit ? `<div class="grid2 ob-nav"><button class="btn" data-action="ob-step" data-step="2">Zurück</button><button class="btn primary" data-action="ob-done">Übernehmen</button></div>` : nav('Weiter', 4)}</section>`;
+  } else {
+    body = `<section class="card accent"><h2>Einkauf & Alltag</h2>
+      <label class="field">Wochenbudget<span class="unit-input"><input type="number" inputmode="numeric" step="1" data-set="budget" value="${st.budget}"><i>€</i></span></label>
+      <label class="field">Wo kaufst du meistens ein?<select data-set="mainStore">${STORE_IDS.map((id) => `<option value="${id}" ${st.mainStore === id ? 'selected' : ''}>${e(STORES[id].short)}</option>`).join('')}</select></label>
+      <div class="field">An welchen Abenden isst du meistens auswärts?${dayPills(eatOutDays(st.eatOut), 'eatout-day')}</div>
       <button class="btn primary block" data-action="first-plan">🍽️ Wochenplan erstellen</button>
-      <p>Die App plant deine Woche so, dass dein Einkauf deine Kalorien- und Proteinziele schon erfüllt – kein Tracking nötig.</p>
-      <p>Mise hilft dir außerdem bei einer ausgewogeneren Ernährung und bezieht dabei deine Vorlieben ein.</p>
-    </section>`;
+      <button class="link" data-action="ob-step" data-step="3">‹ Zurück</button></section>`;
+  }
+  return `<div class="ob">${dots}${body}</div>`;
+}
+
+function viewWelcome() {
+  return viewStart();
 }
 
 function viewWeek() {
@@ -783,8 +827,8 @@ function viewWeek() {
     ${daysHtml(plan, firstDay, todayIdx)}`;
 }
 
-/** Wird an diesem Tag gekocht? (Frühstück, Reste vom Vortag und Auswärtsessen zählen nicht) */
-const cooksOn = (d) => !d.away && d.meals.some((m) => m.kind === 'recipe' && !m.leftover && m.slot !== 'fruehstueck');
+/** Wird an diesem Tag gekocht? (Frühstück, Snacks, Reste vom Vortag und Auswärtsessen zählen nicht) */
+const cooksOn = (d) => !d.away && d.meals.some((m) => m.kind === 'recipe' && !m.leftover && m.slot !== 'fruehstueck' && m.slot !== 'snack');
 
 /** Tage ohne Kochen sind eingeklappt und über einen Knopf einblendbar (heute bleibt immer sichtbar) */
 function daysHtml(plan, firstDay, todayIdx) {
@@ -1965,6 +2009,7 @@ function viewSettings() {
   return `<header class="top"><h1>Einstellungen</h1></header>
 
   <section class="card accent"><h2>Tagesziele</h2>
+    <a class="btn small pill" href="#/start/1">🧮 Mit Assistent neu berechnen</a>
     <div class="grid2">
       ${field('goals.kcal', 'Kalorien (kcal)', 'step="50"')}
       ${field('goals.carbs', 'Kohlenhydrate (g)', 'step="5"')}
@@ -2029,6 +2074,7 @@ function viewSettings() {
     <div class="grid2"><button class="btn primary" data-action="export">☁️ Sichern</button>
     <label class="btn">Importieren<input type="file" accept="application/json,.json" id="import-file" hidden></label></div>
     <button class="link danger" data-action="reset-settings">Einstellungen zurücksetzen</button>
+    <button class="link danger" data-action="reset-app">App zurücksetzen (alles löschen, neu beginnen)</button>
   </section>
   <p class="sub center">Mise · Nährwerte aus BLS/Open-Food-Facts-Richtwerten · Preise sind Richtwerte</p>`;
 }
@@ -2260,6 +2306,50 @@ async function onClick(ev) {
       fx(`.meal[data-key="${el.dataset.key}"]`, 'swapped');
       location.hash = '#/woche';
       toast('Rezept übernommen', { icon: '🔄', sub: 'Einkaufsliste ist aktualisiert' });
+      return;
+    }
+    case 'ob-set':
+      profDraft()[el.dataset.field] = el.dataset.val;
+      return render();
+    case 'ob-step': {
+      const p = profDraft();
+      const to = Number(el.dataset.step);
+      const cur = store.get('welcomed') ? Number(route().args[0]) || 1 : S.ui.ob || 0;
+      // Angaben prüfen, bevor es weitergeht
+      if (cur === 1 && to === 2) {
+        if (!p.sex) return toast('Bitte Mann oder Frau wählen', { icon: '👤', kind: 'warn' });
+        const ok = (v, lo, hi) => Number(v) >= lo && Number(v) <= hi;
+        if (!ok(p.age, 14, 100) || !ok(p.height, 120, 230) || !ok(p.weight, 35, 250)) return toast('Bitte Alter, Größe und Gewicht eintragen', { icon: '✏️', kind: 'warn' });
+      }
+      if (cur === 2 && to === 3) {
+        S.settings.goals = calcGoals(p);
+        S.settings.profile = { ...p };
+        S.settings.bodyWeight = Number(p.weight);
+        S.settings.bodyWeightAt = new Date().toISOString();
+        const gw = parseKg(p.goalWeight);
+        if (gw) S.settings.goalWeight = gw;
+        saveSettings();
+      }
+      haptic();
+      if (store.get('welcomed')) location.hash = `#/start/${to}`;
+      else {
+        S.ui.ob = to;
+        render();
+        window.scrollTo(0, 0);
+      }
+      return;
+    }
+    case 'ob-done':
+      refitCurrent();
+      toast('Tagesziele übernommen', { icon: '🎯', sub: 'Dein Wochenplan ist angepasst' });
+      location.hash = '#/einstellungen';
+      return;
+    case 'reset-app': {
+      if (!confirm('Mise wirklich zurücksetzen? Pläne, Einkaufslisten, Rückblick, eigene Rezepte und Einstellungen werden auf diesem Gerät gelöscht.')) return;
+      if (!confirm('Ganz sicher? Tipp: Vorher unter „Datensicherung“ sichern. Danach startet die Einführung neu.')) return;
+      for (const k of store.keys()) store.del(k);
+      location.hash = '#/woche';
+      location.reload();
       return;
     }
     case 'first-plan':
@@ -2687,6 +2777,10 @@ function onInput(ev) {
     } else S.ui.sport.min = Number(el.value);
     const b = document.querySelector('.sport-kcal b');
     if (b) b.textContent = `+${num(sportKcal(S.ui.sport.type, S.ui.sport.level, S.ui.sport.min, currentKg()))} kcal`;
+    return;
+  }
+  if (el.dataset.ob) {
+    profDraft()[el.dataset.ob] = el.value.replace(',', '.').trim();
     return;
   }
   if (el.dataset.newTitle) {

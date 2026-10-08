@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import { buildIndex, plausibility } from '../js/nutrition.js';
 import { generatePlan, refitPlan, swapMeal } from '../js/planner.js';
 import { sportKcal } from '../js/sport.js';
-import { DEFAULT_SETTINGS } from '../js/settings.js';
+import { DEFAULT_SETTINGS, calcGoals } from '../js/settings.js';
 import { makePriceFn, matchIngredient, parseGrams } from '../js/prices.js';
 import { recipeWeights } from '../js/feedback.js';
 import { mondayOf, berlinNow } from '../js/util.js';
@@ -14,7 +14,8 @@ import { mapOffers, normalizeEdeka } from '../scripts/fetch-offers.mjs';
 const ingData = JSON.parse(fs.readFileSync('data/ingredients.json', 'utf8'));
 const recipes = JSON.parse(fs.readFileSync('data/recipes.json', 'utf8')).recipes;
 const idx = buildIndex(ingData);
-const settings = () => structuredClone(DEFAULT_SETTINGS);
+// Testprofil: wie Michael – Freitag und Samstag abends auswärts
+const settings = () => ({ ...structuredClone(DEFAULT_SETTINGS), eatOut: [{ day: 4, slot: 'abend' }, { day: 5, slot: 'abend' }] });
 const plan = generatePlan({ recipes, idx, settings: settings(), weekStart: '2026-10-05', seed: 7 });
 
 test('Kalorien: mindestens 6 von 7 Tagen im Bereich ±5 %', () => {
@@ -31,7 +32,7 @@ test('Protein: Tagesziel erreicht und jede Hauptmahlzeit mit Proteinquelle', () 
 
 test('Auswärtsessen sind eingeplant und ersetzen Mahlzeiten', () => {
   const eat = plan.days.flatMap((d) => d.meals.filter((m) => m.kind === 'eatout'));
-  assert.equal(eat.length, DEFAULT_SETTINGS.eatOut.length);
+  assert.equal(eat.length, settings().eatOut.length);
   assert.ok(plan.days[4].meals.some((m) => m.slot === 'abend' && m.kind === 'eatout'));
 });
 
@@ -284,4 +285,13 @@ test('Proteinpulver: nur eingeplant, wenn aktiviert', () => {
   s.proteinPowder = false;
   const p = generatePlan({ recipes, idx, settings: s, weekStart: '2026-10-05', seed: 5, candidates: 10 });
   assert.ok(!p.shopping.items.some((i) => i.id === 'proteinpulver'));
+});
+
+test('Einführung: Tagesziele aus Geschlecht, Alter, Größe, Gewicht, Aktivität und Ziel', () => {
+  const man = calcGoals({ sex: 'm', age: 30, height: 180, weight: 80, activity: 'wenig', goal: 'aufbauen' });
+  assert.ok(Math.abs(man.kcal - 2800) <= 100, `Mann Muskelaufbau ${man.kcal} kcal`);
+  assert.ok(man.protein >= 140 && man.protein <= 160, `Protein ${man.protein}`);
+  const woman = calcGoals({ sex: 'w', age: 60, height: 165, weight: 70, activity: 'wenig', goal: 'abnehmen' });
+  assert.ok(woman.kcal >= 1300 && woman.kcal <= 1700, `Frau abnehmen ${woman.kcal} kcal`);
+  for (const g of [man, woman]) assert.ok(Math.abs(g.protein * 4 + g.carbs * 4 + g.fat * 9 - g.kcal) / g.kcal < 0.03, 'Makros ergeben die Kalorien');
 });

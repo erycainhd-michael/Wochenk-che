@@ -871,3 +871,18 @@ body { min-height: calc(100vh + 1px); min-height: calc(100lvh + 1px); }
 .rb-top .legend { font-size: 0.72rem; gap: 8px; }
 @media (max-height: 620px) { .rb-top .chart-tip { display: none; } .rb-top .goal-progress { margin-top: 2px; } }
 @media (max-width: 360px) { .week-rate { gap: 8px; } .rate-ring { width: 42px; height: 42px; } }
+/* Bewertungsringe in den Farben des Diagramms */
+.rate-btn[data-field='satiety'] { --accent: var(--s1); }
+.rate-btn[data-field='energy'] { --accent: var(--s2); }
+.rate-btn[data-field='mood'] { --accent: var(--s3); }
+
+/* Einführung */
+.ob { padding-top: 4px; }
+.ob-dots { display: flex; justify-content: center; gap: 6px; margin: 4px 0 14px; }
+.ob-dots i { width: 8px; height: 8px; border-radius: 99px; background: var(--line); transition: width 0.25s, background 0.25s; }
+.ob-dots i.done { background: var(--accent); opacity: 0.5; }
+.ob-dots i.on { width: 22px; background: var(--accent); }
+.ob-nav { margin-top: 16px; }
+.ob-nav .btn { margin: 0; }
+.grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0 10px; }
+.grid3 input { text-align: center; padding: 10px 8px; }
