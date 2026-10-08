@@ -1133,7 +1133,7 @@ const AUTO_CATS = {
   Fette: (r, m) => (m.f * 9) / m.kcal >= 0.37,
   Mahlzeiten: (r) => r.type === 'main',
   Frühstück: (r) => r.type === 'breakfast',
-  Vorspeisen: (r) => hasTag(r, 'vorspeise'),
+  Vorspeisen: (r) => r.type === 'extra' || hasTag(r, 'vorspeise'),
   Suppen: (r) => /suppe|eintopf|chowder|ramen/i.test(r.name) || hasTag(r, 'suppe'),
   Salate: (r) => /salat|bowl/i.test(r.name) || hasTag(r, 'salat'),
   Saucen: (r) => hasTag(r, 'sauce'),
@@ -1328,7 +1328,7 @@ function viewEdit(id) {
     <section class="card accent">
       <label class="field">Titel<input data-edit="name" value="${e(r.name)}"></label>
       <div class="grid2">
-        <label class="field">Mahlzeit<select data-edit="type"><option value="main" ${r.type === 'main' ? 'selected' : ''}>Mittag/Abend</option><option value="breakfast" ${r.type === 'breakfast' ? 'selected' : ''}>Frühstück</option><option value="snack" ${r.type === 'snack' ? 'selected' : ''}>Kaffee & Kuchen</option></select></label>
+        <label class="field">Mahlzeit<select data-edit="type"><option value="main" ${r.type === 'main' ? 'selected' : ''}>Mittag/Abend</option><option value="breakfast" ${r.type === 'breakfast' ? 'selected' : ''}>Frühstück</option><option value="snack" ${r.type === 'snack' ? 'selected' : ''}>Kaffee & Kuchen</option><option value="extra" ${r.type === 'extra' ? 'selected' : ''}>Vorspeise & Fingerfood (nicht im Plan)</option></select></label>
         <label class="field">Zeit (Min.)<input type="number" inputmode="numeric" data-edit="time" value="${r.time}"></label>
         <label class="field">Abwasch (Teile)<input type="number" inputmode="numeric" data-edit="dishes" value="${tools.flat().length || r.dishes}"></label>
         <label class="field">Aufwand<select data-edit="effort">${[1, 2, 3].map((v) => `<option value="${v}" ${r.effort === v ? 'selected' : ''}>${['', 'einfach', 'normal', 'aufwendig'][v]}</option>`).join('')}</select></label>

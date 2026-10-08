@@ -30,8 +30,8 @@ const skipped = [];
 
 for (const raw of incoming) {
   const name = String(raw.name || '').trim();
-  // snack = „Kaffee & Kuchen“ am Sonntag statt Mittagessen
-  const type = ['breakfast', 'snack'].includes(raw.type) ? raw.type : 'main';
+  // snack = „Kaffee & Kuchen“ am Sonntag statt Mittagessen, extra = Vorspeise/Fingerfood (nie automatisch im Plan)
+  const type = ['breakfast', 'snack', 'extra'].includes(raw.type) ? raw.type : 'main';
   const problems = [];
   if (!name) problems.push('kein Name');
   if (names.has(name.toLowerCase())) problems.push('gibt es schon');
@@ -70,9 +70,9 @@ for (const raw of incoming) {
   };
   if (!unknown.length && !USER) {
     const m = recipeMacros(recipe, idx, {}, 1);
-    const minP = type === 'main' ? 30 : type === 'snack' ? 20 : 25;
+    const minP = type === 'main' ? 30 : type === 'snack' ? 20 : type === 'extra' ? 0 : 25;
     if (m.p < minP) problems.push(`nur ${Math.round(m.p)} g Protein`);
-    if (m.kcal < (type === 'snack' ? 300 : 400) || m.kcal > 1200) problems.push(`${Math.round(m.kcal)} kcal pro Portion`);
+    if (m.kcal < (type === 'extra' ? 50 : type === 'snack' ? 300 : 400) || m.kcal > 1200) problems.push(`${Math.round(m.kcal)} kcal pro Portion`);
   }
   if (problems.length) {
     skipped.push(`${name || '(ohne Name)'}: ${problems.join('; ')}`);
