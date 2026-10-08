@@ -304,7 +304,8 @@ function dayGoals(goals, extra) {
 }
 
 // Mögliche Anpassungen der Bausteine je Tag: Beilage (s) und Proteinquelle (q)
-const S_STEPS = [0.7, 0.85, 1, 1.15, 1.3, 1.5, 1.75, 2];
+// Beilage höchstens +40 %: mehr wäre auf dem Teller unrealistisch (z. B. 200g Nudeln statt 110g)
+const S_STEPS = [0.7, 0.85, 1, 1.15, 1.3, 1.4];
 const Q_STEPS = [0.5, 0.6, 0.7, 0.8, 0.9, 1, 1.15, 1.3];
 
 /**

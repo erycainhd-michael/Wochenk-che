@@ -61,6 +61,13 @@ export function partOf(ing) {
   return 'r';
 }
 
+/** Höchstmenge einer Beilage pro Portion in Gramm (Nudeln/Reis trocken 150g, Brot 180g, Kartoffeln 450g) */
+export function starchMax(ing) {
+  if (STARCH_IDS.has(ing.id)) return ing.id === 'gnocchi' || ing.id === 'roesti_tk' ? 300 : ing.id === 'pizzateig' || ing.id === 'flammkuchenteig' ? 400 : 450;
+  if (ing.cat === 'Brot & Backwaren') return 180;
+  return 150;
+}
+
 /** mix = { s, q }: Faktoren für Beilage und Proteinquelle (1 = wie im Rezept) */
 export function recipeItems(recipe, factor, settings, idx, mix = null) {
   const out = [];
@@ -70,7 +77,10 @@ export function recipeItems(recipe, factor, settings, idx, mix = null) {
     if (!ing) continue;
     const part = mix ? partOf(ing) : 'r';
     const m = part === 's' ? mix.s : part === 'q' ? mix.q : 1;
-    out.push({ id: line.id, g: roundAmount(ing, line.g * factor * m), note: line.note });
+    let g = line.g * factor * m;
+    // Obergrenze pro Portion für Beilagen (trocken gewogen), damit nichts absurd groß wird
+    if (part === 's') g = Math.min(g, Math.max(line.g, starchMax(ing)));
+    out.push({ id: line.id, g: roundAmount(ing, g), note: line.note });
   }
   return out;
 }

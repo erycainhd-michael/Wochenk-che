@@ -704,6 +704,8 @@ function viewWelcome() {
       <img class="welcome-icon" src="icons/icon-512.png" alt="">
       <h2>Willkommen bei Mise!</h2>
     </div>
+    <section class="card"><label class="field">Wie heißt du?<input type="text" autocomplete="given-name" data-set="name" value="${e(S.settings.name || '')}" placeholder="Dein Vorname"></label>
+      <p class="hint">Deine Tagesziele (Kalorien, Protein …), Läden, Budget und Abneigungen stellst du unter Einstellungen ein. Alles bleibt nur auf diesem Gerät.</p></section>
     <section class="card center">
       <button class="btn primary block" data-action="first-plan">🍽️ Wochenplan erstellen</button>
       <p>Die App plant deine Woche so, dass dein Einkauf deine Kalorien- und Proteinziele schon erfüllt – kein Tracking nötig.</p>
@@ -1534,6 +1536,17 @@ function lineChart({ weeks, series, min, max, ticks, fmt, labelFmt = fmt, goal, 
       : '';
   const goalLine = goal != null ? `<line class="goal" x1="${L}" x2="${W - R}" y1="${y(goal)}" y2="${y(goal)}"/>` : '';
   let n = 0;
+  // Beschriftungen am Linienende nicht übereinander: mindestens 11px Abstand
+  const ends = series
+    .filter((s) => !s.forecast)
+    .map((s) => {
+      const last = s.values.map((v, i) => [v, i]).filter(([v]) => v != null).pop();
+      return last ? { s, y: y(last[0]) } : null;
+    })
+    .filter(Boolean)
+    .sort((a, b) => a.y - b.y);
+  for (let i = 1; i < ends.length; i++) if (ends[i].y - ends[i - 1].y < 11) ends[i].y = ends[i - 1].y + 11;
+  const labelY = new Map(ends.map((x) => [x.s, x.y]));
   const marks = series
     .map((s) => {
       let path = '';
@@ -1547,13 +1560,18 @@ function lineChart({ weeks, series, min, max, ticks, fmt, labelFmt = fmt, goal, 
           if (v == null) return '';
           const tip = `KW ${isoWeek(weeks[i])} · ${s.name}: ${labelFmt(v)}${unit}`;
           const style = `style="--i:${n++}"`;
-          const m = s.marker === 'square' ? `<rect class="pt ${s.cls}" ${style} x="${x(i) - 4}" y="${y(v) - 4}" width="8" height="8" rx="1.5"/>` : `<circle class="pt ${s.cls}" ${style} cx="${x(i)}" cy="${y(v)}" r="4.5"/>`;
+          const m =
+            s.marker === 'square'
+              ? `<rect class="pt ${s.cls}" ${style} x="${x(i) - 4}" y="${y(v) - 4}" width="8" height="8" rx="1.5"/>`
+              : s.marker === 'diamond'
+                ? `<path class="pt ${s.cls}" ${style} d="M${x(i)} ${y(v) - 5.5}L${x(i) + 5.5} ${y(v)}L${x(i)} ${y(v) + 5.5}L${x(i) - 5.5} ${y(v)}Z"/>`
+                : `<circle class="pt ${s.cls}" ${style} cx="${x(i)}" cy="${y(v)}" r="4.5"/>`;
           return `${m}<circle class="hit" cx="${x(i)}" cy="${y(v)}" r="16" data-action="chart-tip" data-tip="${e(tip)}"/>`;
         })
         .join('');
       const last = s.values.map((v, i) => [v, i]).filter(([v]) => v != null).pop();
       // Mit Prognose steht die Beschriftung über dem Punkt, damit sie die gestrichelte Linie nicht verdeckt
-      const label = !last ? '' : forecastFrom != null ? `<text class="dl" x="${x(last[1])}" y="${y(last[0]) - 11}" text-anchor="middle">${labelFmt(last[0])}</text>` : `<text class="dl" x="${x(last[1]) + 9}" y="${y(last[0]) + 4 + (s.nudge || 0)}">${labelFmt(last[0])}</text>`;
+      const label = !last ? '' : forecastFrom != null ? `<text class="dl" x="${x(last[1])}" y="${y(last[0]) - 11}" text-anchor="middle">${labelFmt(last[0])}</text>` : `<text class="dl" x="${x(last[1]) + 9}" y="${(labelY.get(s) ?? y(last[0])) + 4}">${labelFmt(last[0])}</text>`;
       return `<path class="ln ${s.cls}" pathLength="1" d="${path}"/>${pts}${label}`;
     })
     .join('');
@@ -1576,10 +1594,9 @@ function trendCard(ws, rateWs = null) {
   const val = (w, f) => feedbackFor(w)?.week?.[f] ?? null;
   const sat = weeks.map((w) => val(w, 'satiety'));
   const en = weeks.map((w) => val(w, 'energy'));
+  const mood = weeks.map((w) => val(w, 'mood'));
   const has = (arr) => arr.some((v) => v != null);
-  const lastOf = (arr) => [...arr].reverse().find((v) => v != null);
-  const close = has(sat) && has(en) && Math.abs(lastOf(sat) - lastOf(en)) < 0.6;
-  const chart1 = has(sat) || has(en)
+  const chart1 = has(sat) || has(en) || has(mood)
     ? lineChart({
         weeks,
         min: 1,
@@ -1587,11 +1604,12 @@ function trendCard(ws, rateWs = null) {
         ticks: [1, 6],
         fmt: (v) => num(v),
         series: [
-          { name: 'Sättigung', cls: 's1', marker: 'circle', values: sat, nudge: close && lastOf(sat) >= lastOf(en) ? -7 : close ? 7 : 0 },
-          { name: 'Energie', cls: 's2', marker: 'square', values: en, nudge: close && lastOf(sat) >= lastOf(en) ? 7 : close ? -7 : 0 },
+          { name: 'Sättigung', cls: 's1', marker: 'circle', values: sat },
+          { name: 'Energie', cls: 's2', marker: 'square', values: en },
+          { name: 'Stimmung', cls: 's3', marker: 'diamond', values: mood },
         ],
       })
-    : `<p class="chart-empty">Noch keine Werte – tippe unten auf Sättigung und Energie.</p>`;
+    : `<p class="chart-empty">Noch keine Werte – tippe unten auf Sättigung, Energie und Stimmung.</p>`;
 
   // Gewicht: 4 Wochen Verlauf + 2 Wochen Prognose aus dem Trend
   const goal = S.settings.goalWeight;
@@ -1649,8 +1667,8 @@ function trendCard(ws, rateWs = null) {
   }
   return `<section class="card accent charts">
     <div class="chart">
-      <div class="chart-head"><h2>Sättigung & Energie</h2>
-        <div class="legend"><span><i class="sw s1"></i>Sättigung</span><span><i class="sw s2 sq"></i>Energie</span></div></div>
+      <div class="chart-head"><h2>Wie war die Woche?</h2>
+        <div class="legend"><span><i class="sw s1"></i>Sättigung</span><span><i class="sw s2 sq"></i>Energie</span><span><i class="sw s3 dia"></i>Stimmung</span></div></div>
       ${chart1}
     </div>
     <div class="chart">
@@ -1659,7 +1677,7 @@ function trendCard(ws, rateWs = null) {
       ${progress}
       ${trendText ? `<p class="trend-text">${trendText}</p>` : ''}
     </div>
-    ${has(sat) || has(en) || has(kg) ? `<p class="chart-tip sub" aria-live="polite">Punkt antippen für Details</p>` : ''}
+    ${has(sat) || has(en) || has(mood) || has(kg) ? `<p class="chart-tip sub" aria-live="polite">Punkt antippen für Details</p>` : ''}
     ${rateWs ? weekRating(rateWs) : ''}
   </section>`;
 }
@@ -1678,6 +1696,7 @@ function weekRating(ws) {
   return `<div class="week-rate">
     ${rate('satiety', 'Sättigung')}
     ${rate('energy', 'Energie')}
+    ${rate('mood', 'Stimmung')}
     <label class="mini-field"><small>Gewicht</small><input type="text" inputmode="decimal" placeholder="kg" data-weight data-week="${ws}" value="${fmtKg(wk.weight)}"></label>
     <label class="mini-field"><small>Ziel</small><input type="text" inputmode="decimal" placeholder="kg" data-goal-weight value="${fmtKg(S.settings.goalWeight)}"></label>
   </div>`;

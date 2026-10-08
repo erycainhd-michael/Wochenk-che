@@ -18,7 +18,7 @@ export const DEFAULT_SETTINGS = {
   eatOutKcal: 1000,
   eatOutProtein: 35,
   complexPerWeek: 1,
-  dislikes: ['gekochter Kohlrabi', 'gekochte Möhren', 'Sellerie', 'klassische gekochte Bohnen'],
+  dislikes: [],
   // Ballaststoffe: ausgewogenes Tagesziel in g
   fiber: { target: 32 },
   psyllium: false,
@@ -27,7 +27,7 @@ export const DEFAULT_SETTINGS = {
   studi: false,
   planHour: 8,
   // Name für die Begrüßung in der Wochenübersicht
-  name: 'Michael',
+  name: '',
   sounds: true,
   // Zielgewicht in kg (Dezimalzahl), wird im Rückblick angezeigt
   goalWeight: null,
