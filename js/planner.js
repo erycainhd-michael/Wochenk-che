@@ -688,7 +688,7 @@ export function setEatOut(plan, mealKey, on, input) {
   }
   structure.eatOut = [...eat];
   const next = finalizePlan(structure, ctx);
-  Object.assign(next, { seed: plan.seed, weekNo: plan.weekNo, pantryUsed: plan.pantryUsed, createdAt: plan.createdAt, done: plan.done || {}, studi: plan.studi });
+  Object.assign(next, { seed: plan.seed, weekNo: plan.weekNo, pantryUsed: plan.pantryUsed, createdAt: plan.createdAt, done: plan.done || {}, studi: plan.studi, pv: plan.pv });
   next.evaluation = evaluatePlan(next, ctx);
   return next;
 }
@@ -700,7 +700,7 @@ export function setEatOut(plan, mealKey, on, input) {
 export function refitPlan(plan, input) {
   const ctx = prepareContext({ ...input, pantry: plan.pantryUsed || input.pantry, weekNo: plan.weekNo });
   const next = finalizePlan(clone(plan.structure), ctx);
-  Object.assign(next, { seed: plan.seed, weekNo: plan.weekNo, pantryUsed: plan.pantryUsed, createdAt: plan.createdAt, done: plan.done || {}, studi: plan.studi });
+  Object.assign(next, { seed: plan.seed, weekNo: plan.weekNo, pantryUsed: plan.pantryUsed, createdAt: plan.createdAt, done: plan.done || {}, studi: plan.studi, pv: plan.pv });
   next.evaluation = evaluatePlan(next, ctx);
   return next;
 }
@@ -741,6 +741,7 @@ export function swapMeal(plan, mealKey, input, chosenId = null) {
   next.pantryUsed = plan.pantryUsed;
   next.createdAt = plan.createdAt;
   next.studi = plan.studi;
+  next.pv = plan.pv;
   next.evaluation = evaluatePlan(next, ctx);
   return next;
 }

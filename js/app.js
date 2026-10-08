@@ -138,6 +138,14 @@ async function init() {
   requestPersistence();
   if (Object.keys(S.plans).length) store.set('welcomed', true);
   S.snapshots = await listSnapshots();
+  // Planer-Verbesserungen (z. B. realistische Beilagen) einmalig auf die laufende Woche anwenden:
+  // gleiche Gerichte, neu berechnete Mengen
+  const cur = S.plans[currentWeek()];
+  if (cur?.structure && (cur.pv || 0) < PLANNER_VERSION) {
+    refitCurrent();
+    S.plans[currentWeek()].pv = PLANNER_VERSION;
+    savePlans();
+  }
   render();
   hideSplash();
   // Automatische Sicherung: täglich eine Kopie auf dem Gerät, beim Verlassen der App aktualisiert
@@ -241,6 +249,8 @@ const savePlans = () => {
   scheduleSnapshot();
 };
 const saveNext = () => store.set('nextWeek', S.next);
+// Erhöhen, wenn sich die Mengenberechnung des Planers ändert (laufende Woche wird dann neu berechnet)
+const PLANNER_VERSION = 2;
 const currentWeek = () => mondayOf();
 const ing = (id) => S.idx.get(id);
 const recipe = (id) => S.recipesById.get(id);
@@ -330,6 +340,7 @@ function createPlan({ pantry, eatOut, boost, start = 0 } = {}) {
   const plan = generatePlan(plannerInput({ pantry: pantry || {}, boost, away, settings: { ...S.settings, eatOut: eatOut || S.settings.eatOut } }));
   plan.done = {};
   plan.studi = !!S.settings.studi;
+  plan.pv = PLANNER_VERSION;
   S.plans[ws] = plan;
   savePlans();
   S.checks[ws] = {};
