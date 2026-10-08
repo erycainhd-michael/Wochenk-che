@@ -1158,7 +1158,9 @@ for (const [from, to] of [['Hauptgerichte', 'Mahlzeiten'], ['Salat', 'Salate']])
   for (const k of Object.keys(S.cats.map || {})) S.cats.map[k] = ren(S.cats.map[k]);
   for (const k of Object.keys(S.cats.off || {})) S.cats.off[k] = ren(S.cats.off[k]);
 }
-for (const n of Object.keys(AUTO_CATS)) if (!S.cats.names.includes(n) && !(S.cats.removed || []).includes(n)) S.cats.names.push(n);
+// Kategorien sind fest vorgegeben (Änderungen nur im Code): automatische + „Familienrezepte“
+S.cats.names = [...Object.keys(AUTO_CATS), 'Familienrezepte'];
+S.cats.removed = [];
 const autoCatsCache = new Map();
 function autoCats(r) {
   if (!r) return [];
@@ -1201,13 +1203,8 @@ function viewRecipes() {
       g.length
         ? sep +
           g
-            .map((n) =>
-              S.ui.catEdit
-                ? `<button class="chip del" data-action="cat-del" data-val="${e(n)}" aria-label="${e(n)} löschen">✕ ${e(n)}</button>`
-                : `<button class="chip ${sel[i] === n ? 'on' : ''}" data-action="rfilter-cat" data-group="${i}" data-val="${e(n)}">${e(n)} <small>${all.filter((r) => match(r, i) && catsOf(r.id).includes(n)).length}</small></button>`
-            )
-            .join('') +
-          (i === groups.length - 1 && !S.ui.catEdit ? '<button class="chip add" data-action="cat-new">+ Kategorie</button>' : '')
+            .map((n) => `<button class="chip ${sel[i] === n ? 'on' : ''}" data-action="rfilter-cat" data-group="${i}" data-val="${e(n)}">${e(n)} <small>${all.filter((r) => match(r, i) && catsOf(r.id).includes(n)).length}</small></button>`)
+            .join('')
         : ''
     )
     .join('');
@@ -1218,13 +1215,6 @@ function viewRecipes() {
         ${sep}${timeChips}${groupChips}
       </div>
       ${tf !== 'all' ? `<p class="hint">${TIME_FILTERS.find(([v]) => v === tf)[1]}: ${hints[tf]}</p>` : ''}
-      ${catNewRow()}
-      ${
-        S.ui.catEdit
-          ? `<p class="hint">Tippe auf eine Kategorie, um sie zu löschen. Die Rezepte bleiben erhalten.</p>
-        <div class="cat-tools">${(S.cats.removed || []).length ? `<button class="link small" data-action="cat-restore">Standard-Kategorien wiederherstellen</button>` : '<span></span>'}<button class="btn small pill primary" data-action="cat-edit">Fertig</button></div>`
-          : `<div class="cat-tools"><span></span><button class="link small" data-action="cat-edit">✏️ Kategorien bearbeiten</button></div>`
-      }
     </section>
     <section class="card new-recipe">${H2('✏️', 'Neues Rezept')}
       <div class="add-row"><input placeholder="z. B. Pilzrisotto" data-new-title="main" value="${e(S.ui.newTitle.main || '')}"><button class="btn pill" data-action="new-recipe" data-type="main">Erstellen</button></div>
@@ -1243,26 +1233,6 @@ function viewRecipes() {
         })
         .join('')}</ul>
     </section>`;
-}
-
-/** Eingabezeile für eine neue Kategorie (in der Rezeptliste oder auf einer Rezeptseite) */
-function catNewRow(id = '') {
-  if (!S.ui.catNew || S.ui.catNew.id !== id) return '';
-  return `<div class="add-row cat-new"><input data-cat-name="${e(id)}" placeholder="z. B. Familienrezepte" maxlength="30" enterkeyhint="done"><button class="btn pill primary" data-action="cat-add" data-id="${e(id)}">Anlegen</button></div>`;
-}
-
-/** Neue Kategorie anlegen (optional direkt einem Rezept zuordnen) */
-function addCategory(raw, id = '') {
-  const name = String(raw || '').trim().slice(0, 30);
-  if (!name) return toast('Bitte einen Namen eintragen', { icon: '✏️', kind: 'warn' });
-  if (!S.cats.names.includes(name)) S.cats.names.push(name);
-  S.cats.removed = (S.cats.removed || []).filter((n) => n !== name);
-  if (id) S.cats.map[id] = [...new Set([...(S.cats.map[id] || []), name])];
-  saveCats();
-  S.ui.catNew = null;
-  haptic();
-  toast('Kategorie angelegt', { icon: '🏷️', sub: name });
-  render();
 }
 
 /** Bestätigen ohne System-Dialog (die werden in iPhone-Web-Apps teils nicht angezeigt) */
@@ -1539,8 +1509,7 @@ function recipeHtml(r, items, macros, subtitle, back, info, cookKey, withServing
     <section class="card">${H2('🏷️', 'Kategorien')}
       <div class="chips cats">${S.cats.names
         .map((n) => `<button class="chip ${catsOf(r.id).includes(n) ? 'on' : ''}" data-action="rcat-toggle" data-id="${r.id}" data-val="${e(n)}">${catsOf(r.id).includes(n) ? '✓ ' : ''}${e(n)}</button>`)
-        .join('')}<button class="chip add" data-action="cat-new" data-id="${r.id}">+ Neue Kategorie</button></div>
-      ${catNewRow(r.id)}
+        .join('')}</div>
     </section>
     ${info}
     ${servings}
@@ -2344,39 +2313,7 @@ async function onClick(ev) {
       const sel = (S.ui.rSel ||= {});
       const g = el.dataset.group;
       if (sel[g] === el.dataset.val) delete sel[g];
-      else sel[g] = S.ui.rLast = el.dataset.val;
-      return render();
-    }
-    case 'cat-new':
-      S.ui.catNew = S.ui.catNew?.id === (el.dataset.id || '') ? null : { id: el.dataset.id || '' };
-      render();
-      document.querySelector('[data-cat-name]')?.focus();
-      return;
-    case 'cat-add':
-      return addCategory(document.querySelector('[data-cat-name]')?.value, el.dataset.id);
-    case 'cat-edit':
-      S.ui.catEdit = !S.ui.catEdit;
-      S.ui.catNew = null;
-      return render();
-    case 'cat-restore':
-      S.cats.removed = [];
-      for (const n of Object.keys(AUTO_CATS)) if (!S.cats.names.includes(n)) S.cats.names.push(n);
-      saveCats();
-      toast('Standard-Kategorien sind wieder da', { icon: '🏷️' });
-      return render();
-    case 'cat-del': {
-      const name = el.dataset.val;
-      if (!(await confirmBox(`„${name}“ löschen?`, 'Die Kategorie verschwindet aus allen Rezepten. Die Rezepte selbst bleiben erhalten.'))) return;
-      S.cats.names = S.cats.names.filter((n) => n !== name);
-      if (AUTO_CATS[name]) S.cats.removed = [...new Set([...(S.cats.removed || []), name])];
-      for (const id of Object.keys(S.cats.map)) {
-        S.cats.map[id] = S.cats.map[id].filter((n) => n !== name);
-        if (!S.cats.map[id].length) delete S.cats.map[id];
-      }
-      saveCats();
-      S.ui.rSel = {};
-      haptic();
-      toast('Kategorie gelöscht', { icon: '🗑️', sub: name });
+      else sel[g] = el.dataset.val;
       return render();
     }
     case 'rcat-toggle': {
@@ -2822,10 +2759,6 @@ function onChange(ev) {
     if (res.search) return runLookup(Number(el.dataset.editIng), name);
     if (S.ui.lookup?.n === Number(el.dataset.editIng)) S.ui.lookup = null;
     return render();
-  }
-  if (el.dataset.catName !== undefined) {
-    if (el.value.trim()) addCategory(el.value, el.dataset.catName);
-    return;
   }
   if (el.dataset.lookupQ !== undefined) {
     // Enter in der Produktsuche startet die Suche
