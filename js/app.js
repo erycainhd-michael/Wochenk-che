@@ -7,7 +7,7 @@ import { amountText, packText } from './shopping.js';
 import { recipeWeights, weekHints } from './feedback.js';
 import { DEFAULT_SETTINGS, mergeSettings } from './settings.js';
 import { exportAll, importAll, prunePlans, requestPersistence, store } from './storage.js';
-import { TimerManager, fmtTime, keepAwake, unlockAudio, watchBackground } from './timers.js';
+import { TimerManager, fmtTime, keepAwake, unlockAudio } from './timers.js';
 import { cleanRecipe, inventRecipe } from './ai.js';
 import { setSoundsEnabled, sound } from './sounds.js';
 import { LEVELS, SPORTS, sportById, sportKcal } from './sport.js';
@@ -121,12 +121,13 @@ async function init() {
     S.offers = null; // dann gelten Richtpreise
   }
   timers = new TimerManager((tickOnly) => (tickOnly ? updateTimerDock() : renderTimerDock()));
-  watchBackground(timers);
   window.addEventListener('hashchange', render);
   document.addEventListener('click', onClick);
   document.addEventListener('change', onChange);
   document.addEventListener('input', onInput);
-  document.addEventListener('pointerdown', unlockAudio, { once: true });
+  // iOS gibt Audio nur bei Berührungen frei – bei jeder Berührung prüfen (z. B. nach dem Hintergrund)
+  document.addEventListener('touchend', unlockAudio, { passive: true });
+  document.addEventListener('click', unlockAudio);
   registerSW();
   requestPersistence();
   if (Object.keys(S.plans).length) store.set('welcomed', true);
@@ -528,6 +529,7 @@ function render() {
   // Aufwendiges Gericht: Grün wird zu Orange, im Kochmodus läuft ein farbiger Rahmen um den Bildschirm
   const fancy = isFancy(shownRecipe) && ['rezept', 'mahlzeit', 'kochen'].includes(r.name);
   document.body.classList.toggle('fancy', fancy);
+  document.body.classList.toggle('cook-on', r.name === 'kochen');
   document.body.classList.toggle('gourmet', fancy && isGourmet(shownRecipe));
   let frame = document.getElementById('magic-frame');
   if (fancy && r.name === 'kochen') {
@@ -592,16 +594,6 @@ function applyFx() {
   S.ui.fx = null;
   if (!f) return;
   for (const el of document.querySelectorAll(f.sel)) el.classList.add(f.cls);
-}
-
-/** Einkauf komplett: Einkaufswagen rollt weich herein, hält kurz und düst davon */
-function cartRun() {
-  if (reducedMotion()) return;
-  const el = document.createElement('div');
-  el.className = 'cart-run';
-  el.innerHTML = '<span class="cart"><b class="puff">💨</b><i class="cw">🛒</i></span>';
-  document.body.appendChild(el);
-  setTimeout(() => el.remove(), 2400);
 }
 
 /** Großer Moment: Zielgewicht erreicht – Partytüte knallt, Bizeps spannt an */
@@ -983,16 +975,21 @@ const timeClass = (r) => (r.effort === 3 || r.time > 30 ? 'aufwendig' : r.time <
 const MEAT = new Set(['Geflügel', 'Schwein', 'Rind']);
 const hasMeat = (r) => r.ingredients.some((l) => MEAT.has(ing(l.id)?.protein));
 const hasFishIng = (r) => r.ingredients.some((l) => ing(l.id)?.protein === 'Fisch' || ing(l.id)?.tags?.includes('fisch'));
+const hasTag = (r, t) => (r.tags || []).includes(t);
 const AUTO_CATS = {
   'Wenig Abwasch': (r) => r.dishes <= 2,
   'Mehr Abwasch': (r) => r.dishes >= 3,
   Protein: (r, m) => (m.p * 4) / m.kcal >= 0.28,
   Carbs: (r, m) => (m.c * 4) / m.kcal >= 0.43,
   Fette: (r, m) => (m.f * 9) / m.kcal >= 0.37,
-  Hauptgerichte: (r) => r.type === 'main',
+  Mahlzeiten: (r) => r.type === 'main',
   Frühstück: (r) => r.type === 'breakfast',
-  Salat: (r) => /salat|bowl/i.test(r.name) || (r.tags || []).includes('salat'),
+  Vorspeisen: (r) => hasTag(r, 'vorspeise'),
+  Suppen: (r) => /suppe|eintopf|chowder|ramen/i.test(r.name) || hasTag(r, 'suppe'),
+  Salate: (r) => /salat|bowl/i.test(r.name) || hasTag(r, 'salat'),
+  Saucen: (r) => hasTag(r, 'sauce'),
   Kuchen: (r) => r.type === 'snack' || (r.tags || []).includes('kuchen') || (/kuchen|cake|muffin|brownie|tarte/i.test(r.name) && !/flammkuchen|pfannkuchen/i.test(r.name)),
+  Desserts: (r) => /tiramisu|crumble|mousse|pudding|panna cotta|\beis\b|parfait/i.test(r.name) || hasTag(r, 'dessert'),
   Brot: (r) => /brot|toast|stulle|sandwich/i.test(r.name),
   Gourmet: (r) => (r.tags || []).includes('gourmet'),
   Fleisch: (r) => hasMeat(r),
@@ -1003,7 +1000,7 @@ const AUTO_CATS = {
 // Gruppen lassen sich kombinieren, z. B. „Kurz“ + „Wenig Abwasch“ + „Vegetarisch“.
 const CAT_GROUPS = [
   ['Wenig Abwasch', 'Mehr Abwasch'],
-  ['Hauptgerichte', 'Frühstück', 'Kuchen', 'Salat', 'Brot'],
+  ['Mahlzeiten', 'Frühstück', 'Vorspeisen', 'Suppen', 'Salate', 'Saucen', 'Kuchen', 'Desserts', 'Brot'],
   ['Fleisch', 'Fisch', 'Vegetarisch'],
   ['Protein', 'Carbs', 'Fette'],
 ];
@@ -1013,6 +1010,14 @@ function catGroups() {
   const groups = CAT_GROUPS.map((g) => g.filter((n) => S.cats.names.includes(n)));
   groups.push(S.cats.names.filter((n) => !known.has(n)));
   return groups;
+}
+// Umbenannte Kategorien übernehmen (Hauptgerichte → Mahlzeiten, Salat → Salate)
+for (const [from, to] of [['Hauptgerichte', 'Mahlzeiten'], ['Salat', 'Salate']]) {
+  const ren = (list) => (list || []).map((n) => (n === from ? to : n));
+  S.cats.names = [...new Set(ren(S.cats.names))];
+  S.cats.removed = ren(S.cats.removed);
+  for (const k of Object.keys(S.cats.map || {})) S.cats.map[k] = ren(S.cats.map[k]);
+  for (const k of Object.keys(S.cats.off || {})) S.cats.off[k] = ren(S.cats.off[k]);
 }
 for (const n of Object.keys(AUTO_CATS)) if (!S.cats.names.includes(n) && !(S.cats.removed || []).includes(n)) S.cats.names.push(n);
 const autoCatsCache = new Map();
@@ -1388,7 +1393,8 @@ function viewCooking(key) {
     <div class="step-count">Schritt ${n + 1} von ${r.steps.length}</div>
     ${tools.length ? `<div class="cook-tools"><span>Du brauchst jetzt</span>${tools.map((t) => `<b class="tool">${e(t)}</b>`).join('')}</div>` : ''}
     <p class="step-text" data-step="${n}">${stepHtml(s.t, items)}</p>
-    ${s.timer ? `<button class="btn primary block big" data-action="timer" data-sec="${s.timer}" data-label="${e(s.label || 'Schritt ' + (n + 1))}" data-ctx="${e(r.name)}">⏱️ Timer ${fmtTime(s.timer)} starten</button>` : ''}
+    <div class="cook-actions">
+      ${s.timer ? `<button class="btn primary block big" data-action="timer" data-sec="${s.timer}" data-label="${e(s.label || 'Schritt ' + (n + 1))}" data-ctx="${e(r.name)}">⏱️ Timer ${fmtTime(s.timer)} starten</button>` : ''}
     <div class="cook-nav">
       <button class="btn big" data-action="cook-step" data-d="-1" ${n === 0 ? 'disabled' : ''}>‹ Zurück</button>
       ${
@@ -1396,6 +1402,7 @@ function viewCooking(key) {
           ? `<button class="btn big primary ${isFancy(r) ? 'magic' : ''}" data-action="cook-done" data-back="${backHref}">Fertig ✓</button>`
           : `<button class="btn big primary" data-action="cook-step" data-d="1">Weiter ›</button>`
       }
+    </div>
     </div>
   </div>`;
 }
@@ -2005,6 +2012,8 @@ function renderTimerDock() {
     )
     .join('');
   document.body.classList.toggle('has-timers', timers.timers.length > 0);
+  // Höhe der Timer merken: Im Kochmodus sitzen „Zurück/Weiter“ mit gleichem Abstand darüber
+  document.documentElement.style.setProperty('--dock-h', timers.timers.length ? `${dock.offsetHeight + 8}px` : '0px');
 }
 
 function updateTimerDock() {
@@ -2441,7 +2450,6 @@ async function onClick(ev) {
         sound.allDone();
         hapticBurst(2);
         toast('Alles eingekauft!', { icon: '🛒', sub: 'Die Woche kann kommen.' });
-        cartRun();
       } else if (on) sound.check();
       else sound.uncheck();
       if (on) fx(`.shop-item[data-id="${el.dataset.id}"] .check`);
