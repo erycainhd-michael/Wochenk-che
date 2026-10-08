@@ -1,6 +1,6 @@
 // Service Worker: App offline verfügbar machen.
 // Bei Änderungen an App-Dateien VERSION erhöhen, damit iPhones die neue Version laden.
-const VERSION = 'mf-v29';
+const VERSION = 'mf-v30';
 const SHELL = [
   './',
   './index.html',
@@ -31,6 +31,19 @@ const SHELL = [
   './icons/icon-192.png',
   './icons/icon-512.png',
   './icons/apple-touch-icon.png',
+  './icons/splash/full.webp',
+  './icons/splash/onions.webp',
+  './icons/splash/beans.webp',
+  './icons/splash/garlic.webp',
+  './icons/splash/soy.webp',
+  './icons/splash/lemon.webp',
+  './icons/splash/herbs.webp',
+  './icons/splash/pepper.webp',
+  './icons/splash/salt.webp',
+  './icons/splash/broth.webp',
+  './icons/splash/wedge.webp',
+  './icons/splash/clove1.webp',
+  './icons/splash/clove2.webp',
   './icons/nav/woche.png',
   './icons/nav/einkauf.png',
   './icons/nav/rueckblick.png',

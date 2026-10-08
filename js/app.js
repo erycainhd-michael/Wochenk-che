@@ -60,11 +60,15 @@ function hideSplash() {
   const el = document.getElementById('splash');
   if (!el) return;
   sound.jingle(); // iOS spielt Töne erst nach der ersten Berührung – dann bleibt es still
-  const wait = reducedMotion() ? 0 : Math.max(0, 1250 - performance.now());
-  setTimeout(() => {
+  const out = () => {
     el.classList.add('out');
     setTimeout(() => el.remove(), 450);
-  }, wait);
+  };
+  if (reducedMotion()) return out();
+  // Die Stop-Motion zu Ende laufen lassen, dann das fertige Icon noch kurz zeigen (höchstens 3 s insgesamt)
+  const t0 = performance.now();
+  const wait = () => (el.classList.contains('done') || performance.now() - t0 > 3000 ? setTimeout(out, 550) : setTimeout(wait, 50));
+  wait();
 }
 
 // Eckenradius der iPhone-Displays (Punkte), nach Bildschirmgröße im Hochformat
@@ -812,8 +816,11 @@ function viewStart(stepArg) {
       ? `<section class="card accent"><h2>Sicherung gefunden</h2><p class="sub">Auf diesem iPhone liegt eine automatische Sicherung vom ${fmtDateTime(snap.savedAt)}. Möchtest du deine Daten zurückholen?</p>
         <select id="snap-pick" hidden><option value="${snap.day}"></option></select><button class="btn primary block" data-action="snap-restore">Wiederherstellen</button></section>`
       : '';
-    body = `${restore}<div class="welcome"><img class="welcome-icon" src="icons/icon-512.png" alt=""><h2>Willkommen bei Mise!</h2></div>
-      <section class="card"><p>Mise plant deine Woche so, dass dein Einkauf deine Kalorien- und Proteinziele schon erfüllt – ohne Kalorienzählen. In vier kurzen Schritten richten wir alles für dich ein.</p>
+    body = `${restore}<div class="welcome"><img class="welcome-icon" src="icons/icon-512.png" alt=""><h2>Willkommen bei Mise!</h2>
+        <p class="mise-word"><b>Mise en Place</b>, franz.: „alles an seinem Platz“</p></div>
+      <section class="card"><p>Der Trick der Profiküche: Erst wird geschnippelt, abgewogen und bereitgestellt – dann wird ganz entspannt gekocht. 🧄🍋🌿</p>
+        <p>Mise macht das für deine ganze Woche: Plan, Einkauf und Portionen stehen bereit, passend zu deinen Zielen – ganz ohne Kalorienzählen. Du musst nur noch kochen.</p>
+        <p class="sub">In vier kurzen Schritten ist alles an seinem Platz.</p>
         <label class="field">Wie heißt du?<input type="text" autocomplete="given-name" data-set="name" value="${e(st.name || '')}" placeholder="Dein Vorname"></label>
         <p class="hint">Alles bleibt nur auf diesem Gerät.</p>${nav("Los geht's", 1)}</section>`;
   } else if (step === 1) {
@@ -1138,6 +1145,7 @@ const AUTO_CATS = {
 // Filter-Gruppen der Rezeptliste (durch Linien getrennt). Innerhalb einer Gruppe gilt eine Auswahl,
 // Gruppen lassen sich kombinieren, z. B. „Kurz“ + „Wenig Abwasch“ + „Vegetarisch“.
 const CAT_GROUPS = [
+  ['Favoriten'],
   ['Wenig Abwasch', 'Mehr Abwasch'],
   ['Mahlzeiten', 'Frühstück', 'Vorspeisen', 'Suppen', 'Salate', 'Saucen', 'Kuchen', 'Desserts', 'Brot'],
   ['Fleisch', 'Fisch', 'Vegetarisch'],
@@ -1158,8 +1166,8 @@ for (const [from, to] of [['Hauptgerichte', 'Mahlzeiten'], ['Salat', 'Salate']])
   for (const k of Object.keys(S.cats.map || {})) S.cats.map[k] = ren(S.cats.map[k]);
   for (const k of Object.keys(S.cats.off || {})) S.cats.off[k] = ren(S.cats.off[k]);
 }
-// Kategorien sind fest vorgegeben (Änderungen nur im Code): automatische + „Familienrezepte“
-S.cats.names = [...Object.keys(AUTO_CATS), 'Familienrezepte'];
+// Kategorien sind fest vorgegeben (Änderungen nur im Code): „Favoriten“ + automatische + „Familienrezepte“
+S.cats.names = ['Favoriten', ...Object.keys(AUTO_CATS), 'Familienrezepte'];
 S.cats.removed = [];
 const autoCatsCache = new Map();
 function autoCats(r) {
@@ -1176,6 +1184,20 @@ const catsOf = (id) => {
   return [...new Set([...(S.cats.map[id] || []), ...autoCats(recipe(id))])].filter((n) => S.cats.names.includes(n) && !off.includes(n));
 };
 const saveCats = () => store.set('recipeCats', S.cats);
+const isFav = (id) => catsOf(id).includes('Favoriten');
+/** Stern-Knopf und Kategorie-Chip „Favoriten“ im Rezept auf denselben Stand bringen */
+function syncFav(id) {
+  const on = isFav(id);
+  document.querySelectorAll(`[data-action="fav-toggle"][data-id="${CSS.escape(id)}"]`).forEach((b) => {
+    b.classList.toggle('on', on);
+    b.textContent = on ? '★' : '☆';
+    b.setAttribute('aria-label', on ? 'Aus Favoriten entfernen' : 'Zu Favoriten hinzufügen');
+  });
+  document.querySelectorAll(`[data-action="rcat-toggle"][data-id="${CSS.escape(id)}"][data-val="Favoriten"]`).forEach((c) => {
+    c.classList.toggle('on', on);
+    c.textContent = (on ? '✓ ' : '') + 'Favoriten';
+  });
+}
 
 /** Alle Rezepte in einer Liste – Frühstück, Hauptgericht & Co. sind Kategorien zum Filtern */
 function viewRecipes() {
@@ -1493,7 +1515,12 @@ function recipeHtml(r, items, macros, subtitle, back, info, cookKey, withServing
     active === cookKey ? `<a class="btn primary ${magic} ${cls}" href="${cookHref}">👨‍🍳 Weiter kochen</a>` : `<a class="btn primary ${magic} ${cls}" href="${cookHref}">${magic ? '✨' : '👨‍🍳'} Kochmodus starten</a>`;
   const ar = active && cookRecipe(active);
   const activeMagic = isFancy(ar) ? `magic ${isGourmet(ar) ? 'gourmet' : ''}` : '';
-  return `<header class="top">${back}${active ? `<a class="btn primary pill ${activeMagic}" href="${resumeHref}">👨‍🍳 Weiter kochen</a>` : startBtn('pill')}</header>
+  const fav = recipe(r.id) ? isFav(r.id) : null;
+  const star =
+    fav === null
+      ? ''
+      : `<button class="fav-btn ${fav ? 'on' : ''}" data-action="fav-toggle" data-id="${e(r.id)}" aria-label="${fav ? 'Aus Favoriten entfernen' : 'Zu Favoriten hinzufügen'}">${fav ? '★' : '☆'}</button>`;
+  return `<header class="top">${back}<div class="top-actions">${star}${active ? `<a class="btn primary pill ${activeMagic}" href="${resumeHref}">👨‍🍳 Weiter kochen</a>` : startBtn('pill')}</div></header>
     <section class="card accent rhero">
       <div class="rhero-art slot-${r.type === 'breakfast' ? 'fruehstueck' : 'abend'}"><span>${recipeEmoji(r)}</span></div>
       <div class="card-head"><div class="sub">${e(subtitle)}</div><a class="btn small pill" href="#/bearbeiten/${r.id}">✏️ Ändern</a></div>
@@ -2333,6 +2360,24 @@ async function onClick(ev) {
       const on = !has;
       el.classList.toggle('on', on);
       el.textContent = (on ? '✓ ' : '') + val;
+      if (val === 'Favoriten') syncFav(id);
+      return;
+    }
+    case 'fav-toggle': {
+      const { id } = el.dataset;
+      const on = !isFav(id);
+      const manual = (S.cats.map[id] || []).filter((n) => n !== 'Favoriten');
+      S.cats.map[id] = on ? [...manual, 'Favoriten'] : manual;
+      if (!S.cats.map[id].length) delete S.cats.map[id];
+      saveCats();
+      syncFav(id);
+      haptic();
+      if (on) {
+        sound.check();
+        el.classList.remove('pop');
+        void el.offsetWidth;
+        el.classList.add('pop');
+      } else sound.uncheck();
       return;
     }
     case 'toggle-quiet':

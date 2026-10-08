@@ -182,9 +182,13 @@ body.has-timers .view { padding-bottom: calc(var(--sab) + 176px); }
 .eval li.hint::marker { content: '💡  '; }
 .eval li.warn::marker { content: '⚠️  '; }
 
-.welcome { text-align: center; padding: 14vh 0 10vh; }
+.welcome { text-align: center; padding: 8vh 0 4vh; }
 .welcome-icon { width: 124px; height: 124px; border-radius: 28px; box-shadow: var(--shadow); }
 .welcome h2 { margin-top: 18px; font-size: 1.2rem; }
+.welcome-icon { animation: iconHop 0.7s 0.2s cubic-bezier(0.3, 1.5, 0.5, 1) backwards; }
+@keyframes iconHop { from { transform: scale(0.6) rotate(-8deg); opacity: 0; } }
+.mise-word { margin: 6px 0 0; color: var(--muted); font-size: 0.92rem; }
+.mise-word b { color: var(--accent); }
 
 .day-head { width: 100%; display: flex; flex-direction: column; gap: 2px; padding: 0; background: none; border: 0; color: inherit; font: inherit; text-align: left; cursor: pointer; }
 .meals { list-style: none; margin: 12px 0 0; padding: 0; border-top: 1px solid var(--line); }
@@ -487,7 +491,6 @@ textarea { font: inherit; color: var(--text); background: var(--field); border: 
   .done-check path { stroke-dashoffset: 0; }
 }
 @media (prefers-reduced-motion: reduce) {
-  #splash .stem, #splash .vein { stroke-dashoffset: 0; }
   .charts.play .ln:not(.fc) { stroke-dashoffset: 0; }
 }
 
@@ -543,18 +546,24 @@ textarea { font: inherit; color: var(--text); background: var(--field); border: 
 
 /* Start: Blatt-Animation */
 #splash {
-  position: fixed; inset: 0; z-index: 100; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;
-  background: var(--bg); transition: opacity 0.45s ease;
+  position: fixed; inset: 0; z-index: 100; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 22px;
+  background: radial-gradient(circle at 50% 42%, #0f4a2e 0%, #0b3524 55%, #072619 100%); transition: opacity 0.45s ease;
 }
-#splash .leaf { width: 132px; height: 132px; overflow: visible; }
-#splash .stem { fill: none; stroke: #1f7a4d; stroke-width: 5; stroke-linecap: round; stroke-dasharray: 30; stroke-dashoffset: 30; animation: draw 0.3s 0.05s ease-out forwards; }
-#splash .blade { transform-box: view-box; transform-origin: 47px 85px; animation: leafGrow 0.75s 0.15s cubic-bezier(0.3, 1.6, 0.45, 1) both, leafWiggle 0.5s 0.95s ease-in-out; }
-#splash .vein { fill: none; stroke: rgba(255, 255, 255, 0.75); stroke-width: 2.5; stroke-linecap: round; stroke-dasharray: 80; stroke-dashoffset: 80; animation: draw 0.45s 0.5s ease-out forwards; }
-@keyframes leafGrow { 0% { transform: scale(0) rotate(-45deg); } 70% { transform: scale(1.08) rotate(6deg); } 100% { transform: scale(1) rotate(0); } }
-@keyframes leafWiggle { 30% { transform: rotate(-5deg); } 65% { transform: rotate(3deg); } }
-.splash-name { font-size: 1.6rem; font-weight: 700; letter-spacing: 0.02em; color: var(--accent); animation: viewIn 0.5s 0.55s cubic-bezier(0.2, 0.8, 0.2, 1) backwards; }
+/* Das Brett des App-Icons; die Zutaten springen als Stop-Motion darüber, am Ende liegt das Icon da */
+.splash-board {
+  position: relative; width: min(66vw, 46vh, 300px); aspect-ratio: 1; border-radius: 10%; overflow: hidden;
+  background: radial-gradient(circle at 40% 39%, #135e38 0%, #0f5030 45%, #08301d 100%);
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.35); animation: boardIn 0.35s cubic-bezier(0.2, 0.9, 0.3, 1.2) both;
+}
+.splash-board .sp { position: absolute; max-width: none; opacity: 0; will-change: transform; }
+#splash.go .sp { opacity: 1; }
+.splash-board .sp-full { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; transition: opacity 0.3s ease; }
+#splash.done .sp-full { opacity: 1; }
+@keyframes boardIn { from { transform: scale(0.7); opacity: 0; } }
+.splash-name { font-size: 1.7rem; font-weight: 700; letter-spacing: 0.04em; color: #eaf6ee; opacity: 0; transform: translateY(8px); transition: opacity 0.35s ease, transform 0.35s ease; }
+#splash.done .splash-name { opacity: 1; transform: none; }
 #splash.out { opacity: 0; pointer-events: none; }
-#splash.out .leaf { transform: scale(1.6) rotate(-8deg); transition: transform 0.45s cubic-bezier(0.5, 0, 0.75, 0); }
+#splash.out .splash-board { transform: scale(1.12); transition: transform 0.45s cubic-bezier(0.5, 0, 0.75, 0); }
 .chips.cats .chip.add { border: 1px dashed var(--accent); background: transparent; }
 
 /* --- Übernommen aus „Mise frisch“: Wochenkarte, Rezeptansicht, Kochmodus --- */
@@ -893,3 +902,13 @@ body { min-height: calc(100vh + 1px); min-height: calc(100lvh + 1px); }
 .cb-card .grid2 { margin-top: 14px; }
 .cb-card .btn { margin: 0; }
 .btn.danger-fill { background: #c0392b; border-color: #c0392b; color: #fff; }
+
+/* Favoriten: runder Stern-Knopf links neben „Kochmodus starten“ */
+.top-actions { display: flex; align-items: center; gap: 10px; margin-left: auto; }
+.fav-btn {
+  flex: none; width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; padding: 0;
+  border: 1px solid var(--line); background: var(--card); color: var(--muted); font-size: 1.35rem; line-height: 1; box-shadow: var(--shadow); cursor: pointer;
+}
+.fav-btn.on { color: #e9a400; border-color: #f2c94c; background: var(--sun-soft); }
+.fav-btn.pop { animation: favPop 0.45s cubic-bezier(0.3, 1.6, 0.5, 1); }
+@keyframes favPop { 0% { transform: scale(0.6) rotate(-20deg); } 60% { transform: scale(1.2) rotate(8deg); } 100% { transform: none; } }
