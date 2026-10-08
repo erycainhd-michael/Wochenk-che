@@ -833,3 +833,33 @@ body.cook-on .cook-actions .btn.block { margin: 0 0 10px; }
 body { min-height: calc(100vh + 1px); min-height: calc(100lvh + 1px); }
 @media (prefers-color-scheme: dark) { :root:not([data-theme='light']) body.fancy.gourmet { --accent: var(--gourmet); --accent-soft: var(--gourmet-soft); --accent-text: #ffffff; --hero: #7a1a2c; } }
 :root[data-theme='dark'] body.fancy.gourmet { --accent: var(--gourmet); --accent-soft: var(--gourmet-soft); --accent-text: #ffffff; --hero: #7a1a2c; }
+
+/* Rückblick oben: Diagramm-Karte (immer gleich groß) + KW-Leiste füllen genau den Bildschirm.
+   Abstand Karte → KW-Leiste = Abstand KW-Leiste → Tab-Leiste (je 16px). */
+.rb-top { display: flex; flex-direction: column; min-height: 420px; padding-bottom: 12px;
+  height: calc(var(--vh, 100vh) - var(--sat) - 16px - var(--tab-bottom, 8px) - 66px); }
+.rb-top .top { flex: none; }
+.rb-top .charts { flex: 1; min-height: 0; margin: 0; display: flex; flex-direction: column; gap: 10px; overflow: hidden; }
+.rb-top .chart { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.rb-top .chart-svg { flex: 1; min-height: 0; height: auto; }
+.rb-top .chart-empty { flex: 1; display: grid; place-items: center; }
+.rb-top .goal-progress { margin-top: 6px; }
+.rb-top .trend-text { margin: 4px 0 0; font-size: 0.85rem; }
+.rb-top .kw-strip { flex: none; margin: 12px -16px 0; padding-top: 4px; padding-bottom: 4px; }
+
+/* Wie war die Woche? – eine Zeile am Kartenende */
+.week-rate { flex: none; display: grid; grid-template-columns: auto auto 1fr 1fr; gap: 12px; align-items: start; border-top: 1px solid var(--line); padding-top: 12px; }
+.rate-btn { background: none; border: 0; padding: 0; display: flex; flex-direction: column; align-items: center; gap: 4px; color: var(--text); font: inherit; cursor: pointer; }
+.rate-ring { position: relative; width: 46px; height: 46px; border-radius: 50%; display: grid; place-items: center; background: conic-gradient(var(--accent) var(--p), var(--field) 0); transition: background 0.3s; }
+.rate-ring::before { content: ''; position: absolute; inset: 4px; border-radius: 50%; background: var(--card); }
+.rate-ring b { position: relative; font-size: 1.1rem; font-variant-numeric: tabular-nums; }
+.rate-btn:not(.on) .rate-ring b { color: var(--muted); }
+.rate-btn small, .mini-field small { font-size: 0.72rem; color: var(--muted); white-space: nowrap; }
+.mini-field { display: flex; flex-direction: column-reverse; align-items: stretch; gap: 4px; min-width: 0; text-align: center; }
+.mini-field input { min-height: 46px; padding: 6px 10px; font-size: 16px; text-align: center; }
+.rb-top .chart-empty { padding: 8px 12px; font-size: 0.8rem; overflow: hidden; min-height: 0; }
+.rb-top .chart-head { flex: none; }
+.rb-top .chart-tip { flex: none; font-size: 0.75rem; }
+.rb-top .chart-head h2 { font-size: 0.98rem; }
+.rb-top .legend { font-size: 0.72rem; gap: 8px; }
+@media (max-height: 620px) { .rb-top .chart-tip { display: none; } .rb-top .goal-progress { margin-top: 2px; } }

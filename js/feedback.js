@@ -16,6 +16,7 @@ export function recipeWeights(history = []) {
       if (fb.rating === 1) delta += 0.35;
       if (fb.rating === -1) delta -= 0.45;
       if (fb.again) delta += 0.4;
+      if (fb.tooExpensive) delta -= 0.3; // 💸 war zu teuer
       weights[id] = (weights[id] || 0) + delta * decay;
       if (fb.tooComplex) tooComplex[id] = (tooComplex[id] || 0) + decay;
       if (fb.dishes) tooComplex[id] = (tooComplex[id] || 0) + 0.6 * decay;
