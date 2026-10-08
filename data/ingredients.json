@@ -142,6 +142,8 @@
     {"id": "rotwein", "name": "Rotwein, trocken (zum Kochen)", "cat": "Konserven & Gläser", "kcal": 20, "p": 0.1, "c": 2.6, "f": 0, "fib": 0, "pack": 750, "price": 2.99, "priceEdeka": 3.99, "shelf": 7, "protein": null, "tags": [], "kw": ["rotwein"]},
     {"id": "amaretto", "name": "Amaretto", "cat": "Süßes & Backen", "kcal": 145, "p": 0, "c": 30, "f": 0, "fib": 0, "pack": 700, "price": 6.99, "priceEdeka": 8.99, "shelf": 365, "staple": true, "protein": null, "tags": [], "kw": ["amaretto"]},
     {"id": "zwiebelsuppe_pulver", "name": "Zwiebelsuppe (Instant-Päckchen)", "cat": "Vorrat: Öle & Gewürze", "kcal": 350, "p": 7, "c": 60, "f": 9, "fib": 3, "pack": 50, "price": 0.99, "priceEdeka": 1.29, "shelf": 365, "protein": null, "tags": [], "kw": ["zwiebelsuppe"]},
-    {"id": "ghee", "name": "Ghee / Butterschmalz", "cat": "Vorrat: Öle & Gewürze", "kcal": 898, "p": 0.3, "c": 0, "f": 99.5, "fib": 0, "pack": 250, "price": 2.29, "priceEdeka": 3.49, "shelf": 365, "staple": true, "protein": null, "tags": [], "kw": ["ghee", "butterschmalz"]}
+    {"id": "ghee", "name": "Ghee / Butterschmalz", "cat": "Vorrat: Öle & Gewürze", "kcal": 898, "p": 0.3, "c": 0, "f": 99.5, "fib": 0, "pack": 250, "price": 2.29, "priceEdeka": 3.49, "shelf": 365, "staple": true, "protein": null, "tags": [], "kw": ["ghee", "butterschmalz"]},
+    {"id": "aubergine", "name": "Aubergine", "cat": "Obst & Gemüse", "kcal": 24, "p": 1.2, "c": 2.5, "f": 0.2, "fib": 2.8, "pack": 300, "packLabel": "1 Stück", "piece": 300, "price": 0.89, "priceEdeka": 1.29, "shelf": 7, "protein": null, "tags": ["gemuese"], "color": "lila", "kw": ["aubergine", "auberginen"]},
+    {"id": "risottoreis", "name": "Risottoreis (Arborio)", "cat": "Nudeln, Reis & Getreide", "kcal": 350, "p": 7, "c": 78, "f": 0.6, "fib": 1.5, "pack": 500, "price": 1.49, "priceEdeka": 1.99, "shelf": 365, "protein": null, "tags": [], "kw": ["risottoreis", "arborio", "carnaroli"]}
   ]
 }
