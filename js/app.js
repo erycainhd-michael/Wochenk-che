@@ -7,13 +7,13 @@ import { amountText, packText } from './shopping.js';
 import { recipeWeights, weekHints } from './feedback.js';
 import { DEFAULT_SETTINGS, mergeSettings } from './settings.js';
 import { exportAll, importAll, prunePlans, requestPersistence, store } from './storage.js';
-import { TimerManager, fmtTime, keepAwake, unlockAudio } from './timers.js';
+import { TimerManager, fmtTime, keepAwake, unlockAudio, watchBackground } from './timers.js';
 import { cleanRecipe, inventRecipe } from './ai.js';
 import { setSoundsEnabled, sound } from './sounds.js';
 import { LEVELS, SPORTS, sportById, sportKcal } from './sport.js';
 import { NAV_ICONS } from './navicons.js';
 import { autoSnapshot, getSnapshot, listSnapshots } from './backup.js';
-import { haptic, hapticBurst, setHapticsEnabled } from './haptics.js';
+import { haptic, hapticBurst } from './haptics.js';
 import { stepTools } from './tools.js';
 import { lookupBarcode, searchProducts, scanBarcode } from './foodlookup.js';
 
@@ -71,51 +71,12 @@ function hideSplash() {
 const SCREEN_RADIUS = { '375x812': 41, '414x896': 41.5, '390x844': 47.33, '428x926': 53.33, '393x852': 55, '430x932': 55, '402x874': 62, '440x956': 62, '420x912': 60 };
 
 /**
- * Mise bleibt immer im Hochformat: Wird das iPhone quer gehalten, dreht sich die App gegen,
- * sodass alles aufrecht bleibt (Klasse rot-l/rot-r am <html>, siehe CSS).
- */
-function applyOrientation() {
-  const root = document.documentElement;
-  const phone = Math.min(screen.width, screen.height) < 500 && matchMedia('(pointer: coarse)').matches;
-  let rot = '';
-  if (phone && innerWidth > innerHeight) {
-    const angle = screen.orientation?.angle ?? window.orientation ?? 90;
-    rot = angle === 270 || angle === -90 ? 'rot-r' : 'rot-l';
-  }
-  const was = root.classList.contains('rot-l') ? 'rot-l' : root.classList.contains('rot-r') ? 'rot-r' : '';
-  // Beim Drehen kurz ausblenden und weich wieder einblenden, statt sichtbar umzuspringen
-  if (was !== rot && pinnedKey) {
-    root.classList.add('rotating');
-    setTimeout(() => root.classList.remove('rotating'), 120);
-  }
-  root.classList.toggle('rot-l', rot === 'rot-l');
-  root.classList.toggle('rot-r', rot === 'rot-r');
-  // Als Home-Bildschirm-App: echte Displaygröße verwenden. iOS meldet die Fensterhöhe dort teils
-  // ohne den Bereich am Home-Indikator – dann wäre unten ein schwarzer Streifen.
-  const standalone = navigator.standalone || matchMedia('(display-mode: standalone)').matches;
-  const sw = Math.min(screen.width, screen.height);
-  const sh = Math.max(screen.width, screen.height);
-  const st = root.style;
-  if (phone && standalone && rot) {
-    st.setProperty('--rot-w', `${sh}px`);
-    st.setProperty('--rot-h', `${sw}px`);
-    st.setProperty('--app-h', '100%');
-  } else if (phone && standalone) {
-    st.setProperty('--app-h', `${Math.max(sh, innerHeight)}px`);
-  } else {
-    st.removeProperty('--app-h');
-  }
-  if (!rot) st.removeProperty('--rot-w'), st.removeProperty('--rot-h');
-  pinChrome();
-}
-
-/**
  * Abstand der Tab-Leiste zum unteren Rand einmal messen und festhalten (neu nur beim Drehen),
  * dazu der Eckenradius des Displays für den Rahmen im Kochmodus.
  */
 let pinnedKey = '';
 function pinChrome() {
-  const key = `${innerWidth}x${innerHeight > innerWidth}${document.documentElement.className}`;
+  const key = `${innerWidth}x${innerHeight > innerWidth}`;
   if (key === pinnedKey) return;
   pinnedKey = key;
   const probe = document.createElement('div');
@@ -126,22 +87,17 @@ function pinChrome() {
   const root = document.documentElement.style;
   root.setProperty('--tab-bottom', `${Math.max(8, Math.round(sab - 14))}px`);
   const dims = `${Math.min(screen.width, screen.height)}x${Math.max(screen.width, screen.height)}`;
+  // Quer gehalten liegen die runden Ecken genauso – der Radius bleibt gleich
   root.setProperty('--screen-r', `${SCREEN_RADIUS[dims] ?? (sab > 0 ? 44 : 0)}px`);
 }
 
 async function init() {
   window.__miseStarted = true;
   applyTheme();
-  applyOrientation();
-  addEventListener('resize', applyOrientation);
-  // Drehen beginnt: sofort ausblenden, damit die Dreh-Animation von iOS nicht sichtbar ruckelt
-  addEventListener('orientationchange', () => {
-    document.documentElement.classList.add('rotating');
-    setTimeout(applyOrientation, 50);
-    setTimeout(() => document.documentElement.classList.remove('rotating'), 380);
-  });
-  setSoundsEnabled(S.settings.sounds);
-  setHapticsEnabled(S.settings.sounds);
+  pinChrome();
+  addEventListener('resize', pinChrome);
+  // Töne sind immer an (Timer und „Fertig“ klingeln auch bei Lautlos)
+  setSoundsEnabled(true);
   try {
     const [ing, rec] = await Promise.all([loadJSON('data/ingredients.json'), loadJSON('data/recipes.json')]);
     S.ingBase = ing.items;
@@ -165,6 +121,7 @@ async function init() {
     S.offers = null; // dann gelten Richtpreise
   }
   timers = new TimerManager((tickOnly) => (tickOnly ? updateTimerDock() : renderTimerDock()));
+  watchBackground(timers);
   window.addEventListener('hashchange', render);
   document.addEventListener('click', onClick);
   document.addEventListener('change', onChange);
@@ -288,7 +245,11 @@ const dishesText = (n) => (!n ? 'kein Abwasch' : n === 1 ? '1 Teil Abwasch' : `$
 /** Aufwendige Gerichte, Familienrezepte und Gourmet fühlen sich besonders an: orange statt grün */
 const isFancy = (r) => !!r && (timeClass(r) === 'aufwendig' || catsOf(r.id).some((c) => c === 'Familienrezepte' || c === 'Gourmet'));
 /** Kurzer Hinweis, warum ein Gericht besonders ist */
-const fancyLabel = (r) => (timeClass(r) === 'aufwendig' ? 'aufwendig' : catsOf(r.id).includes('Familienrezepte') ? 'Familienrezept' : 'Gourmet');
+const fancyLabel = (r) => (isGourmet(r) ? 'Gourmet' : timeClass(r) === 'aufwendig' ? 'aufwendig' : 'Familienrezept');
+/** Gourmet-Gerichte: Bordeauxrot mit Silber und Serifenschrift */
+const isGourmet = (r) => !!r && catsOf(r.id).includes('Gourmet');
+/** CSS-Klassen für besondere Gerichte: „fancy“ (orange) und zusätzlich „gourmet“ (bordeaux) */
+const themeCls = (r) => (isGourmet(r) ? 'fancy gourmet' : isFancy(r) ? 'fancy' : '');
 /** Mahlzeit am Wochenende-Mittag: „Kaffee & Kuchen“ (ältere Pläne: nur Sonntag) */
 const isCake = (m) => !!(m?.cake || m?.sunday);
 /** Personen, für die diese Mahlzeit gekocht wird (1 = nur du) */
@@ -545,7 +506,7 @@ function render() {
   // Hülle nur einmal bauen, damit die Tab-Leiste weich animieren kann
   if (!document.getElementById('view')) {
     app.innerHTML = `
-    <div id="scroller"><main class="view" id="view"></main></div>
+    <main class="view" id="view"></main>
     <div id="timer-dock"></div>
     <nav class="tabbar">
       ${tabBtn('woche', 'Wochenübersicht')}
@@ -567,6 +528,7 @@ function render() {
   // Aufwendiges Gericht: Grün wird zu Orange, im Kochmodus läuft ein farbiger Rahmen um den Bildschirm
   const fancy = isFancy(shownRecipe) && ['rezept', 'mahlzeit', 'kochen'].includes(r.name);
   document.body.classList.toggle('fancy', fancy);
+  document.body.classList.toggle('gourmet', fancy && isGourmet(shownRecipe));
   let frame = document.getElementById('magic-frame');
   if (fancy && r.name === 'kochen') {
     if (!frame) {
@@ -587,7 +549,9 @@ function render() {
       resume.id = 'cook-resume';
       document.body.appendChild(resume);
     }
-    resume.classList.toggle('magic', isFancy(cookRecipe(S.ui.cookActive)));
+    const cr = cookRecipe(S.ui.cookActive);
+    resume.classList.toggle('magic', isFancy(cr));
+    resume.classList.toggle('gourmet', isGourmet(cr));
     resume.innerHTML = `<a href="#/kochen/${encodeURIComponent(S.ui.cookActive)}">👨‍🍳 Weiter kochen</a><button data-action="cook-end" aria-label="Kochmodus beenden">✕</button>`;
   } else resume?.remove();
   applyFx();
@@ -595,7 +559,7 @@ function render() {
   if (changed) view.querySelector('.charts')?.classList.add('play');
   renderTimerDock();
   setupKwStrip();
-  if (changed && !sameView) document.getElementById('scroller')?.scrollTo(0, 0);
+  if (changed && !sameView) window.scrollTo(0, 0);
 }
 
 /** Rezept zu einem Kochmodus-Schlüssel („r:id“ oder Mahlzeit wie „2-abend“) */
@@ -630,28 +594,14 @@ function applyFx() {
   for (const el of document.querySelectorAll(f.sel)) el.classList.add(f.cls);
 }
 
-/** Konfetti-Explosion ab einem Punkt (Standard: Bildschirmmitte) */
-function confetti({ x = innerWidth / 2, y = innerHeight * 0.38, count = 26, spread = 1, delay = 0 } = {}) {
+/** Einkauf komplett: Einkaufswagen rollt weich herein, hält kurz und düst davon */
+function cartRun() {
   if (reducedMotion()) return;
-  const box = document.createElement('div');
-  box.className = 'confetti';
-  box.style.left = `${x}px`;
-  box.style.top = `${y}px`;
-  const colors = ['#1f7a4d', '#3fb97a', '#e0702a', '#f2c94c', '#9bd3b0', '#e85d9c'];
-  for (let i = 0; i < count; i++) {
-    const p = document.createElement('i');
-    const ang = -Math.PI / 2 + (Math.random() - 0.5) * Math.PI * 2 * spread;
-    const dist = 90 + Math.random() * 150;
-    p.style.setProperty('--x', `${Math.cos(ang) * dist}px`);
-    p.style.setProperty('--y', `${Math.sin(ang) * dist - 40}px`);
-    p.style.setProperty('--r', `${Math.random() * 720 - 360}deg`);
-    p.style.background = colors[i % colors.length];
-    if (i % 3 === 0) p.classList.add('strip');
-    p.style.animationDelay = `${delay + Math.random() * 0.12}s`;
-    box.appendChild(p);
-  }
-  document.body.appendChild(box);
-  setTimeout(() => box.remove(), 2200 + delay * 1000);
+  const el = document.createElement('div');
+  el.className = 'cart-run';
+  el.innerHTML = '<span class="cart"><b class="puff">💨</b><i class="cw">🛒</i></span>';
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 2400);
 }
 
 /** Großer Moment: Zielgewicht erreicht – Partytüte knallt, Bizeps spannt an */
@@ -661,7 +611,7 @@ function celebrate(kg) {
   const ov = document.createElement('div');
   ov.className = 'celebrate';
   ov.innerHTML = `<div class="cel-box">
-      <div class="cel-stage"><span class="popper">🎉</span><span class="bicep">💪</span></div>
+      <div class="cel-stage"><span class="bicep">💪</span></div>
       <h2>Ziel erreicht!</h2>
       <p><b>${fmtKg(kg)} kg</b> – du hast es geschafft. Richtig stark!</p>
       <button class="btn primary block" data-close>Weiter so</button>
@@ -672,12 +622,7 @@ function celebrate(kg) {
     setTimeout(() => ov.remove(), 350);
   };
   ov.addEventListener('click', close);
-  setTimeout(() => {
-    const r = ov.querySelector('.popper')?.getBoundingClientRect();
-    if (r) confetti({ x: r.left + r.width * 0.7, y: r.top + r.height * 0.3, count: 46, spread: 0.45 });
-    hapticBurst(3);
-  }, 520);
-  setTimeout(() => confetti({ count: 30, delay: 0.1 }), 1300);
+  setTimeout(() => hapticBurst(3), 700);
   setTimeout(close, 6000);
 }
 
@@ -875,12 +820,12 @@ function mealRow(plan, m) {
   const badges = [];
   if (m.leftover) badges.push('<span class="badge">Portion von gestern</span>');
   else if (cook && cook.portions.length > 1) badges.push('<span class="badge">+ Portion für morgen</span>');
-  if (isFancy(r)) badges.push(`<span class="badge fancy">✨ ${fancyLabel(r)}</span>`);
+  if (isFancy(r)) badges.push(`<span class="badge ${themeCls(r)}">✨ ${fancyLabel(r)}</span>`);
   if (peopleOf(m) > 1) badges.push(`<span class="badge">für ${peopleOf(m)} Personen</span>`);
   if (r.source === 'ki' || isFresh(r)) badges.push('<span class="badge new">neu</span>');
   for (const a of m.addons || []) badges.push(`<span class="badge">+ ${e(recipe(a)?.name || a)}</span>`);
   const isSnack = m.slot === 'snack';
-  return `<li class="meal ${isFancy(r) ? 'fancy' : ''}" data-key="${m.key}">
+  return `<li class="meal ${themeCls(r)}" data-key="${m.key}">
     <a class="mt" href="#/mahlzeit/${m.key}">
       <div class="ml">${isCake(m) ? '☕' : ICON[isSnack ? 'snack' : m.slot]} ${slotLabel(m)} · ${r.time} Min.</div>
       <div class="mn">${e(r.name)}</div>
@@ -1049,7 +994,7 @@ const AUTO_CATS = {
   Salat: (r) => /salat|bowl/i.test(r.name) || (r.tags || []).includes('salat'),
   Kuchen: (r) => r.type === 'snack' || (r.tags || []).includes('kuchen') || (/kuchen|cake|muffin|brownie|tarte/i.test(r.name) && !/flammkuchen|pfannkuchen/i.test(r.name)),
   Brot: (r) => /brot|toast|stulle|sandwich/i.test(r.name),
-  Gourmet: (r) => timeClass(r) === 'aufwendig' || (r.tags || []).includes('gourmet'),
+  Gourmet: (r) => (r.tags || []).includes('gourmet'),
   Fleisch: (r) => hasMeat(r),
   Fisch: (r) => hasFishIng(r),
   Vegetarisch: (r) => !hasMeat(r) && !hasFishIng(r),
@@ -1137,7 +1082,7 @@ function viewRecipes() {
           const tag = r.source === 'ki' ? ' · ✨ KI' : isFresh(r) ? ' · ✨ neu' : r.source === 'eigen' ? ' · eigenes' : '';
           const m = macrosOf(r.ingredients.filter((l) => !l.opt || S.settings[l.opt]));
           const tags = catsOf(r.id).filter((c) => !/Abwasch/.test(c));
-          return `<li class="${isFancy(r) ? 'fancy' : ''}"><a href="#/rezept/${r.id}"><span class="rl-n">${isFancy(r) ? '✨ ' : ''}${e(r.name)}${w > 1.15 ? ' 👍' : w < 0.85 ? ' 👎' : ''}</span>
+          return `<li class="${themeCls(r)}"><a href="#/rezept/${r.id}"><span class="rl-n">${isFancy(r) ? '✨ ' : ''}${e(r.name)}${w > 1.15 ? ' 👍' : w < 0.85 ? ' 👎' : ''}</span>
             <span class="rmeta">${r.time} Min. · ${dishesText(r.dishes)} · <b>${num(m.kcal)} kcal</b> · ${g_(m.c)} Kohlenhydrate · ${g_(m.p)} Protein · ${g_(m.f)} Fett${r.season ? ' · saisonal' : ''}${tag}</span>
             ${tags.length ? `<span class="rcats">${tags.map((c) => `<i>${e(c)}</i>`).join('')}</span>` : ''}</a></li>`;
         })
@@ -1384,7 +1329,8 @@ function recipeHtml(r, items, macros, subtitle, back, info, cookKey, withServing
   const magic = isFancy(r) ? 'magic' : '';
   const startBtn = (cls) =>
     active === cookKey ? `<a class="btn primary ${magic} ${cls}" href="${cookHref}">👨‍🍳 Weiter kochen</a>` : `<a class="btn primary ${magic} ${cls}" href="${cookHref}">${magic ? '✨' : '👨‍🍳'} Kochmodus starten</a>`;
-  const activeMagic = active && isFancy(cookRecipe(active)) ? 'magic' : '';
+  const ar = active && cookRecipe(active);
+  const activeMagic = isFancy(ar) ? `magic ${isGourmet(ar) ? 'gourmet' : ''}` : '';
   return `<header class="top">${back}${active ? `<a class="btn primary pill ${activeMagic}" href="${resumeHref}">👨‍🍳 Weiter kochen</a>` : startBtn('pill')}</header>
     <section class="card accent rhero">
       <div class="rhero-art slot-${r.type === 'breakfast' ? 'fruehstueck' : 'abend'}"><span>${recipeEmoji(r)}</span></div>
@@ -1447,7 +1393,7 @@ function viewCooking(key) {
       <button class="btn big" data-action="cook-step" data-d="-1" ${n === 0 ? 'disabled' : ''}>‹ Zurück</button>
       ${
         n === r.steps.length - 1
-          ? `<button class="btn big primary" data-action="cook-done" data-back="${backHref}">Fertig ✓</button>`
+          ? `<button class="btn big primary ${isFancy(r) ? 'magic' : ''}" data-action="cook-done" data-back="${backHref}">Fertig ✓</button>`
           : `<button class="btn big primary" data-action="cook-step" data-d="1">Weiter ›</button>`
       }
     </div>
@@ -2014,7 +1960,6 @@ function viewSettings() {
     <label class="field">Design<select data-set="theme"><option value="auto" ${!st.theme || st.theme === 'auto' ? 'selected' : ''}>Automatisch</option><option value="dark" ${st.theme === 'dark' ? 'selected' : ''}>Dunkel</option><option value="light" ${st.theme === 'light' ? 'selected' : ''}>Hell</option></select></label>
     <label class="field">Dein Name (für die Begrüßung)<input type="text" autocomplete="given-name" data-set="name" value="${e(st.name || '')}" placeholder="z. B. Michael"></label>
     ${field('planHour', 'Neuer Plan montags ab (Uhr)', 'min="0" max="23"')}
-    <label class="row"><input type="checkbox" data-set="sounds" ${st.sounds !== false ? 'checked' : ''}> Töne und Vibration (Töne nur, wenn das iPhone nicht lautlos ist)</label>
   </section>
 
   <section class="card"><h2>KI-Rezepte <span class="sub">(optional, kostenpflichtig)</span></h2>
@@ -2047,7 +1992,7 @@ function renderTimerDock() {
   if (!dock || !timers) return;
   dock.innerHTML = timers.timers
     .map(
-      (t) => `<div class="timer ${t.done ? 'ringing' : ''} ${t.paused != null ? 'paused' : ''}">
+      (t) => `<div class="timer ${t.theme === 'gourmet' ? 'fancy gourmet' : t.theme || ''} ${t.done ? 'ringing' : ''} ${t.paused != null ? 'paused' : ''}">
       <b class="tl">${e(t.label)}</b>
       <span class="tt" data-tt="${t.id}">${t.done ? 'Fertig!' : fmtTime(timers.remaining(t), true)}</span>
       ${
@@ -2420,7 +2365,7 @@ async function onClick(ev) {
       saveSettings();
       return render();
     case 'timer':
-      timers.start(el.dataset.label, Number(el.dataset.sec), el.dataset.ctx);
+      timers.start(el.dataset.label, Number(el.dataset.sec), el.dataset.ctx, document.body.classList.contains('gourmet') ? 'gourmet' : document.body.classList.contains('fancy') ? 'fancy' : '');
       sound.timerStart();
       haptic();
       toast(`Timer läuft`, { icon: '⏱️', sub: el.dataset.label });
@@ -2496,6 +2441,7 @@ async function onClick(ev) {
         sound.allDone();
         hapticBurst(2);
         toast('Alles eingekauft!', { icon: '🛒', sub: 'Die Woche kann kommen.' });
+        cartRun();
       } else if (on) sound.check();
       else sound.uncheck();
       if (on) fx(`.shop-item[data-id="${el.dataset.id}"] .check`);
@@ -2595,8 +2541,6 @@ function onChange(ev) {
     saveSettings();
     if (/^(goals\.|stores\.|mainStore$)/.test(el.dataset.set)) refitCurrent();
     if (el.dataset.set === 'theme') applyTheme();
-    setSoundsEnabled(S.settings.sounds);
-    setHapticsEnabled(S.settings.sounds);
     render();
     return;
   }

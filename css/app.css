@@ -79,26 +79,14 @@
 }
 
 * { box-sizing: border-box; }
-/* Sicherheitsabstände (Notch, Home-Indikator). Quer gehaltenes iPhone: Mise dreht sich mit, damit alles aufrecht bleibt */
+/* Sicherheitsabstände (Notch, Home-Indikator) */
 :root { --sat: env(safe-area-inset-top); --sab: env(safe-area-inset-bottom); }
-html.rot-l { --sat: env(safe-area-inset-left); --sab: env(safe-area-inset-right); }
-html.rot-r { --sat: env(safe-area-inset-right); --sab: env(safe-area-inset-left); }
-html.rot-l body, html.rot-r body { position: fixed; top: 0; left: 0; width: var(--rot-w, 100vh); height: var(--rot-h, 100vw); transform-origin: top left; }
-body { transition: opacity 0.18s ease-out; }
-html.rotating body { opacity: 0; transition: none; }
-html.rot-l body { transform: rotate(-90deg) translateX(-100%); }
-html.rot-r body { transform: rotate(90deg) translateY(-100%); }
-/* Die App füllt immer den ganzen Bildschirm (--app-h = echte Displayhöhe, wird beim Start gemessen).
-   Gescrollt wird in #scroller statt in der Seite: keine Scrollleiste, und die Tab-Leiste wandert nie mit. */
-html, body { height: 100%; overflow: hidden; }
-#app { position: fixed; top: 0; left: 0; right: 0; height: var(--app-h, 100%); overflow: hidden; }
-#scroller { position: absolute; inset: 0; overflow-x: hidden; overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; scrollbar-width: none; }
-/* Vollbild-Ebenen ebenfalls auf die echte Displayhöhe */
-#busy, .done-overlay, .celebrate, #splash, .scanner, #magic-frame { bottom: auto !important; height: var(--app-h, 100%); }
+/* Keine Scrollleisten */
+html { scrollbar-width: none; }
 ::-webkit-scrollbar { display: none; width: 0; height: 0; background: transparent; }
 html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; touch-action: pan-x pan-y; }
 /* Nichts darf seitlich überstehen – sonst verkleinert iOS die ganze Seite */
-html, body { overflow-x: hidden; max-width: 100%; }
+html, body { overflow-x: hidden; overflow-x: clip; max-width: 100%; }
 button, a, input, select, textarea, label { touch-action: manipulation; }
 body.no-nav .tabbar { display: none; }
 body {
@@ -320,7 +308,7 @@ input[type='checkbox']:checked::after { content: '✓'; color: var(--accent-text
 
 /* Schwebende Tab-Leiste, nur Symbole */
 .tabbar {
-  position: absolute; left: 16px; right: 16px; z-index: 20;
+  position: fixed; left: 16px; right: 16px; z-index: 20;
   /* tief unten wie bei nativen Apps: halb im Bereich des Home-Indikators.
      --tab-bottom wird beim Start einmal gemessen, damit die Leiste beim Scrollen nicht mitwandert */
   bottom: var(--tab-bottom, max(8px, calc(var(--sab) - 14px)));
@@ -345,7 +333,7 @@ input[type='checkbox']:checked::after { content: '✓'; color: var(--accent-text
 .tab:active img { opacity: 0.7; }
 
 #timer-dock {
-  position: absolute; left: 16px; right: 16px; z-index: 19; max-width: 648px; margin: 0 auto;
+  position: fixed; left: 16px; right: 16px; z-index: 19; max-width: 648px; margin: 0 auto;
   bottom: calc(var(--tab-bottom, max(8px, calc(var(--sab) - 14px))) + 74px);
   transform: translate3d(0, 0, 0);
   display: flex; flex-direction: column; gap: 8px;
@@ -537,16 +525,8 @@ textarea { font: inherit; color: var(--text); background: var(--field); border: 
 @keyframes celIn { from { transform: translateY(40px) scale(0.85); opacity: 0; } }
 .cel-box h2 { font-size: 1.6rem; margin: 6px 0 4px; }
 .cel-stage { position: relative; height: 120px; }
-.popper, .bicep { position: absolute; top: 18px; font-size: 76px; line-height: 1; }
-.popper { left: 50%; margin-left: -88px; animation: popper 1s cubic-bezier(0.3, 1.6, 0.5, 1) both; transform-origin: 20% 90%; }
-@keyframes popper {
-  0% { transform: scale(0) rotate(-50deg); }
-  40% { transform: scale(1.15) rotate(8deg); }
-  52% { transform: scale(0.85) rotate(-6deg); }   /* Knall */
-  64% { transform: scale(1.12) rotate(4deg); }
-  100% { transform: scale(1) rotate(0); }
-}
-.bicep { left: 50%; margin-left: 8px; animation: bicepIn 0.5s 0.7s cubic-bezier(0.3, 1.6, 0.5, 1) both, flex 0.9s 1.25s ease-in-out 2; transform-origin: 30% 80%; }
+.bicep { position: absolute; top: 18px; font-size: 76px; line-height: 1; }
+.bicep { left: 50%; margin-left: -38px; animation: bicepIn 0.5s 0.7s cubic-bezier(0.3, 1.6, 0.5, 1) both, flex 0.9s 1.25s ease-in-out 2; transform-origin: 30% 80%; }
 @keyframes bicepIn { from { transform: scale(0) translateY(20px); } }
 @keyframes flex {
   0%, 100% { transform: scale(1) rotate(0); }
@@ -722,7 +702,8 @@ body.cooking .view { padding-top: calc(var(--sat) + 60px); }
 .snap-row .btn { width: 100%; }
 
 /* Geschirr je Schritt */
-:root { --fancy: #e2681a; --fancy-soft: #fdebdc; }
+:root { --fancy: #e2681a; --fancy-soft: #fdebdc; --green: #1f7a4d; --gourmet: #8c1c32; --gourmet-soft: #f7e4e7;
+  --magic: #ff8a00, #ff3b3b, #ffd23f, #9b5cff, #ff8a00; }
 .step-tools { display: flex; flex-wrap: wrap; gap: 4px; margin: 3px 0 2px; }
 .tool { font-size: 0.75rem; font-weight: 600; background: var(--accent-soft); color: var(--accent); border-radius: 999px; padding: 2px 10px; }
 .step-tools .tool::before { content: '+ '; }
@@ -794,25 +775,25 @@ body.cooking .view { padding-top: calc(var(--sat) + 60px); }
 body.fancy { --accent: #e2681a; --accent-soft: #fdebdc; --accent-text: #ffffff; --hero: #d9611a; }
 body.fancy .rhero-art { background: linear-gradient(135deg, #ffd8ae, #ffc7c0 50%, #e7d6ff); }
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme='light']) { --fancy: #f5953f; --fancy-soft: #3a2516; }
+  :root:not([data-theme='light']) { --fancy: #f5953f; --fancy-soft: #3a2516; --green: #3fb97a; --gourmet: #d65a71; --gourmet-soft: #3a1820; }
   :root:not([data-theme='light']) body.fancy { --accent: #f5953f; --accent-soft: #3a2516; --accent-text: #1c0e03; --hero: #b9551a; }
   :root:not([data-theme='light']) body.fancy .rhero-art { background: linear-gradient(135deg, #4a2a12, #47201f 50%, #33244d); }
 }
-:root[data-theme='dark'] { --fancy: #f5953f; --fancy-soft: #3a2516; }
+:root[data-theme='dark'] { --fancy: #f5953f; --fancy-soft: #3a2516; --green: #3fb97a; --gourmet: #d65a71; --gourmet-soft: #3a1820; }
 :root[data-theme='dark'] body.fancy { --accent: #f5953f; --accent-soft: #3a2516; --accent-text: #1c0e03; --hero: #b9551a; }
 :root[data-theme='dark'] body.fancy .rhero-art { background: linear-gradient(135deg, #4a2a12, #47201f 50%, #33244d); }
 
 /* Kochmodus eines aufwendigen Gerichts: umlaufende Linie in Orange, Rot, Gelb und Lila */
 @property --mf { syntax: '<angle>'; inherits: false; initial-value: 0deg; }
-#magic-frame { position: fixed; top: 0; left: 0; right: 0; z-index: 35; pointer-events: none; animation: viewIn 0.6s ease-out; }
-/* dezent wie die Kartenrahmen (3px), folgt den Rundungen des Displays */
-#magic-frame i { position: absolute; inset: 0; border-radius: var(--screen-r, 0px); padding: 3px;
-  background: conic-gradient(from var(--mf), #ff8a00, #ff3b3b, #ffd23f, #9b5cff, #ff8a00);
+#magic-frame { position: fixed; inset: 0; z-index: 35; pointer-events: none; animation: viewIn 0.6s ease-out; }
+/* so breit wie der Rahmen wichtiger Karten (der Displayrand verdeckt etwa 1px), folgt den Rundungen des Displays */
+#magic-frame i { position: absolute; inset: 0; border-radius: var(--screen-r, 0px); padding: 4px;
+  background: conic-gradient(from var(--mf), var(--magic));
   -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
   animation: magicSpin 4s linear infinite; }
 /* Knöpfe „Kochmodus starten“/„Weiter kochen“ bei besonderen Gerichten: derselbe wandernde Farbverlauf als Rand */
 .btn.magic, #cook-resume.magic { border: 3px solid transparent;
-  background: linear-gradient(var(--accent), var(--accent)) padding-box, conic-gradient(from var(--mf), #ff8a00, #ff3b3b, #ffd23f, #9b5cff, #ff8a00) border-box;
+  background: linear-gradient(var(--accent), var(--accent)) padding-box, conic-gradient(from var(--mf), var(--magic)) border-box;
   animation: magicSpin 4s linear infinite; }
 #cook-resume.magic { --accent: var(--fancy); }
 @keyframes magicSpin { to { --mf: 360deg; } }
@@ -822,3 +803,33 @@ body.fancy .rhero-art { background: linear-gradient(135deg, #ffd8ae, #ffc7c0 50%
 /* Woche: Tage ohne Kochen eingeklappt */
 .hidden-days { display: block; width: 100%; text-align: left; margin: 0 0 12px; padding: 14px 16px; border-radius: var(--radius); background: var(--card); border: 1px solid var(--line); color: var(--muted); font: inherit; font-size: 0.95rem; cursor: pointer; }
 .hidden-days b { color: var(--text); font-weight: 600; }
+
+/* Gourmet: Bordeauxrot mit Silber, Serifenschrift */
+.gourmet { --fancy: var(--gourmet); --fancy-soft: var(--gourmet-soft); --magic: #6e1023, #cfd0d8, #a3223a, #f4f4f8, #6e1023; }
+body.fancy.gourmet { --accent: var(--gourmet); --accent-soft: var(--gourmet-soft); --accent-text: #ffffff; --hero: #7a1a2c; }
+body.gourmet .rhero-art { background: linear-gradient(135deg, #f1dce1, #ececf1 55%, #dcc4ca); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme='light']) body.gourmet .rhero-art { background: linear-gradient(135deg, #3d1520, #2b2b31 55%, #4a1a27); } }
+:root[data-theme='dark'] body.gourmet .rhero-art { background: linear-gradient(135deg, #3d1520, #2b2b31 55%, #4a1a27); }
+body.gourmet .view, body.gourmet .view .btn, body.gourmet .view .chip, body.gourmet .view .pill { font-family: 'Noto Serif', Georgia, 'Times New Roman', serif; }
+
+/* Timer in der Farbe des Rezepts, für das er läuft */
+.timer { --tc: var(--green); border: 2px solid var(--tc); }
+.timer .tt { color: var(--tc); }
+.timer.fancy { --tc: var(--fancy); }
+.timer.ringing { --tc: var(--ring); }
+
+/* Einkauf komplett: Einkaufswagen fährt weich ein (Easy Ease), hält kurz, düst davon */
+.cart-run { position: fixed; left: 0; right: 0; top: 40%; height: 90px; z-index: 70; pointer-events: none; overflow: hidden; }
+.cart-run .cart { position: absolute; left: 0; top: 4px; font-size: 68px; line-height: 1; animation: cartRun 2.2s both; }
+.cart-run .puff { position: absolute; right: 100%; bottom: 0; font-size: 34px; opacity: 0; animation: puff 2.2s both; }
+@keyframes cartRun {
+  0% { transform: translateX(-110px); animation-timing-function: cubic-bezier(0.45, 0, 0.25, 1); }
+  38% { transform: translateX(calc(50vw - 34px)); }
+  48% { transform: translateX(calc(50vw - 40px)) rotate(-6deg); animation-timing-function: ease-in-out; }
+  58% { transform: translateX(calc(50vw - 40px)) rotate(-6deg); animation-timing-function: cubic-bezier(0.7, 0, 0.9, 0.5); }
+  100% { transform: translateX(calc(100vw + 120px)) rotate(-2deg); }
+}
+@keyframes puff { 0%, 55% { opacity: 0; transform: scale(0.4); } 66% { opacity: 1; transform: scale(1); } 100% { opacity: 0.6; transform: scale(1.2); } }
+@media (prefers-color-scheme: dark) { :root:not([data-theme='light']) body.fancy.gourmet { --accent: var(--gourmet); --accent-soft: var(--gourmet-soft); --accent-text: #ffffff; --hero: #7a1a2c; } }
+:root[data-theme='dark'] body.fancy.gourmet { --accent: var(--gourmet); --accent-soft: var(--gourmet-soft); --accent-text: #ffffff; --hero: #7a1a2c; }
+.cart-run .cw { display: inline-block; font-style: normal; transform: scaleX(-1); } /* Wagen schaut in Fahrtrichtung */

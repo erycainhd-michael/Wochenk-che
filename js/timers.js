@@ -1,8 +1,10 @@
 // Mehrere parallele Koch-Timer mit Signalton. Endzeitpunkte werden gespeichert, damit Timer
-// ein Neuladen der App überstehen. Hinweis: iOS pausiert Web-Apps im Hintergrund – der Ton
-// kommt nur zuverlässig, solange die App geöffnet ist.
+// ein Neuladen der App überstehen.
+// Gesperrtes iPhone: iOS hält Web-Apps im Hintergrund an. Deshalb wird beim Sperren eine
+// Audiodatei abgespielt, die bis zum Timer-Ende still ist und dann klingelt – Audio läuft
+// (wie Musik) auch bei gesperrtem Bildschirm weiter.
 import { store } from './storage.js';
-import { sound, unlockAudio } from './sounds.js';
+import { setAudioSession, sound, unlockAudio } from './sounds.js';
 
 export { unlockAudio };
 
@@ -26,9 +28,10 @@ export class TimerManager {
   save() {
     store.set('timers', this.timers);
   }
-  start(label, seconds, context = '') {
+  start(label, seconds, context = '', theme = '') {
     unlockAudio();
-    const t = { id: Math.random().toString(36).slice(2, 9), label, context, duration: seconds, end: Date.now() + seconds * 1000, paused: null, done: false };
+    unlockBackgroundAudio();
+    const t = { id: Math.random().toString(36).slice(2, 9), label, context, theme, duration: seconds, end: Date.now() + seconds * 1000, paused: null, done: false };
     this.timers.push(t);
     this.save();
     this.ensureTicking();
@@ -113,6 +116,102 @@ export class TimerManager {
       /* ignorieren */
     }
   }
+}
+
+// --- Klingeln bei gesperrtem Bildschirm -----------------------------------------
+
+const RATE = 4000; // 4 kHz, 8 Bit mono: klein genug für lange Timer, reicht für Pieptöne
+const ALARM_SEC = 40;
+let bgAudio = null;
+let bgUrl = null;
+
+function audioEl() {
+  if (!bgAudio) {
+    bgAudio = new Audio();
+    bgAudio.preload = 'auto';
+    bgAudio.setAttribute('playsinline', '');
+  }
+  return bgAudio;
+}
+
+/** Einmal durch einen Tipp abspielen, damit iOS das spätere Abspielen im Hintergrund erlaubt */
+function unlockBackgroundAudio() {
+  try {
+    const a = audioEl();
+    if (a.dataset.unlocked) return;
+    a.src = URL.createObjectURL(wav(new Uint8Array(RATE / 10).fill(128)));
+    a.play().then(() => {
+      a.pause();
+      a.dataset.unlocked = '1';
+    }, () => {});
+  } catch {
+    /* egal */
+  }
+}
+
+function wav(samples) {
+  const buf = new ArrayBuffer(44 + samples.length);
+  const v = new DataView(buf);
+  const str = (o, t) => [...t].forEach((c, i) => v.setUint8(o + i, c.charCodeAt(0)));
+  str(0, 'RIFF');
+  v.setUint32(4, 36 + samples.length, true);
+  str(8, 'WAVEfmt ');
+  v.setUint32(16, 16, true);
+  v.setUint16(20, 1, true);
+  v.setUint16(22, 1, true);
+  v.setUint32(24, RATE, true);
+  v.setUint32(28, RATE, true);
+  v.setUint16(32, 1, true);
+  v.setUint16(34, 8, true);
+  str(36, 'data');
+  v.setUint32(40, samples.length, true);
+  new Uint8Array(buf, 44).set(samples);
+  return new Blob([buf], { type: 'audio/wav' });
+}
+
+/** Stille bis zu jedem Timer-Ende, dort jeweils lautes Klingeln */
+function alarmTrack(ends) {
+  const total = Math.min(90 * 60, Math.max(...ends) + ALARM_SEC);
+  const s = new Uint8Array(Math.ceil(total * RATE)).fill(128);
+  for (const end of ends) {
+    for (let t = end; t < Math.min(total, end + ALARM_SEC); t += 0.75) {
+      for (const [off, f] of [[0, 880], [0.2, 1175]]) {
+        const a = Math.floor((t + off) * RATE);
+        const n = Math.floor(0.17 * RATE);
+        for (let i = 0; i < n && a + i < s.length; i++) s[a + i] = Math.floor((i * f * 2) / RATE) % 2 ? 250 : 6; // Rechteck, volle Lautstärke
+      }
+    }
+  }
+  return wav(s);
+}
+
+/** Beim Sperren/Verlassen: Klingel-Spur für laufende Timer starten; beim Zurückkommen stoppen */
+export function watchBackground(manager) {
+  document.addEventListener('visibilitychange', () => {
+    const a = audioEl();
+    if (document.visibilityState === 'hidden') {
+      const ends = manager.timers.filter((t) => !t.done && t.paused == null).map((t) => Math.max(0, (t.end - Date.now()) / 1000));
+      if (!ends.length) return;
+      try {
+        if (bgUrl) URL.revokeObjectURL(bgUrl);
+        bgUrl = URL.createObjectURL(alarmTrack(ends));
+        setAudioSession('playback');
+        a.src = bgUrl;
+        if ('mediaSession' in navigator && window.MediaMetadata) {
+          const next = manager.timers.find((t) => !t.done && t.paused == null);
+          navigator.mediaSession.metadata = new MediaMetadata({ title: `⏱️ ${next?.label || 'Timer'}`, artist: 'Mise – Timer läuft' });
+        }
+        a.play().catch(() => {});
+      } catch {
+        /* nicht möglich */
+      }
+    } else if (!a.paused || bgUrl) {
+      a.pause();
+      if (bgUrl) URL.revokeObjectURL(bgUrl);
+      bgUrl = null;
+      setAudioSession('ambient');
+    }
+  });
 }
 
 export function fmtTime(sec, padMinutes = false) {
