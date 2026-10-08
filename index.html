@@ -21,16 +21,66 @@
   </head>
   <body>
     <div id="splash" aria-hidden="true">
-      <svg class="leaf" viewBox="0 0 120 120">
-        <defs><linearGradient id="leafg" x1="0" y1="1" x2="1" y2="0"><stop offset="0" stop-color="#1f7a4d" /><stop offset="1" stop-color="#4cc488" /></linearGradient></defs>
-        <path class="stem" d="M47 85 L33 101" />
-        <g class="blade">
-          <path class="blade-fill" d="M47 85 C38 58 58 28 97 21 C93 55 77 82 47 85 Z" fill="url(#leafg)" />
-          <path class="vein" d="M47 85 Q70 57 92 27" />
-        </g>
-      </svg>
+      <div class="splash-board">
+        <div class="sp-items">
+          <img class="sp" data-n="onions" src="icons/splash/onions.webp" alt="" style="left:0.0%;top:52.17%;width:49.0%;height:41.85%" />
+          <img class="sp" data-n="beans" src="icons/splash/beans.webp" alt="" style="left:52.54%;top:4.08%;width:47.46%;height:53.8%" />
+          <img class="sp" data-n="garlic" src="icons/splash/garlic.webp" alt="" style="left:14.13%;top:5.16%;width:26.54%;height:26.54%" />
+          <img class="sp" data-n="soy" src="icons/splash/soy.webp" alt="" style="left:43.48%;top:13.95%;width:17.12%;height:17.12%" />
+          <img class="sp" data-n="lemon" src="icons/splash/lemon.webp" alt="" style="left:3.53%;top:29.08%;width:27.26%;height:27.26%" />
+          <img class="sp" data-n="herbs" src="icons/splash/herbs.webp" alt="" style="left:29.44%;top:29.44%;width:26.54%;height:26.54%" />
+          <img class="sp" data-n="pepper" src="icons/splash/pepper.webp" alt="" style="left:47.46%;top:46.56%;width:30.16%;height:30.16%" />
+          <img class="sp" data-n="salt" src="icons/splash/salt.webp" alt="" style="left:82.43%;top:52.17%;width:16.76%;height:16.76%" />
+          <img class="sp" data-n="broth" src="icons/splash/broth.webp" alt="" style="left:67.03%;top:65.58%;width:30.71%;height:30.71%" />
+          <img class="sp" data-n="wedge" src="icons/splash/wedge.webp" alt="" style="left:26.45%;top:49.82%;width:16.49%;height:14.76%" />
+          <img class="sp" data-n="clove1" src="icons/splash/clove1.webp" alt="" style="left:39.13%;top:6.52%;width:9.69%;height:9.33%" />
+          <img class="sp" data-n="clove2" src="icons/splash/clove2.webp" alt="" style="left:7.52%;top:19.38%;width:8.7%;height:10.05%" />
+        </div>
+        <img class="sp-full" src="icons/splash/full.webp" alt="" />
+      </div>
       <div class="splash-name">Mise</div>
     </div>
+    <script>
+      // Startanimation: Stop-Motion – die Schüsseln wandern über das Brett, füllen und leeren sich
+      // und landen am Ende an ihrem Platz (= App-Icon). Läuft sofort, noch bevor die App geladen ist.
+      (function () {
+        var sp = document.getElementById('splash');
+        if (matchMedia('(prefers-reduced-motion: reduce)').matches) { sp.classList.add('done'); return; }
+        var board = sp.querySelector('.splash-board');
+        var els = [].slice.call(sp.querySelectorAll('.sp'));
+        var by = {};
+        els.forEach(function (e) { by[e.dataset.n] = e; });
+        var bowls = ['garlic', 'soy', 'lemon', 'herbs', 'pepper', 'salt', 'broth'];
+        // Je Bild: Schüssel → Platz einer anderen Schüssel, Füllstand (Größe, abwechselnd voll/leer), leichte Drehung
+        var frames = [
+          { perm: [4, 6, 0, 5, 2, 3, 1], s: [0.45, 0.9], r: 9 },
+          { perm: [1, 4, 6, 0, 5, 2, 3], s: [0.75, 0.55], r: -7 },
+          { perm: [5, 3, 1, 6, 0, 4, 2], s: [0.95, 0.7], r: 5 },
+          { perm: [2, 0, 3, 1, 6, 5, 4], s: [0.8, 1.05], r: -4 },
+          { perm: [0, 1, 2, 3, 4, 5, 6], s: [1.06, 1.04], r: 2 },
+          { perm: [0, 1, 2, 3, 4, 5, 6], s: [1, 1], r: 0 },
+        ];
+        var others = { beans: [[-9, 7], [6, -5], [-4, 3], [2, -1]], onions: [[8, -9], [-5, 6], [3, -4], [-1, 1]], wedge: [[30, -6], [-12, 24], [14, 9], [-3, 2]], clove1: [[-20, 30], [16, 12], [-8, -6], [2, 1]], clove2: [[40, 10], [12, 34], [-4, 8], [1, -1]] };
+        function center(e) { return [e.offsetLeft + e.offsetWidth / 2, e.offsetTop + e.offsetHeight / 2]; }
+        var i = 0;
+        function step() {
+          var f = frames[i], W = board.offsetWidth / 100;
+          bowls.forEach(function (n, k) {
+            var e = by[n], a = center(e), b = center(by[bowls[f.perm[k]]]);
+            var s = f.s[k % 2];
+            e.style.transform = 'translate(' + (b[0] - a[0]) + 'px,' + (b[1] - a[1]) + 'px) rotate(' + (k % 2 ? f.r : -f.r) + 'deg) scale(' + s + ')';
+          });
+          Object.keys(others).forEach(function (n) {
+            var o = others[n][Math.min(i, 3)], last = i >= 4;
+            by[n].style.transform = last ? '' : 'translate(' + o[0] * W + 'px,' + o[1] * W + 'px) rotate(' + o[0] / 2 + 'deg) scale(' + (0.6 + i * 0.1) + ')';
+          });
+          sp.classList.add('go');
+          if (++i < frames.length) setTimeout(step, 150);
+          else setTimeout(function () { sp.classList.add('done'); }, 160);
+        }
+        setTimeout(step, 120);
+      })();
+    </script>
     <div id="app"><main class="view"><p class="sub center">Lade …</p></main></div>
     <noscript>Diese App braucht JavaScript.</noscript>
     <script>
