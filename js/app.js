@@ -759,6 +759,9 @@ const DISH_EMOJI = [
   [/shake/i, '🥤'],
 ];
 const recipeEmoji = (r) => r?.emoji || DISH_EMOJI.find(([re]) => re.test(r?.name || ''))?.[1] || '🍽️';
+/** Rezeptbild (images/recipes/<id>.webp, Feld `img`); ohne Bild eine Kachel im Stil des App-Icons mit Emoji */
+const recipeArt = (r, lazy = true) =>
+  r?.img ? `<img class="r-img" src="${e(r.img)}" alt="" ${lazy ? 'loading="lazy" decoding="async"' : ''}>` : `<span class="r-emoji">${recipeEmoji(r)}</span>`;
 
 /** Überschrift mit kleiner Symbol-Kachel */
 const H2 = (icon, text) => `<h2 class="ih"><span class="hi">${icon}</span>${text}</h2>`;
@@ -1213,6 +1216,8 @@ function viewRecipes() {
   const match = (r, skip = null, time = tf) =>
     (skip === 'time' || time === 'all' || timeClass(r) === time) && groups.every((_, i) => i === skip || !sel[i] || catsOf(r.id).includes(sel[i]));
   const list = all.filter((r) => match(r)).sort((a, b) => a.name.localeCompare(b.name, 'de'));
+  // Darstellung: Liste (ohne Bild) oder Raster (zwei quadratische Bilder nebeneinander, ohne Text)
+  const grid = store.get('recipeView', 'list') === 'grid';
   const any = tf !== 'all' || Object.keys(sel).length;
   const hints = { kurz: 'bis 15 Min.', mittel: '15–30 Min.', aufwendig: 'über 30 Min. oder aufwendig' };
   const sep = '<span class="chip-sep" aria-hidden="true"></span>';
@@ -1238,9 +1243,18 @@ function viewRecipes() {
     <section class="card new-recipe">${H2('✏️', 'Neues Rezept')}
       <div class="add-row"><input placeholder="z. B. Pilzrisotto" data-new-title="main" value="${e(S.ui.newTitle.main || '')}"><button class="btn pill" data-action="new-recipe" data-type="main">Erstellen</button></div>
     </section>
-    <section class="card">
+    <section class="card ${grid ? 'rgrid-card' : ''}">
+      <div class="view-toggle seg" role="group" aria-label="Darstellung">
+        <button class="pill ${grid ? '' : 'on'}" data-action="rview" data-val="list" aria-label="Liste">☰ Liste</button>
+        <button class="pill ${grid ? 'on' : ''}" data-action="rview" data-val="grid" aria-label="Raster">▦ Raster</button>
+      </div>
       ${list.length ? '' : `<p class="sub">${Object.keys(sel).length ? 'Keine Rezepte für diese Auswahl – tippe eine Kategorie nochmal an, um sie aufzuheben.' : 'Keine Rezepte für diesen Filter.'}</p>`}
-      <ul class="list">${list
+      ${
+        grid
+          ? `<ul class="rgrid">${list
+              .map((r) => `<li class="${themeCls(r)}"><a class="rtile" href="#/rezept/${r.id}" aria-label="${e(r.name)}">${recipeArt(r)}${isFav(r.id) ? '<i class="rtile-fav" aria-hidden="true">⭐</i>' : ''}</a></li>`)
+              .join('')}</ul>`
+          : `<ul class="list">${list
         .map((r) => {
           const w = fbw[r.id]?.weight;
           const tag = r.source === 'ki' ? ' · ✨ KI' : isFresh(r) ? ' · ✨ neu' : r.source === 'eigen' ? ' · eigenes' : '';
@@ -1250,7 +1264,8 @@ function viewRecipes() {
             <span class="rmeta">${r.time} Min. · ${dishesText(r.dishes)} · <b>${num(m.kcal)} kcal</b> · ${g_(m.c)} Kohlenhydrate · ${g_(m.p)} Protein · ${g_(m.f)} Fett${r.season ? ' · saisonal' : ''}${tag}</span>
             ${tags.length ? `<span class="rcats">${tags.map((c) => `<i>${e(c)}</i>`).join('')}</span>` : ''}</a></li>`;
         })
-        .join('')}</ul>
+        .join('')}</ul>`
+      }
     </section>`;
 }
 
@@ -1519,7 +1534,7 @@ function recipeHtml(r, items, macros, subtitle, back, info, cookKey, withServing
       : `<button class="fav-btn ${fav ? 'on' : ''}" data-action="fav-toggle" data-id="${e(r.id)}" aria-label="${fav ? 'Aus Favoriten entfernen' : 'Zu Favoriten hinzufügen'}">⭐</button>`;
   return `<header class="top">${back}<div class="top-actions">${star}${active ? `<a class="btn primary pill ${activeMagic}" href="${resumeHref}">👨‍🍳 Weiter kochen</a>` : startBtn('pill')}</div></header>
     <section class="card accent rhero">
-      <div class="rhero-art slot-${r.type === 'breakfast' ? 'fruehstueck' : 'abend'}"><span>${recipeEmoji(r)}</span></div>
+      <div class="rhero-art ${r.img ? 'has-img' : ''} slot-${r.type === 'breakfast' ? 'fruehstueck' : 'abend'}">${recipeArt(r, false)}</div>
       <div class="card-head"><div class="sub">${e(subtitle)}</div><a class="btn small pill" href="#/bearbeiten/${r.id}">✏️ Ändern</a></div>
       <h1 class="rtitle">${e(r.name)}</h1>
       <div class="chips"><span class="chip on">⏱️ ${r.time} Min.</span><span class="chip">🧽 ${dishesText(allTools.length || r.dishes)}</span><span class="chip">${isFancy(r) ? `✨ ${fancyLabel(r)}` : ['', 'einfach', 'normal', 'aufwendig'][r.effort]}</span>${r.protein ? `<span class="chip">${e(r.protein)}</span>` : ''}</div>
@@ -2324,6 +2339,10 @@ async function onClick(ev) {
       });
       return render();
     }
+    case 'rview':
+      store.set('recipeView', el.dataset.val);
+      haptic();
+      return render();
     case 'rfilter-all':
       S.ui.rTime = 'all';
       S.ui.rSel = {};
