@@ -397,10 +397,10 @@ Datei: `images/recipes/pochierte_eier_lachsbrot.webp`
 
 > Photorealistic overhead food photo, square-friendly 3:2 landscape (main subject centered so a square center crop works), served on a rich deep-green matte surface (#0e5a34, soft radial light from the upper left, dark vignette at the edges), warm natural studio light, soft shadow to the lower right, vivid fresh colors, glossy appetizing textures, a few scattered fresh herbs and spices as garnish, clean minimal composition, no text, no hands, no logos, high detail, same visual style as a premium iOS app icon of a meal-prep lunchbox. Dish: „Pochierte Eier auf Lachsbrot mit Hollandaise“ – Eier (Freiland, M), Vollkornbrot (geschnitten), Räucherlachs, Skyr natur, Babyspinat, Butter, in a ceramic bowl or on a plate.
 
-## Fisch im Ofen mit Zitrone & Rosmarin
+## Fisch im Ofen mit Zitrone & Rosmarin auf Zitronenrisotto
 Datei: `images/recipes/fisch_aus_dem_ofen.webp`
 
-> Photorealistic overhead food photo, square-friendly 3:2 landscape (main subject centered so a square center crop works), served on a rich deep-green matte surface (#0e5a34, soft radial light from the upper left, dark vignette at the edges), warm natural studio light, soft shadow to the lower right, vivid fresh colors, glossy appetizing textures, a few scattered fresh herbs and spices as garnish, clean minimal composition, no text, no hands, no logos, high detail, same visual style as a premium iOS app icon of a meal-prep lunchbox. Dish: „Fisch im Ofen mit Zitrone & Rosmarin“ – Süßkartoffeln, Seelachs-/Kabeljaufilet (TK, natur), Zitronen (Bio, unbehandelt), Romana-Salatherzen, Ghee / Butterschmalz, on a ceramic plate or in a shallow bowl.
+> Photorealistic overhead food photo, square-friendly 3:2 landscape (main subject centered so a square center crop works), served on a rich deep-green matte surface (#0e5a34, soft radial light from the upper left, dark vignette at the edges), warm natural studio light, soft shadow to the lower right, vivid fresh colors, glossy appetizing textures, a few scattered fresh herbs and spices as garnish, clean minimal composition, no text, no hands, no logos, high detail, same visual style as a premium iOS app icon of a meal-prep lunchbox. Dish: „Fisch im Ofen mit Zitrone & Rosmarin auf Zitronenrisotto“ – Seelachs-/Kabeljaufilet (TK, natur), Risottoreis (Arborio), Zitronen (Bio, unbehandelt), Weißwein, trocken (zum Kochen), Zwiebeln, Grana Padano / Parmesan (Stück), on a ceramic plate or in a shallow bowl.
 
 ## Artischocken-Pesto-Pizza mit Burrata & Zitronen-Rucola
 Datei: `images/recipes/artischocken_burrata_pizza.webp`
@@ -436,3 +436,8 @@ Datei: `images/recipes/zwiebel_blaetterteigroellchen.webp`
 Datei: `images/recipes/tiramisu_amaretto.webp`
 
 > Photorealistic overhead food photo, square-friendly 3:2 landscape (main subject centered so a square center crop works), served on a rich deep-green matte surface (#0e5a34, soft radial light from the upper left, dark vignette at the edges), warm natural studio light, soft shadow to the lower right, vivid fresh colors, glossy appetizing textures, a few scattered fresh herbs and spices as garnish, clean minimal composition, no text, no hands, no logos, high detail, same visual style as a premium iOS app icon of a meal-prep lunchbox. Dish: „Tiramisu mit Amaretto“ – Mascarpone, Espresso/Kaffee (für Tiramisu), Löffelbiskuits, Schlagsahne 30 %, Zucker (auch Puder-/Vanillezucker), Amaretto, in a small bowl, glass or on a small plate.
+
+## Pasta alla Norma
+Datei: `images/recipes/pasta_alla_norma.webp`
+
+> Photorealistic overhead food photo, square-friendly 3:2 landscape (main subject centered so a square center crop works), served on a rich deep-green matte surface (#0e5a34, soft radial light from the upper left, dark vignette at the edges), warm natural studio light, soft shadow to the lower right, vivid fresh colors, glossy appetizing textures, a few scattered fresh herbs and spices as garnish, clean minimal composition, no text, no hands, no logos, high detail, same visual style as a premium iOS app icon of a meal-prep lunchbox. Dish: „Pasta alla Norma“ – Aubergine, Gehackte Tomaten (Dose), Spaghetti, Ricotta, Grana Padano / Parmesan (Stück), Basilikum (Topf), on a ceramic plate or in a shallow bowl.
