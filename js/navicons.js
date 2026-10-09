@@ -11,6 +11,26 @@ export const NAV_ICONS = {
     <circle cx="18.6" cy="25.8" r="2.9" fill="#a8cd8b"/><rect x="24.2" y="23.6" width="13.6" height="4.4" rx="2.2" fill="#e5ebd5"/>
     <circle cx="18.6" cy="34" r="2.9" fill="#a8cd8b"/><rect x="24.2" y="31.8" width="13.6" height="4.4" rx="2.2" fill="#e5ebd5"/>
   </svg>`,
+  rezepte: `<svg viewBox="0 0 48 48" aria-hidden="true">
+    <defs>
+      <linearGradient id="ni-k1" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#2f8a57"/><stop offset="1" stop-color="#17603c"/></linearGradient>
+      <linearGradient id="ni-k2" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#8cc06a"/><stop offset="1" stop-color="#4f9a45"/></linearGradient>
+    </defs>
+    <rect x="21" y="3.5" width="5" height="6" rx="1" fill="#e2d3ad"/><rect x="28" y="4.5" width="5" height="5" rx="1" fill="#8cc06a"/>
+    <rect x="15" y="7" width="28.5" height="34" rx="4.5" fill="${CREAM_2}"/>
+    <rect x="41" y="17" width="3.6" height="6" rx="1.2" fill="#d9663f"/><rect x="41" y="27" width="3.6" height="5.5" rx="1.2" fill="#5c9d6b"/>
+    <rect x="6" y="8" width="13" height="35" rx="4.5" fill="url(#ni-k1)"/>
+    <rect x="12.5" y="8" width="1.3" height="35" fill="#4a9a68" opacity="0.7"/>
+    <rect x="15.5" y="8.5" width="25" height="33.5" rx="4" fill="${CREAM}"/>
+    <path d="M14 41.5l.6 5.5 1.4-1.4 1.4 1.4.6-5.5z" fill="#1f6b45"/>
+    <path d="M25 18.5c-1.6-1.6 1.6-2.6 0-4.4M28.5 18c-1.4-1.4 1.4-2.3 0-3.9" stroke="#9cbf9a" stroke-width="1.3" fill="none" stroke-linecap="round"/>
+    <circle cx="27" cy="21.4" r="1.4" fill="#1f6b45"/>
+    <path d="M20.2 25.8c0-2.8 3-4.4 6.8-4.4s6.8 1.6 6.8 4.4z" fill="#1f6b45"/>
+    <path d="M19.6 26.8h14.8v4.6a4.4 4.4 0 0 1-4.4 4.4h-6a4.4 4.4 0 0 1-4.4-4.4z" fill="#1f6b45"/>
+    <rect x="17.6" y="27.4" width="3" height="2.2" rx="1.1" fill="#1f6b45"/><rect x="33.4" y="27.4" width="3" height="2.2" rx="1.1" fill="#1f6b45"/>
+    <path d="M31 39.5c-.3-3 1.8-5.2 5.8-5.6.2 3.4-2 5.4-5.8 5.6z" fill="url(#ni-k2)"/>
+    <path d="M28.6 39.6c-2.2-.2-3.6-1.7-3.6-3.9 2.5.1 3.8 1.6 3.6 3.9z" fill="#8cc06a"/>
+  </svg>`,
   einkauf: `<svg viewBox="0 0 48 48" aria-hidden="true">
     <defs>
       <linearGradient id="ni-e1" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#2e7d4f"/><stop offset="1" stop-color="#1b5e3a"/></linearGradient>

@@ -9,12 +9,22 @@
  */
 export function buildShopping({ plan, idx, pantry = {}, priceOf, recipesById }) {
   const need = new Map();
+  const bakedCakes = new Set();
   for (const day of plan.days) {
     for (const meal of day.meals) {
       if (!meal.items) continue;
       // für mehrere Personen entsprechend mehr einkaufen
-      const people = meal.people || 1;
-      for (const it of meal.items) {
+      let people = meal.people || 1;
+      let items = meal.items;
+      // Kuchen: einmal die ganze Form (Rezeptmenge) einkaufen – reicht für Samstag und Sonntag
+      const cakeRecipe = (meal.cake || meal.sunday) && recipesById?.get(meal.recipeId);
+      if (cakeRecipe?.serves > 1) {
+        if (bakedCakes.has(meal.recipeId)) continue;
+        bakedCakes.add(meal.recipeId);
+        items = cakeRecipe.ingredients.map((l) => ({ id: l.id, g: l.g * cakeRecipe.serves }));
+        people = 1;
+      }
+      for (const it of items) {
         const rid = it.addon || meal.recipeId;
         const rname = recipesById?.get(rid)?.name || rid;
         const e = need.get(it.id) || { g: 0, uses: new Set(), useIds: new Map() };

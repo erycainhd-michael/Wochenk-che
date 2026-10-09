@@ -72,7 +72,9 @@ export function prepareContext(input) {
     mains,
     breakfasts: byType('breakfast'),
     // Studi-Modus: keine teure Großpackung (z. B. Proteinpulver) für eine Ergänzung anbrechen – nur aus dem Vorrat
-    snacks: byType('snack'),
+    // Kaffee & Kuchen ersetzt eine Mahlzeit: nur Kuchen mit genug Protein, keine Desserts (Tiramisu, Crumble …).
+    // Klassiker wie Waffeln oder Tiramisu bleiben in den Rezepten zum Selberwählen.
+    snacks: byType('snack').filter((r) => !isDessert(r) && info.get(r.id).macros.p >= 20),
     addons: byType('addon').filter((r) => !settings.studi || r.ingredients.every((l) => (idx.get(l.id)?.price || 0) < 6 || (input.pantry || {})[l.id] > 0)),
     avgMainCost: avg(mains, (r) => info.get(r.id).cost) || 3,
     fiberTarget: fiberTargetFor(settings),
@@ -101,6 +103,8 @@ const slotKey = (day, slot) => `${day}-${slot}`;
 // Tage mit „Kaffee & Kuchen“ statt Mittagessen (Samstag, Sonntag)
 const CAKE_DAYS = [5, 6];
 /** Kuchen-Mahlzeiten eines Plans (ältere Pläne kannten nur den Sonntag) */
+/** Dessert statt Kuchen: wird nicht automatisch eingeplant */
+export const isDessert = (r) => (r.tags || []).includes('dessert') || /tiramisu|crumble|mousse|pudding|panna cotta|parfait|\beis\b/i.test(r.name);
 export const cakesOf = (structure) => structure.cakes || (structure.sunday ? [structure.sunday] : []);
 
 function eatOutSet(settings) {
@@ -216,7 +220,7 @@ export function buildStructure(ctx, rng, mode = {}) {
     if (ago && inf.weight < 1.3) w *= 1 - variety * (ago === 1 ? 0.7 : 0.35);
     const costRatio = ctx.avgMainCost / Math.max(0.5, inf.cost);
     w *= Math.pow(costRatio, mode.cheap ? 2.5 : 0.3);
-    w *= Math.pow(macroFit(inf.macros, settings.goals), mode.cheap ? 0.6 : 1);
+    w *= Math.pow(macroFit(inf.macros, settings.goals), mode.cheap ? 0.6 : 1.6);
     return Math.max(0.001, w);
   };
 
@@ -235,8 +239,8 @@ export function buildStructure(ctx, rng, mode = {}) {
       const portions = [key];
       if (r.mealPrep && slot === 'abend' && d < 6) {
         const partner = slotKey(d + 1, 'mittag');
-        const prepProb = isComplex ? 1 : 0.2 + 0.75 * dishes;
-        if (!eatOut.has(partner) && !covered.has(partner) && !complex.has(partner) && rng() < prepProb) portions.push(partner);
+        // Vorkochen ist der Normalfall: abends doppelt kochen, mittags am Folgetag aufwärmen (weniger Zeit in der Küche)
+        if (!eatOut.has(partner) && !covered.has(partner) && !complex.has(partner)) portions.push(partner);
       }
       const cook = { id: `c${cooks.length + 1}`, recipeId: r.id, day: d, slot, portions };
       cooks.push(cook);

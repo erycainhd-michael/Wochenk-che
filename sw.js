@@ -1,6 +1,6 @@
 // Service Worker: App offline verfügbar machen.
 // Bei Änderungen an App-Dateien VERSION erhöhen, damit iPhones die neue Version laden.
-const VERSION = 'mf-v45';
+const VERSION = 'mf-v46';
 const SHELL = [
   './',
   './index.html',
@@ -23,6 +23,8 @@ const SHELL = [
   './js/backup.js',
   './js/haptics.js',
   './js/tools.js',
+  './js/units.js',
+  './js/search.js',
   './js/foodlookup.js',
   './data/foods.json',
   './data/ingredients.json',
