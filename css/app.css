@@ -321,7 +321,7 @@ input[type='checkbox']:checked::after { content: '✓'; color: var(--accent-text
   bottom: var(--tab-bottom, max(8px, calc(var(--sab) - 14px)));
   transform: translate3d(0, 0, 0); will-change: transform;
   max-width: 648px; margin: 0 auto;
-  display: grid; grid-template-columns: repeat(4, 1fr);
+  display: grid; grid-template-columns: repeat(5, 1fr);
   background: var(--tabbar); border: 1px solid var(--line); border-radius: 999px; box-shadow: var(--shadow);
 }
 .tab { position: relative; display: flex; align-items: center; justify-content: center; height: 64px; }
@@ -945,3 +945,14 @@ body { min-height: calc(100vh + 1px); min-height: calc(100lvh + 1px); }
 .rtile-fav { position: absolute; top: 8px; right: 8px; font-style: normal; font-size: 1rem; filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.4)); }
 .rgrid li.fancy .rtile { box-shadow: 0 0 0 3px var(--fancy), var(--shadow); }
 .rgrid li.gourmet .rtile { box-shadow: 0 0 0 3px var(--gourmet), var(--shadow); }
+
+/* Rezeptsuche */
+.rsearch { display: flex; align-items: center; gap: 8px; margin: 0 0 12px; padding: 0 14px; border-radius: 999px; background: var(--field); }
+.rsearch span { font-size: 1rem; opacity: 0.6; }
+.rsearch input { flex: 1; min-width: 0; border: 0; background: transparent; padding: 12px 0; font: inherit; color: inherit; outline: none; }
+.rsearch input::-webkit-search-cancel-button { opacity: 0.6; }
+
+/* Gespeicherte Schlüssel: Kopieren / Löschen statt Punkte */
+.key-row { display: flex; align-items: center; gap: 8px; margin-top: 6px; }
+.key-ok { flex: 1; font-weight: 600; color: var(--accent); }
+.key-ok small { font-weight: 400; color: var(--muted); }

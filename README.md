@@ -138,7 +138,7 @@ Wenn sich Code ändert, lädt das iPhone die neue Version beim nächsten Öffnen
 
 ## 5. Daten anpassen
 
-- **Neues Rezept:** In `data/recipes.json` einen Eintrag kopieren und ändern. Mengen pro **1 Portion**, `dishes` = Anzahl Töpfe/Pfannen/Bleche, `effort` 1–3, `mealPrep` true/false, Timer in Sekunden.
+- **Neues Rezept:** In `data/recipes.json` einen Eintrag kopieren und ändern. Mengen pro **1 Portion**, `dishes` = Anzahl Töpfe/Pfannen/Bleche, `effort` 1–3, `mealPrep` true/false, `cuisine` (italienisch, franzoesisch, spanisch, deutsch, skandinavisch, orientalisch, indisch, asiatisch, amerikanisch), `serves` = Portionen, für die das Rezept in der Übersicht gedacht ist, Timer in Sekunden.
 - **Neue Zutat / Preis ändern:** `data/ingredients.json` (Nährwerte pro 100 g, `pack` in g, `price` in €).
 - Auf github.com kannst du Dateien direkt im Browser bearbeiten (Stift-Symbol). Die Action **Tests** prüft danach automatisch, ob alles stimmt (grüner Haken).
 

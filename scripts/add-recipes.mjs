@@ -23,6 +23,7 @@ const slug = (s) =>
 const names = new Set(db.recipes.map((r) => r.name.toLowerCase().trim()));
 const ids = new Set(db.recipes.map((r) => r.id));
 const today = new Date().toISOString().slice(0, 10);
+const CUISINES = ['italienisch', 'franzoesisch', 'spanisch', 'deutsch', 'skandinavisch', 'orientalisch', 'indisch', 'asiatisch', 'amerikanisch'];
 // Aus der App eingereichte Rezepte (von dir, Familie …): keine Protein-/Zeit-Vorgaben, ID bleibt erhalten
 const USER = !!process.env.USER_RECIPES;
 const added = [];
@@ -59,8 +60,10 @@ for (const raw of incoming) {
     dishes: toolCount || Math.max(0, Math.min(8, Math.round(Number(raw.dishes) || 1))),
     effort,
     mealPrep: !!raw.mealPrep,
+    serves: Number(raw.serves) > 0 ? Math.round(Number(raw.serves)) : type === 'main' ? 2 : type === 'snack' ? 6 : type === 'extra' ? 4 : 1,
     tags: Array.isArray(raw.tags) ? raw.tags.slice(0, 6).map(String) : [],
     protein: String(raw.protein || ''),
+    ...(CUISINES.includes(raw.cuisine) ? { cuisine: raw.cuisine } : {}),
     ingredients,
     steps,
     ...(raw.tip ? { tip: String(raw.tip) } : {}),
