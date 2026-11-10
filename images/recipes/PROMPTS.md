@@ -441,3 +441,208 @@ Datei: `images/recipes/tiramisu_amaretto.webp`
 Datei: `images/recipes/pasta_alla_norma.webp`
 
 > Photorealistic overhead food photo, square-friendly 3:2 landscape (main subject centered so a square center crop works), served on a rich deep-green matte surface (#0e5a34, soft radial light from the upper left, dark vignette at the edges), warm natural studio light, soft shadow to the lower right, vivid fresh colors, glossy appetizing textures, a few scattered fresh herbs and spices as garnish, clean minimal composition, no text, no hands, no logos, high detail, same visual style as a premium iOS app icon of a meal-prep lunchbox. Dish: „Pasta alla Norma“ – Aubergine, Gehackte Tomaten (Dose), Spaghetti, Ricotta, Grana Padano / Parmesan (Stück), Basilikum (Topf), on a ceramic plate or in a shallow bowl.
+
+## Kabeljau-Tomaten-Bulgur mit Oliven & Feta
+Datei: `images/recipes/kabeljau_tomaten_bulgur_mit_oliven_feta.webp`
+
+> Photorealistic overhead food photo, square-friendly 3:2 landscape (main subject centered so a square center crop works), served on a rich deep-green matte surface (#0e5a34, soft radial light from the upper left, dark vignette at the edges), warm natural studio light, soft shadow to the lower right, vivid fresh colors, glossy appetizing textures, a few scattered fresh herbs and spices as garnish, clean minimal composition, no text, no hands, no logos, high detail, same visual style as a premium iOS app icon of a meal-prep lunchbox. Dish: „Kabeljau-Tomaten-Bulgur mit Oliven & Feta“ – Seelachs-/Kabeljaufilet (TK, natur), Cherrytomaten, Bulgur, Zwiebeln, Oliven, grün oder schwarz (entsteint), Feta / Hirtenkäse, on a ceramic plate or in a shallow bowl.
+
+## Hähnchen-Parmigiana-Pasta mit Aubergine
+Datei: `images/recipes/haehnchen_parmigiana_pasta_mit_aubergine.webp`
+
+> Photorealistic overhead food photo, square-friendly 3:2 landscape (main subject centered so a square center crop works), served on a rich deep-green matte surface (#0e5a34, soft radial light from the upper left, dark vignette at the edges), warm natural studio light, soft shadow to the lower right, vivid fresh colors, glossy appetizing textures, a few scattered fresh herbs and spices as garnish, clean minimal composition, no text, no hands, no logos, high detail, same visual style as a premium iOS app icon of a meal-prep lunchbox. Dish: „Hähnchen-Parmigiana-Pasta mit Aubergine“ – Aubergine, Passierte Tomaten, Hähnchenbrustfilet, Vollkorn-Fusilli/Penne, Mozzarella, Grana Padano / Parmesan (Stück), on a ceramic plate or in a shallow bowl.
+
+## Süßkartoffel-Chili con Carne mit Skyr
+Datei: `images/recipes/suesskartoffel_chili_con_carne_mit_skyr.webp`
+
+> Photorealistic overhead food photo, square-friendly 3:2 landscape (main subject centered so a square center crop works), served on a rich deep-green matte surface (#0e5a34, soft radial light from the upper left, dark vignette at the edges), warm natural studio light, soft shadow to the lower right, vivid fresh colors, glossy appetizing textures, a few scattered fresh herbs and spices as garnish, clean minimal composition, no text, no hands, no logos, high detail, same visual style as a premium iOS app icon of a meal-prep lunchbox. Dish: „Süßkartoffel-Chili con Carne mit Skyr“ – Süßkartoffeln, Passierte Tomaten, Rinderhackfleisch, Paprika rot/gelb, Kichererbsen (Dose, abgetropft), Mais (Dose, abgetropft), on a ceramic plate or in a shallow bowl.
+
+## Kürbis-Kartoffel-Gratin mit Kochschinken & Gruyère
+Datei: `images/recipes/kuerbis_kartoffel_gratin_mit_kochschinke.webp`
+
+> Photorealistic overhead food photo, square-friendly 3:2 landscape (main subject centered so a square center crop works), served on a rich deep-green matte surface (#0e5a34, soft radial light from the upper left, dark vignette at the edges), warm natural studio light, soft shadow to the lower right, vivid fresh colors, glossy appetizing textures, a few scattered fresh herbs and spices as garnish, clean minimal composition, no text, no hands, no logos, high detail, same visual style as a premium iOS app icon of a meal-prep lunchbox. Dish: „Kürbis-Kartoffel-Gratin mit Kochschinken & Gruyère“ – Kartoffeln, festkochend, Hokkaido-Kürbis, Kochschinken, Kochsahne 15 %, Skyr natur, Gruyère / Bergkäse, on a ceramic plate or in a shallow bowl.
+
+## Avocado-Ei-Wrap mit Hüttenkäse & Tomaten
+Datei: `images/recipes/avocado_ei_wrap_mit_huettenkaese_tomaten.webp`
+
+> Photorealistic overhead food photo, square-friendly 3:2 landscape (main subject centered so a square center crop works), served on a rich deep-green matte surface (#0e5a34, soft radial light from the upper left, dark vignette at the edges), warm natural studio light, soft shadow to the lower right, vivid fresh colors, glossy appetizing textures, a few scattered fresh herbs and spices as garnish, clean minimal composition, no text, no hands, no logos, high detail, same visual style as a premium iOS app icon of a meal-prep lunchbox. Dish: „Avocado-Ei-Wrap mit Hüttenkäse & Tomaten“ – Eier (Freiland, M), Hüttenkäse, Tomaten (Rispe), Avocado, Vollkorn-Wraps, in a ceramic bowl or on a plate.
+
+## Sesam-Lachs mit Brokkoli & Ingwer-Reis
+Datei: `images/recipes/sesam_lachs_mit_brokkoli_ingwer_reis.webp`
+
+> Photorealistic overhead food photo, square-friendly 3:2 landscape (main subject centered so a square center crop works), served on a rich deep-green matte surface (#0e5a34, soft radial light from the upper left, dark vignette at the edges), warm natural studio light, soft shadow to the lower right, vivid fresh colors, glossy appetizing textures, a few scattered fresh herbs and spices as garnish, clean minimal composition, no text, no hands, no logos, high detail, same visual style as a premium iOS app icon of a meal-prep lunchbox. Dish: „Sesam-Lachs mit Brokkoli & Ingwer-Reis“ – Brokkoli, Lachsfilet (TK, ohne Haut), Basmatireis, Sojasauce, Honig, Sesam, on a ceramic plate or in a shallow bowl.
+
+## Kürbis-Risotto mit Hähnchen & Parmesan
+Datei: `images/recipes/kuerbis_risotto_mit_haehnchen_parmesan.webp`
+
+> Photorealistic overhead food photo, square-friendly 3:2 landscape (main subject centered so a square center crop works), served on a rich deep-green matte surface (#0e5a34, soft radial light from the upper left, dark vignette at the edges), warm natural studio light, soft shadow to the lower right, vivid fresh colors, glossy appetizing textures, a few scattered fresh herbs and spices as garnish, clean minimal composition, no text, no hands, no logos, high detail, same visual style as a premium iOS app icon of a meal-prep lunchbox. Dish: „Kürbis-Risotto mit Hähnchen & Parmesan“ – Hokkaido-Kürbis, Hähnchenbrustfilet, Risottoreis (Arborio), Zwiebeln, Grana Padano / Parmesan (Stück), Walnusskerne, on a ceramic plate or in a shallow bowl.
+
+## Köfte-Bulgur-Bowl mit Skyr-Gurken-Dip
+Datei: `images/recipes/koefte_bulgur_bowl_mit_skyr_gurken_dip.webp`
+
+> Photorealistic overhead food photo, square-friendly 3:2 landscape (main subject centered so a square center crop works), served on a rich deep-green matte surface (#0e5a34, soft radial light from the upper left, dark vignette at the edges), warm natural studio light, soft shadow to the lower right, vivid fresh colors, glossy appetizing textures, a few scattered fresh herbs and spices as garnish, clean minimal composition, no text, no hands, no logos, high detail, same visual style as a premium iOS app icon of a meal-prep lunchbox. Dish: „Köfte-Bulgur-Bowl mit Skyr-Gurken-Dip“ – Rinderhackfleisch, Skyr natur, Salatgurke, Tomaten (Rispe), Bulgur, Zwiebeln, on a ceramic plate or in a shallow bowl.
+
+## Gnocchi mit Rohschinken, Spinat & Ricotta
+Datei: `images/recipes/gnocchi_mit_rohschinken_spinat_ricotta.webp`
+
+> Photorealistic overhead food photo, square-friendly 3:2 landscape (main subject centered so a square center crop works), served on a rich deep-green matte surface (#0e5a34, soft radial light from the upper left, dark vignette at the edges), warm natural studio light, soft shadow to the lower right, vivid fresh colors, glossy appetizing textures, a few scattered fresh herbs and spices as garnish, clean minimal composition, no text, no hands, no logos, high detail, same visual style as a premium iOS app icon of a meal-prep lunchbox. Dish: „Gnocchi mit Rohschinken, Spinat & Ricotta“ – Gnocchi (Kühlregal), Babyspinat, Ricotta, Serrano-/Parmaschinken, Grana Padano / Parmesan (Stück), Knoblauch, on a ceramic plate or in a shallow bowl.
+
+## Süßkartoffel-Rührei-Hash mit Hüttenkäse
+Datei: `images/recipes/suesskartoffel_ruehrei_hash_mit_huettenk.webp`
+
+> Photorealistic overhead food photo, square-friendly 3:2 landscape (main subject centered so a square center crop works), served on a rich deep-green matte surface (#0e5a34, soft radial light from the upper left, dark vignette at the edges), warm natural studio light, soft shadow to the lower right, vivid fresh colors, glossy appetizing textures, a few scattered fresh herbs and spices as garnish, clean minimal composition, no text, no hands, no logos, high detail, same visual style as a premium iOS app icon of a meal-prep lunchbox. Dish: „Süßkartoffel-Rührei-Hash mit Hüttenkäse“ – Süßkartoffeln, Eier (Freiland, M), Hüttenkäse, Babyspinat, in a ceramic bowl or on a plate.
+
+## Rinder-Burrito-Bowl mit Mais, Paprika & Skyr-Limetten-Creme
+Datei: `images/recipes/rinder_burrito_bowl_mit_mais_paprika_sky.webp`
+
+> Photorealistic overhead food photo, square-friendly 3:2 landscape (main subject centered so a square center crop works), served on a rich deep-green matte surface (#0e5a34, soft radial light from the upper left, dark vignette at the edges), warm natural studio light, soft shadow to the lower right, vivid fresh colors, glossy appetizing textures, a few scattered fresh herbs and spices as garnish, clean minimal composition, no text, no hands, no logos, high detail, same visual style as a premium iOS app icon of a meal-prep lunchbox. Dish: „Rinder-Burrito-Bowl mit Mais, Paprika & Skyr-Limetten-Creme“ – Rinderhackfleisch, Paprika rot/gelb, Skyr natur, Tomaten (Rispe), Basmatireis, Mais (Dose, abgetropft), on a ceramic plate or in a shallow bowl.
+
+## Hähnchen-Satay-Nudeln mit Brokkoli
+Datei: `images/recipes/haehnchen_satay_nudeln_mit_brokkoli.webp`
+
+> Photorealistic overhead food photo, square-friendly 3:2 landscape (main subject centered so a square center crop works), served on a rich deep-green matte surface (#0e5a34, soft radial light from the upper left, dark vignette at the edges), warm natural studio light, soft shadow to the lower right, vivid fresh colors, glossy appetizing textures, a few scattered fresh herbs and spices as garnish, clean minimal composition, no text, no hands, no logos, high detail, same visual style as a premium iOS app icon of a meal-prep lunchbox. Dish: „Hähnchen-Satay-Nudeln mit Brokkoli“ – Brokkoli, Hähnchenbrustfilet, Vollkorn-Fusilli/Penne, Erdnussmus/-butter, Sojasauce, Limetten, on a ceramic plate or in a shallow bowl.
+
+## Kartoffel-Porree-Pfanne mit Hackbällchen & Senf-Quark
+Datei: `images/recipes/kartoffel_porree_pfanne_mit_hackbaellche.webp`
+
+> Photorealistic overhead food photo, square-friendly 3:2 landscape (main subject centered so a square center crop works), served on a rich deep-green matte surface (#0e5a34, soft radial light from the upper left, dark vignette at the edges), warm natural studio light, soft shadow to the lower right, vivid fresh colors, glossy appetizing textures, a few scattered fresh herbs and spices as garnish, clean minimal composition, no text, no hands, no logos, high detail, same visual style as a premium iOS app icon of a meal-prep lunchbox. Dish: „Kartoffel-Porree-Pfanne mit Hackbällchen & Senf-Quark“ – Kartoffeln, festkochend, Rinderhackfleisch, Porree / Lauch, Magerquark, Zwiebeln, Eier (Freiland, M), on a ceramic plate or in a shallow bowl.
+
+## Kabeljau-Tomaten-Pfanne mit Kapern & Polenta
+Datei: `images/recipes/kabeljau_tomaten_pfanne_mit_kapern_polen.webp`
+
+> Photorealistic overhead food photo, square-friendly 3:2 landscape (main subject centered so a square center crop works), served on a rich deep-green matte surface (#0e5a34, soft radial light from the upper left, dark vignette at the edges), warm natural studio light, soft shadow to the lower right, vivid fresh colors, glossy appetizing textures, a few scattered fresh herbs and spices as garnish, clean minimal composition, no text, no hands, no logos, high detail, same visual style as a premium iOS app icon of a meal-prep lunchbox. Dish: „Kabeljau-Tomaten-Pfanne mit Kapern & Polenta“ – Seelachs-/Kabeljaufilet (TK, natur), Cherrytomaten, Zucchini, Polenta / Maisgrieß, Grana Padano / Parmesan (Stück), Kapern (abgetropft), on a ceramic plate or in a shallow bowl.
+
+## Spinat-Feta-Frittata mit Vollkornbrot & Skyr
+Datei: `images/recipes/spinat_feta_frittata_mit_vollkornbrot_sk.webp`
+
+> Photorealistic overhead food photo, square-friendly 3:2 landscape (main subject centered so a square center crop works), served on a rich deep-green matte surface (#0e5a34, soft radial light from the upper left, dark vignette at the edges), warm natural studio light, soft shadow to the lower right, vivid fresh colors, glossy appetizing textures, a few scattered fresh herbs and spices as garnish, clean minimal composition, no text, no hands, no logos, high detail, same visual style as a premium iOS app icon of a meal-prep lunchbox. Dish: „Spinat-Feta-Frittata mit Vollkornbrot & Skyr“ – Eier (Freiland, M), Skyr natur, Vollkornbrot (geschnitten), Cherrytomaten, Babyspinat, Feta / Hirtenkäse, in a ceramic bowl or on a plate.
+
+## Hähnchen-Gyros-Pfanne mit Reis & Skyr-Tzatziki
+Datei: `images/recipes/haehnchen_gyros_pfanne_mit_reis_skyr_tza.webp`
+
+> Photorealistic overhead food photo, square-friendly 3:2 landscape (main subject centered so a square center crop works), served on a rich deep-green matte surface (#0e5a34, soft radial light from the upper left, dark vignette at the edges), warm natural studio light, soft shadow to the lower right, vivid fresh colors, glossy appetizing textures, a few scattered fresh herbs and spices as garnish, clean minimal composition, no text, no hands, no logos, high detail, same visual style as a premium iOS app icon of a meal-prep lunchbox. Dish: „Hähnchen-Gyros-Pfanne mit Reis & Skyr-Tzatziki“ – Hähnchenbrustfilet, Paprika rot/gelb, Skyr natur, Basmatireis, Salatgurke, Rote Zwiebeln, on a ceramic plate or in a shallow bowl.
+
+## Rinderhack-Pilz-Pasta mit Spinat
+Datei: `images/recipes/rinderhack_pilz_pasta_mit_spinat.webp`
+
+> Photorealistic overhead food photo, square-friendly 3:2 landscape (main subject centered so a square center crop works), served on a rich deep-green matte surface (#0e5a34, soft radial light from the upper left, dark vignette at the edges), warm natural studio light, soft shadow to the lower right, vivid fresh colors, glossy appetizing textures, a few scattered fresh herbs and spices as garnish, clean minimal composition, no text, no hands, no logos, high detail, same visual style as a premium iOS app icon of a meal-prep lunchbox. Dish: „Rinderhack-Pilz-Pasta mit Spinat“ – Rinderhackfleisch, Champignons braun, Passierte Tomaten, Vollkorn-Fusilli/Penne, Babyspinat, Zwiebeln, on a ceramic plate or in a shallow bowl.
+
+## Thunfisch-Kichererbsen-Bulgur-Salat mit Feta
+Datei: `images/recipes/thunfisch_kichererbsen_bulgur_salat_mit_.webp`
+
+> Photorealistic overhead food photo, square-friendly 3:2 landscape (main subject centered so a square center crop works), served on a rich deep-green matte surface (#0e5a34, soft radial light from the upper left, dark vignette at the edges), warm natural studio light, soft shadow to the lower right, vivid fresh colors, glossy appetizing textures, a few scattered fresh herbs and spices as garnish, clean minimal composition, no text, no hands, no logos, high detail, same visual style as a premium iOS app icon of a meal-prep lunchbox. Dish: „Thunfisch-Kichererbsen-Bulgur-Salat mit Feta“ – Thunfisch im eigenen Saft (abgetropft), Kichererbsen (Dose, abgetropft), Cherrytomaten, Bulgur, Salatgurke, Feta / Hirtenkäse, on a ceramic plate or in a shallow bowl.
+
+## Hokkaido-Kokossuppe mit Hähnchen & Reis
+Datei: `images/recipes/hokkaido_kokossuppe_mit_haehnchen_reis.webp`
+
+> Photorealistic overhead food photo, square-friendly 3:2 landscape (main subject centered so a square center crop works), served on a rich deep-green matte surface (#0e5a34, soft radial light from the upper left, dark vignette at the edges), warm natural studio light, soft shadow to the lower right, vivid fresh colors, glossy appetizing textures, a few scattered fresh herbs and spices as garnish, clean minimal composition, no text, no hands, no logos, high detail, same visual style as a premium iOS app icon of a meal-prep lunchbox. Dish: „Hokkaido-Kokossuppe mit Hähnchen & Reis“ – Hokkaido-Kürbis, Hähnchenbrustfilet, Kokosmilch, Basmatireis, Limetten, Curry-/Tikka-Masala-Paste, on a ceramic plate or in a shallow bowl.
+
+## Hüttenkäse-Haferpfannkuchen mit Apfel & Walnüssen
+Datei: `images/recipes/huettenkaese_haferpfannkuchen_mit_apfel_.webp`
+
+> Photorealistic overhead food photo, square-friendly 3:2 landscape (main subject centered so a square center crop works), served on a rich deep-green matte surface (#0e5a34, soft radial light from the upper left, dark vignette at the edges), warm natural studio light, soft shadow to the lower right, vivid fresh colors, glossy appetizing textures, a few scattered fresh herbs and spices as garnish, clean minimal composition, no text, no hands, no logos, high detail, same visual style as a premium iOS app icon of a meal-prep lunchbox. Dish: „Hüttenkäse-Haferpfannkuchen mit Apfel & Walnüssen“ – Hüttenkäse, Eier (Freiland, M), Äpfel, Haferflocken (zart), Walnusskerne, in a ceramic bowl or on a plate.
+
+## Thunfisch-Pizza mit Rucola & Mozzarella
+Datei: `images/recipes/thunfisch_pizza_mit_rucola_mozzarella.webp`
+
+> Photorealistic overhead food photo, square-friendly 3:2 landscape (main subject centered so a square center crop works), served on a rich deep-green matte surface (#0e5a34, soft radial light from the upper left, dark vignette at the edges), warm natural studio light, soft shadow to the lower right, vivid fresh colors, glossy appetizing textures, a few scattered fresh herbs and spices as garnish, clean minimal composition, no text, no hands, no logos, high detail, same visual style as a premium iOS app icon of a meal-prep lunchbox. Dish: „Thunfisch-Pizza mit Rucola & Mozzarella“ – Pizzateig (Kühlregal), Thunfisch im eigenen Saft (abgetropft), Mozzarella, Passierte Tomaten, Rucola, Rote Zwiebeln, on a ceramic plate or in a shallow bowl.
+
+## Kabeljau-Kokos-Curry mit Brokkoli & Reis
+Datei: `images/recipes/kabeljau_kokos_curry_mit_brokkoli_reis.webp`
+
+> Photorealistic overhead food photo, square-friendly 3:2 landscape (main subject centered so a square center crop works), served on a rich deep-green matte surface (#0e5a34, soft radial light from the upper left, dark vignette at the edges), warm natural studio light, soft shadow to the lower right, vivid fresh colors, glossy appetizing textures, a few scattered fresh herbs and spices as garnish, clean minimal composition, no text, no hands, no logos, high detail, same visual style as a premium iOS app icon of a meal-prep lunchbox. Dish: „Kabeljau-Kokos-Curry mit Brokkoli & Reis“ – Seelachs-/Kabeljaufilet (TK, natur), Brokkoli, Kokosmilch, Basmatireis, Edamame geschält (TK), Limetten, on a ceramic plate or in a shallow bowl.
+
+## Orientalische Rinderhack-Süßkartoffel-Pfanne mit Hummus & Feta
+Datei: `images/recipes/orientalische_rinderhack_suesskartoffel_.webp`
+
+> Photorealistic overhead food photo, square-friendly 3:2 landscape (main subject centered so a square center crop works), served on a rich deep-green matte surface (#0e5a34, soft radial light from the upper left, dark vignette at the edges), warm natural studio light, soft shadow to the lower right, vivid fresh colors, glossy appetizing textures, a few scattered fresh herbs and spices as garnish, clean minimal composition, no text, no hands, no logos, high detail, same visual style as a premium iOS app icon of a meal-prep lunchbox. Dish: „Orientalische Rinderhack-Süßkartoffel-Pfanne mit Hummus & Feta“ – Süßkartoffeln, Rinderhackfleisch, Paprika rot/gelb, Zwiebeln, Hummus, Feta / Hirtenkäse, on a ceramic plate or in a shallow bowl.
+
+## Hähnchen-Spinat-Kartoffel-Pfanne mit Gouda
+Datei: `images/recipes/haehnchen_spinat_kartoffel_pfanne_mit_go.webp`
+
+> Photorealistic overhead food photo, square-friendly 3:2 landscape (main subject centered so a square center crop works), served on a rich deep-green matte surface (#0e5a34, soft radial light from the upper left, dark vignette at the edges), warm natural studio light, soft shadow to the lower right, vivid fresh colors, glossy appetizing textures, a few scattered fresh herbs and spices as garnish, clean minimal composition, no text, no hands, no logos, high detail, same visual style as a premium iOS app icon of a meal-prep lunchbox. Dish: „Hähnchen-Spinat-Kartoffel-Pfanne mit Gouda“ – Kartoffeln, festkochend, Hähnchenbrustfilet, Babyspinat, Magerquark, Zwiebeln, Gouda in Scheiben, on a ceramic plate or in a shallow bowl.
+
+## Avocado-Vollkorntoast mit Rührei & Skyr
+Datei: `images/recipes/avocado_vollkorntoast_mit_ruehrei_skyr.webp`
+
+> Photorealistic overhead food photo, square-friendly 3:2 landscape (main subject centered so a square center crop works), served on a rich deep-green matte surface (#0e5a34, soft radial light from the upper left, dark vignette at the edges), warm natural studio light, soft shadow to the lower right, vivid fresh colors, glossy appetizing textures, a few scattered fresh herbs and spices as garnish, clean minimal composition, no text, no hands, no logos, high detail, same visual style as a premium iOS app icon of a meal-prep lunchbox. Dish: „Avocado-Vollkorntoast mit Rührei & Skyr“ – Eier (Freiland, M), Skyr natur, Vollkorntoast, Cherrytomaten, Avocado, in a ceramic bowl or on a plate.
+
+## Sauerkrautpasta mit Speck & Zwiebeln
+Datei: `images/recipes/sauerkrautpasta.webp`
+
+> Photorealistic overhead food photo, square-friendly 3:2 landscape (main subject centered so a square center crop works), served on a rich deep-green matte surface (#0e5a34, soft radial light from the upper left, dark vignette at the edges), warm natural studio light, soft shadow to the lower right, vivid fresh colors, glossy appetizing textures, a few scattered fresh herbs and spices as garnish, clean minimal composition, no text, no hands, no logos, high detail, same visual style as a premium iOS app icon of a meal-prep lunchbox. Dish: „Sauerkrautpasta mit Speck & Zwiebeln“ – Sauerkraut (Dose/Beutel), Zwiebeln, Penne / Rigatoni (Röhrennudeln), Schlagsahne 30 %, Speckwürfel / Pancetta, Petersilie, glatt (Bund), on a ceramic plate or in a shallow bowl.
+
+## Gyros-Partytopf
+Datei: `images/recipes/gyros_partytopf.webp`
+
+> Photorealistic overhead food photo, square-friendly 3:2 landscape (main subject centered so a square center crop works), served on a rich deep-green matte surface (#0e5a34, soft radial light from the upper left, dark vignette at the edges), warm natural studio light, soft shadow to the lower right, vivid fresh colors, glossy appetizing textures, a few scattered fresh herbs and spices as garnish, clean minimal composition, no text, no hands, no logos, high detail, same visual style as a premium iOS app icon of a meal-prep lunchbox. Dish: „Gyros-Partytopf“ – Champignons (Glas, abgetropft), Schlagsahne 30 %, Mais (Dose, abgetropft), Gyrosfleisch (gewürzt), Paprikasauce / Zigeunersauce (Glas), Paprika rot/gelb, on a ceramic plate or in a shallow bowl.
+
+## Petersilienschaumsüppchen
+Datei: `images/recipes/petersilienschaumsueppchen.webp`
+
+> Photorealistic overhead food photo, square-friendly 3:2 landscape (main subject centered so a square center crop works), served on a rich deep-green matte surface (#0e5a34, soft radial light from the upper left, dark vignette at the edges), warm natural studio light, soft shadow to the lower right, vivid fresh colors, glossy appetizing textures, a few scattered fresh herbs and spices as garnish, clean minimal composition, no text, no hands, no logos, high detail, same visual style as a premium iOS app icon of a meal-prep lunchbox. Dish: „Petersilienschaumsüppchen“ – Milch 1,5 %, Schlagsahne 30 %, Weizenmehl (Type 405), Petersilie, glatt (Bund), Butter, Gemüsebrühe (Pulver), as an appetizer on a small plate or board.
+
+## Kürbissuppe mit Ingwer & Garnelen
+Datei: `images/recipes/kuerbissuppe_garnelen.webp`
+
+> Photorealistic overhead food photo, square-friendly 3:2 landscape (main subject centered so a square center crop works), served on a rich deep-green matte surface (#0e5a34, soft radial light from the upper left, dark vignette at the edges), warm natural studio light, soft shadow to the lower right, vivid fresh colors, glossy appetizing textures, a few scattered fresh herbs and spices as garnish, clean minimal composition, no text, no hands, no logos, high detail, same visual style as a premium iOS app icon of a meal-prep lunchbox. Dish: „Kürbissuppe mit Ingwer & Garnelen“ – Hokkaido-Kürbis, Garnelen (TK, roh), Crème fraîche, Zwiebeln, Ingwer, Kürbiskerne, on a ceramic plate or in a shallow bowl.
+
+## Gurken-Minz-Joghurt
+Datei: `images/recipes/gurken_minz_joghurt.webp`
+
+> Photorealistic overhead food photo, square-friendly 3:2 landscape (main subject centered so a square center crop works), served on a rich deep-green matte surface (#0e5a34, soft radial light from the upper left, dark vignette at the edges), warm natural studio light, soft shadow to the lower right, vivid fresh colors, glossy appetizing textures, a few scattered fresh herbs and spices as garnish, clean minimal composition, no text, no hands, no logos, high detail, same visual style as a premium iOS app icon of a meal-prep lunchbox. Dish: „Gurken-Minz-Joghurt“ – Joghurt griechische Art 10 %, Salatgurke, Zitronen (Bio, unbehandelt), Minze (Bund), Knoblauch, as an appetizer on a small plate or board.
+
+## Gebratene Gnocchi mit Kräuterpesto & Mozzarella
+Datei: `images/recipes/gnocchi_kraeuterpesto.webp`
+
+> Photorealistic overhead food photo, square-friendly 3:2 landscape (main subject centered so a square center crop works), served on a rich deep-green matte surface (#0e5a34, soft radial light from the upper left, dark vignette at the edges), warm natural studio light, soft shadow to the lower right, vivid fresh colors, glossy appetizing textures, a few scattered fresh herbs and spices as garnish, clean minimal composition, no text, no hands, no logos, high detail, same visual style as a premium iOS app icon of a meal-prep lunchbox. Dish: „Gebratene Gnocchi mit Kräuterpesto & Mozzarella“ – Kartoffeln, festkochend, Mozzarella, Weizenmehl (Type 405), Eier (Freiland, M), Basilikum (Topf), Hartweizengrieß, on a ceramic plate or in a shallow bowl.
+
+## Guacamole super cremig
+Datei: `images/recipes/guacamole_cremig.webp`
+
+> Photorealistic overhead food photo, square-friendly 3:2 landscape (main subject centered so a square center crop works), served on a rich deep-green matte surface (#0e5a34, soft radial light from the upper left, dark vignette at the edges), warm natural studio light, soft shadow to the lower right, vivid fresh colors, glossy appetizing textures, a few scattered fresh herbs and spices as garnish, clean minimal composition, no text, no hands, no logos, high detail, same visual style as a premium iOS app icon of a meal-prep lunchbox. Dish: „Guacamole super cremig“ – Frischkäse Doppelrahm, Avocado, Knoblauch, Zitronen (Bio, unbehandelt), as an appetizer on a small plate or board.
+
+## Kartoffelgratin
+Datei: `images/recipes/kartoffelgratin.webp`
+
+> Photorealistic overhead food photo, square-friendly 3:2 landscape (main subject centered so a square center crop works), served on a rich deep-green matte surface (#0e5a34, soft radial light from the upper left, dark vignette at the edges), warm natural studio light, soft shadow to the lower right, vivid fresh colors, glossy appetizing textures, a few scattered fresh herbs and spices as garnish, clean minimal composition, no text, no hands, no logos, high detail, same visual style as a premium iOS app icon of a meal-prep lunchbox. Dish: „Kartoffelgratin“ – Kartoffeln, festkochend, Milch 1,5 %, Schlagsahne 30 %, Grana Padano / Parmesan (Stück), Butter, Knoblauch, as an appetizer on a small plate or board.
+
+## Spanisches Paprikahühnchen mit Reis
+Datei: `images/recipes/spanisches_paprikahuehnchen.webp`
+
+> Photorealistic overhead food photo, square-friendly 3:2 landscape (main subject centered so a square center crop works), served on a rich deep-green matte surface (#0e5a34, soft radial light from the upper left, dark vignette at the edges), warm natural studio light, soft shadow to the lower right, vivid fresh colors, glossy appetizing textures, a few scattered fresh herbs and spices as garnish, clean minimal composition, no text, no hands, no logos, high detail, same visual style as a premium iOS app icon of a meal-prep lunchbox. Dish: „Spanisches Paprikahühnchen mit Reis“ – Hähnchenschenkel (mit Haut & Knochen), Passierte Tomaten, Paprika rot/gelb, Basmatireis, Zwiebeln, Mandeln (gehobelt/Splitter), on a ceramic plate or in a shallow bowl.
+
+## Preiselbeer-Geschnetzeltes mit Bandnudeln
+Datei: `images/recipes/preiselbeer_geschnetzeltes.webp`
+
+> Photorealistic overhead food photo, square-friendly 3:2 landscape (main subject centered so a square center crop works), served on a rich deep-green matte surface (#0e5a34, soft radial light from the upper left, dark vignette at the edges), warm natural studio light, soft shadow to the lower right, vivid fresh colors, glossy appetizing textures, a few scattered fresh herbs and spices as garnish, clean minimal composition, no text, no hands, no logos, high detail, same visual style as a premium iOS app icon of a meal-prep lunchbox. Dish: „Preiselbeer-Geschnetzeltes mit Bandnudeln“ – Hähnchenbrustfilet, Tagliatelle (Eier-Bandnudeln), Preiselbeeren (Glas), Champignons braun, Kochsahne 15 %, Zwiebeln, on a ceramic plate or in a shallow bowl.
+
+## Klassisches Rindergulasch
+Datei: `images/recipes/rindergulasch_klassisch.webp`
+
+> Photorealistic overhead food photo, square-friendly 3:2 landscape (main subject centered so a square center crop works), served on a rich deep-green matte surface (#0e5a34, soft radial light from the upper left, dark vignette at the edges), warm natural studio light, soft shadow to the lower right, vivid fresh colors, glossy appetizing textures, a few scattered fresh herbs and spices as garnish, clean minimal composition, no text, no hands, no logos, high detail, same visual style as a premium iOS app icon of a meal-prep lunchbox. Dish: „Klassisches Rindergulasch“ – Kartoffeln, festkochend, Rindergulasch, Rinderfond / Wildfond (Glas), Zwiebeln, Rotwein, trocken (zum Kochen), Tomatenmark, on a ceramic plate or in a shallow bowl.
+
+## Toskanischer Filettopf
+Datei: `images/recipes/toskanischer_filettopf.webp`
+
+> Photorealistic overhead food photo, square-friendly 3:2 landscape (main subject centered so a square center crop works), served on a rich deep-green matte surface (#0e5a34, soft radial light from the upper left, dark vignette at the edges), warm natural studio light, soft shadow to the lower right, vivid fresh colors, glossy appetizing textures, a few scattered fresh herbs and spices as garnish, clean minimal composition, no text, no hands, no logos, high detail, same visual style as a premium iOS app icon of a meal-prep lunchbox. Dish: „Toskanischer Filettopf“ – Schweinefilet, Schlagsahne 30 %, Tomaten (Rispe), Baguette, Bacon / Frühstücksspeck (Scheiben), Tomatenmark, on a ceramic plate or in a shallow bowl.
+
+## Kalbsleber mit Salbei & Schalottensauce
+Datei: `images/recipes/kalbsleber_salbei.webp`
+
+> Photorealistic overhead food photo, square-friendly 3:2 landscape (main subject centered so a square center crop works), served on a rich deep-green matte surface (#0e5a34, soft radial light from the upper left, dark vignette at the edges), warm natural studio light, soft shadow to the lower right, vivid fresh colors, glossy appetizing textures, a few scattered fresh herbs and spices as garnish, clean minimal composition, no text, no hands, no logos, high detail, same visual style as a premium iOS app icon of a meal-prep lunchbox. Dish: „Kalbsleber mit Salbei & Schalottensauce“ – Kartoffeln, festkochend, Kalbsleber, Rotwein, trocken (zum Kochen), Zwiebeln, Butter, Salbei (frisch), on a ceramic plate or in a shallow bowl.
+
+## Serrano-Schweinemedaillons in Champignonrahm
+Datei: `images/recipes/serrano_schweinemedaillons.webp`
+
+> Photorealistic overhead food photo, square-friendly 3:2 landscape (main subject centered so a square center crop works), served on a rich deep-green matte surface (#0e5a34, soft radial light from the upper left, dark vignette at the edges), warm natural studio light, soft shadow to the lower right, vivid fresh colors, glossy appetizing textures, a few scattered fresh herbs and spices as garnish, clean minimal composition, no text, no hands, no logos, high detail, same visual style as a premium iOS app icon of a meal-prep lunchbox. Dish: „Serrano-Schweinemedaillons in Champignonrahm“ – Schweinefilet, Champignons (Glas, abgetropft), Schlagsahne 30 %, Paprika rot/gelb, Serrano-/Parmaschinken, Kräuter (TK, z. B. Petersilie/8-Kräuter), on a ceramic plate or in a shallow bowl.
+
+## Gefüllte Hähnchenbrust im Schinkenmantel
+Datei: `images/recipes/haehnchen_schinkenmantel.webp`
+
+> Photorealistic overhead food photo, square-friendly 3:2 landscape (main subject centered so a square center crop works), served on a rich deep-green matte surface (#0e5a34, soft radial light from the upper left, dark vignette at the edges), warm natural studio light, soft shadow to the lower right, vivid fresh colors, glossy appetizing textures, a few scattered fresh herbs and spices as garnish, clean minimal composition, no text, no hands, no logos, high detail, same visual style as a premium iOS app icon of a meal-prep lunchbox. Dish: „Gefüllte Hähnchenbrust im Schinkenmantel“ – Hähnchenbrustfilet, Paprika rot/gelb, Serrano-/Parmaschinken, Schlagsahne 30 %, Getrocknete Tomaten (in Öl, abgetropft), Zwiebeln, on a ceramic plate or in a shallow bowl.
+
+## Wildgulasch
+Datei: `images/recipes/wildgulasch.webp`
+
+> Photorealistic overhead food photo, square-friendly 3:2 landscape (main subject centered so a square center crop works), served on a rich deep-green matte surface (#0e5a34, soft radial light from the upper left, dark vignette at the edges), warm natural studio light, soft shadow to the lower right, vivid fresh colors, glossy appetizing textures, a few scattered fresh herbs and spices as garnish, clean minimal composition, no text, no hands, no logos, high detail, same visual style as a premium iOS app icon of a meal-prep lunchbox. Dish: „Wildgulasch“ – Kartoffeln, festkochend, Wildgulasch (TK, Hirsch/Reh), Rotwein, trocken (zum Kochen), Gehackte Tomaten (Dose), Rinderfond / Wildfond (Glas), Möhren (roh verwendet), on a ceramic plate or in a shallow bowl.
