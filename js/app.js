@@ -1172,7 +1172,7 @@ const AUTO_CATS = {
   Fette: (r, m) => (m.f * 9) / m.kcal >= 0.37,
   Mahlzeiten: (r) => r.type === 'main',
   Frühstück: (r) => r.type === 'breakfast',
-  Vorspeisen: (r) => (r.type === 'extra' && !['beilage', 'dessert', 'dressing'].some((t) => hasTag(r, t))) || hasTag(r, 'vorspeise'),
+  Vorspeisen: (r) => (r.type === 'extra' && !['beilage', 'dessert', 'dressing', 'brot'].some((t) => hasTag(r, t))) || hasTag(r, 'vorspeise'),
   Beilagen: (r) => hasTag(r, 'beilage'),
   Dressings: (r) => hasTag(r, 'dressing'),
   Suppen: (r) => /suppe|eintopf|chowder|ramen/i.test(r.name) || hasTag(r, 'suppe'),

@@ -61,7 +61,8 @@ export function prepareContext(input) {
   }
 
   const byType = (t) => usable.filter((r) => r.type === t);
-  const mains = byType('main');
+  // „gruppe“ = nur für große Runden (z. B. Fondue) – wird nie automatisch eingeplant
+  const mains = byType('main').filter((r) => !(r.tags || []).includes('gruppe'));
   return {
     ...input,
     away,

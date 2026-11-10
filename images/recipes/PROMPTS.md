@@ -435,7 +435,7 @@ Datei: `images/recipes/zwiebel_blaetterteigroellchen.webp`
 ## Tiramisu mit Amaretto
 Datei: `images/recipes/tiramisu_amaretto.webp`
 
-> Photorealistic overhead food photo, square-friendly 3:2 landscape (main subject centered so a square center crop works), served on a rich deep-green matte surface (#0e5a34, soft radial light from the upper left, dark vignette at the edges), warm natural studio light, soft shadow to the lower right, vivid fresh colors, glossy appetizing textures, a few scattered fresh herbs and spices as garnish, clean minimal composition, no text, no hands, no logos, high detail, same visual style as a premium iOS app icon of a meal-prep lunchbox. Dish: „Tiramisu mit Amaretto“ – Mascarpone, Espresso/Kaffee (für Tiramisu), Löffelbiskuits, Schlagsahne 30 %, Zucker (auch Puder-/Vanillezucker), Amaretto, in a small bowl, glass or on a small plate.
+> Photorealistic overhead food photo, square-friendly 3:2 landscape (main subject centered so a square center crop works), served on a rich deep-green matte surface (#0e5a34, soft radial light from the upper left, dark vignette at the edges), warm natural studio light, soft shadow to the lower right, vivid fresh colors, glossy appetizing textures, a few scattered fresh herbs and spices as garnish, clean minimal composition, no text, no hands, no logos, high detail, same visual style as a premium iOS app icon of a meal-prep lunchbox. Dish: „Tiramisu mit Amaretto“ – Espresso/Kaffee (für Tiramisu), Mascarpone, Löffelbiskuits, Schlagsahne 30 %, Zucker (auch Puder-/Vanillezucker), Amaretto, in a small bowl, glass or on a small plate.
 
 ## Pasta alla Norma
 Datei: `images/recipes/pasta_alla_norma.webp`
@@ -737,7 +737,37 @@ Datei: `images/recipes/beerentraum.webp`
 
 > Photorealistic overhead food photo, square-friendly 3:2 landscape (main subject centered so a square center crop works), served on a rich deep-green matte surface (#0e5a34, soft radial light from the upper left, dark vignette at the edges), warm natural studio light, soft shadow to the lower right, vivid fresh colors, glossy appetizing textures, a few scattered fresh herbs and spices as garnish, clean minimal composition, no text, no hands, no logos, high detail, same visual style as a premium iOS app icon of a meal-prep lunchbox. Dish: „Beerentraum (nach Heinz)“ – Beerenmischung (TK), Zucker (auch Puder-/Vanillezucker), Frische Beeren (Himbeeren/Heidelbeeren), Eier (Freiland, M), Limetten, as an appetizer on a small plate or board.
 
-## Spaghetti-Creme
+## Spaghetti-Creme (große weiße Form)
 Datei: `images/recipes/spaghetti_creme.webp`
 
-> Photorealistic overhead food photo, square-friendly 3:2 landscape (main subject centered so a square center crop works), served on a rich deep-green matte surface (#0e5a34, soft radial light from the upper left, dark vignette at the edges), warm natural studio light, soft shadow to the lower right, vivid fresh colors, glossy appetizing textures, a few scattered fresh herbs and spices as garnish, clean minimal composition, no text, no hands, no logos, high detail, same visual style as a premium iOS app icon of a meal-prep lunchbox. Dish: „Spaghetti-Creme“ – Speisequark 20 %, Beerenmischung (TK), Schlagsahne 30 %, Mascarpone, Puderzucker, Naturjoghurt 3,5 %, as an appetizer on a small plate or board.
+> Photorealistic overhead food photo, square-friendly 3:2 landscape (main subject centered so a square center crop works), served on a rich deep-green matte surface (#0e5a34, soft radial light from the upper left, dark vignette at the edges), warm natural studio light, soft shadow to the lower right, vivid fresh colors, glossy appetizing textures, a few scattered fresh herbs and spices as garnish, clean minimal composition, no text, no hands, no logos, high detail, same visual style as a premium iOS app icon of a meal-prep lunchbox. Dish: „Spaghetti-Creme (große weiße Form)“ – Erdbeeren (TK), Magerquark, Naturjoghurt 3,5 %, Mascarpone, Speisequark 20 %, Schlagsahne 30 %, as an appetizer on a small plate or board.
+
+## Herrencreme nach Omas Rezept
+Datei: `images/recipes/herrencreme.webp`
+
+> Photorealistic overhead food photo, square-friendly 3:2 landscape (main subject centered so a square center crop works), served on a rich deep-green matte surface (#0e5a34, soft radial light from the upper left, dark vignette at the edges), warm natural studio light, soft shadow to the lower right, vivid fresh colors, glossy appetizing textures, a few scattered fresh herbs and spices as garnish, clean minimal composition, no text, no hands, no logos, high detail, same visual style as a premium iOS app icon of a meal-prep lunchbox. Dish: „Herrencreme nach Omas Rezept“ – Milch 1,5 %, Schlagsahne 30 %, Zartbitterschokolade 70 %, Rum (brauner, 40 %; Alkohol als KH gerechnet), Puddingpulver (Sahne/Vanille), Cocktailkirschen (Glas), as an appetizer on a small plate or board.
+
+## Fleischfondue mit drei Soßen
+Datei: `images/recipes/fleischfondue.webp`
+
+> Photorealistic overhead food photo, square-friendly 3:2 landscape (main subject centered so a square center crop works), served on a rich deep-green matte surface (#0e5a34, soft radial light from the upper left, dark vignette at the edges), warm natural studio light, soft shadow to the lower right, vivid fresh colors, glossy appetizing textures, a few scattered fresh herbs and spices as garnish, clean minimal composition, no text, no hands, no logos, high detail, same visual style as a premium iOS app icon of a meal-prep lunchbox. Dish: „Fleischfondue mit drei Soßen“ – Rinderfilet, Palmin / Frittierfett für Fondue (Nährwerte = vom Fleisch aufgenommener Anteil), Brötchen (Rosen-/Kaiserbrötchen), Champignons braun, Salatcreme (Miracel Whip), Naturjoghurt 3,5 %, on a ceramic plate or in a shallow bowl.
+
+## Krabbencocktail
+Datei: `images/recipes/krabbencocktail.webp`
+
+> Photorealistic overhead food photo, square-friendly 3:2 landscape (main subject centered so a square center crop works), served on a rich deep-green matte surface (#0e5a34, soft radial light from the upper left, dark vignette at the edges), warm natural studio light, soft shadow to the lower right, vivid fresh colors, glossy appetizing textures, a few scattered fresh herbs and spices as garnish, clean minimal composition, no text, no hands, no logos, high detail, same visual style as a premium iOS app icon of a meal-prep lunchbox. Dish: „Krabbencocktail“ – Nordseekrabben (gepult), Äpfel, Eier (Freiland, M), Mandarinen/Clementinen, Salatcreme (Miracel Whip), Naturjoghurt 3,5 %, as an appetizer on a small plate or board.
+
+## Bunter Wintersalat mit Parmesan & Pinienkernen
+Datei: `images/recipes/weihnachtssalat.webp`
+
+> Photorealistic overhead food photo, square-friendly 3:2 landscape (main subject centered so a square center crop works), served on a rich deep-green matte surface (#0e5a34, soft radial light from the upper left, dark vignette at the edges), warm natural studio light, soft shadow to the lower right, vivid fresh colors, glossy appetizing textures, a few scattered fresh herbs and spices as garnish, clean minimal composition, no text, no hands, no logos, high detail, same visual style as a premium iOS app icon of a meal-prep lunchbox. Dish: „Bunter Wintersalat mit Parmesan & Pinienkernen“ – Cherrytomaten, Radicchio, Feldsalat, Lollo Rosso, Frühlingszwiebeln, Grana Padano / Parmesan (Stück), as an appetizer on a small plate or board.
+
+## Sauerteigbrot aus dem Topf
+Datei: `images/recipes/sauerteigbrot.webp`
+
+> Photorealistic overhead food photo, square-friendly 3:2 landscape (main subject centered so a square center crop works), served on a rich deep-green matte surface (#0e5a34, soft radial light from the upper left, dark vignette at the edges), warm natural studio light, soft shadow to the lower right, vivid fresh colors, glossy appetizing textures, a few scattered fresh herbs and spices as garnish, clean minimal composition, no text, no hands, no logos, high detail, same visual style as a premium iOS app icon of a meal-prep lunchbox. Dish: „Sauerteigbrot aus dem Topf“ – Weizenmehl (Type 405), Roggen- oder Dinkelmehl, Frische Hefe, Sauerteig-Extrakt (Päckchen), Honig, as an appetizer on a small plate or board.
+
+## Beeren-Nachtisch mit Karamellkruste
+Datei: `images/recipes/beeren_nachtisch.webp`
+
+> Photorealistic overhead food photo, square-friendly 3:2 landscape (main subject centered so a square center crop works), served on a rich deep-green matte surface (#0e5a34, soft radial light from the upper left, dark vignette at the edges), warm natural studio light, soft shadow to the lower right, vivid fresh colors, glossy appetizing textures, a few scattered fresh herbs and spices as garnish, clean minimal composition, no text, no hands, no logos, high detail, same visual style as a premium iOS app icon of a meal-prep lunchbox. Dish: „Beeren-Nachtisch mit Karamellkruste“ – Magerquark, Beerenmischung (TK), Naturjoghurt 3,5 %, Schlagsahne 30 %, Brauner Zucker, Vanillezucker, as an appetizer on a small plate or board.
