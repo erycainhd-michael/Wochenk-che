@@ -61,6 +61,17 @@ const PIECES = {
   salatcreme: [500, 'Glas', 'Gläser'],
   kresse: [20, 'Beet', 'Beete'],
   vanilleschote: [3, 'Schote', 'Schoten'],
+  cornichons: [190, 'Glas', 'Gläser'],
+  silberzwiebeln: [190, 'Glas', 'Gläser'],
+  broetchen: [60, '×'],
+  radicchio: [300, '×'],
+  lollo_rosso: [250, '×'],
+  fondue_fett: [250, 'Platte', 'Platten'],
+  puddingpulver: [37, 'Päckchen', 'Päckchen'],
+  sahnesteif: [8, 'Päckchen', 'Päckchen'],
+  vanillezucker: [8, 'Päckchen', 'Päckchen'],
+  hefe: [42, 'Würfel', 'Würfel'],
+  sauerteig_extrakt: [15, 'Päckchen', 'Päckchen'],
 };
 // Löffelmengen: Gramm pro EL / TL; max = bis wie viele EL noch in Löffeln angezeigt wird
 const SPOONS = {
@@ -100,9 +111,11 @@ const SPOONS = {
   puderzucker: [8, 3],
   brauner_zucker: [12, 4],
   speisestaerke: [10, 3],
+  rum: [15, 5],
+  cognac: [15, 5],
 };
 // Flüssiges in ml (1 g ≈ 1 ml)
-const LIQUID = new Set(['olivenoel', 'rapsoel', 'essig', 'balsamico_bianco', 'rinderfond', 'bier', 'milch', 'kochsahne', 'sahne', 'weisswein', 'rotwein', 'espresso', 'kokosmilch', 'amaretto', 'sojasauce']);
+const LIQUID = new Set(['rum', 'cognac', 'olivenoel', 'rapsoel', 'essig', 'balsamico_bianco', 'rinderfond', 'bier', 'milch', 'kochsahne', 'sahne', 'weisswein', 'rotwein', 'espresso', 'kokosmilch', 'amaretto', 'sojasauce']);
 
 const FRAC = { 0.25: '¼', 0.5: '½', 0.75: '¾' };
 /** 1,5 → „1½“, 0,25 → „¼“ */
