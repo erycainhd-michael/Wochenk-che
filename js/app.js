@@ -1172,7 +1172,8 @@ const AUTO_CATS = {
   Fette: (r, m) => (m.f * 9) / m.kcal >= 0.37,
   Mahlzeiten: (r) => r.type === 'main',
   Frühstück: (r) => r.type === 'breakfast',
-  Vorspeisen: (r) => r.type === 'extra' || hasTag(r, 'vorspeise'),
+  Vorspeisen: (r) => (r.type === 'extra' && !hasTag(r, 'beilage')) || hasTag(r, 'vorspeise'),
+  Beilagen: (r) => hasTag(r, 'beilage'),
   Suppen: (r) => /suppe|eintopf|chowder|ramen/i.test(r.name) || hasTag(r, 'suppe'),
   Salate: (r) => /salat|bowl/i.test(r.name) || hasTag(r, 'salat'),
   Kuchen: (r) => r.type === 'snack' || (r.tags || []).includes('kuchen') || (/kuchen|cake|muffin|brownie|tarte/i.test(r.name) && !/flammkuchen|pfannkuchen/i.test(r.name)),
@@ -1180,6 +1181,8 @@ const AUTO_CATS = {
   // Brot = ein Rezept für ein Brot (nicht: Gericht mit Brot)
   Brot: (r) => hasTag(r, 'brot') || /focaccia|brötchen|ciabatta|bananenbrot|hefezopf/i.test(r.name),
   Gourmet: (r) => (r.tags || []).includes('gourmet'),
+  // handgeschriebene Rezepte aus der Familie (Tag „familie“); weitere lassen sich im Rezept zuordnen
+  Familienrezepte: (r) => hasTag(r, 'familie'),
   Fleisch: (r) => hasMeat(r),
   Fisch: (r) => hasFishIng(r),
   Vegetarisch: (r) => !hasMeat(r) && !hasFishIng(r),
@@ -1190,7 +1193,7 @@ const AUTO_CATS = {
 const CAT_GROUPS = [
   ['Favoriten'],
   ['Wenig Abwasch', 'Mehr Abwasch'],
-  ['Mahlzeiten', 'Frühstück', 'Vorspeisen', 'Suppen', 'Salate', 'Kuchen', 'Desserts', 'Brot'],
+  ['Mahlzeiten', 'Frühstück', 'Vorspeisen', 'Suppen', 'Salate', 'Beilagen', 'Kuchen', 'Desserts', 'Brot'],
   Object.values(CUISINES),
   ['Fleisch', 'Fisch', 'Vegetarisch'],
   ['Protein', 'Carbs', 'Fette'],
@@ -1211,7 +1214,7 @@ for (const [from, to] of [['Hauptgerichte', 'Mahlzeiten'], ['Salat', 'Salate']])
   for (const k of Object.keys(S.cats.off || {})) S.cats.off[k] = ren(S.cats.off[k]);
 }
 // Kategorien sind fest vorgegeben (Änderungen nur im Code): „Favoriten“ + automatische + „Familienrezepte“
-S.cats.names = ['Favoriten', ...Object.keys(AUTO_CATS), 'Familienrezepte'];
+S.cats.names = [...new Set(['Favoriten', ...Object.keys(AUTO_CATS), 'Familienrezepte'])];
 S.cats.removed = [];
 const autoCatsCache = new Map();
 function autoCats(r) {

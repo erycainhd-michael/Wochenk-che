@@ -39,6 +39,17 @@ const PIECES = {
   blaetterteig: [275, 'Rolle', 'Rollen'],
   flammkuchenteig: [260, 'Rolle', 'Rollen'],
   zwiebelsuppe_pulver: [50, 'Päckchen', 'Päckchen'],
+  haehnchenschenkel: [275, '×'],
+  getrocknete_tomaten: [5, '×'],
+  petersilie: [30, 'Bund', 'Bund'],
+  minze: [30, 'Bund', 'Bund'],
+  salbei: [20, 'Bund', 'Bund'],
+  schnittlauch: [30, 'Bund', 'Bund'],
+  champignons_glas: [330, 'Glas', 'Gläser'],
+  chilisauce: [300, 'Flasche', 'Flaschen'],
+  paprikasauce: [400, 'Glas', 'Gläser'],
+  schmelzkaese: [200, 'Packung', 'Packungen'],
+  saucenpulver: [30, 'Päckchen', 'Päckchen'],
 };
 // Löffelmengen: Gramm pro EL / TL; max = bis wie viele EL noch in Löffeln angezeigt wird
 const SPOONS = {
@@ -66,9 +77,13 @@ const SPOONS = {
   mehl: [10, 3],
   amaretto: [15, 5],
   creme_fraiche: [15, 5],
+  ketchup: [15, 5],
+  semmelbroesel: [8, 3],
+  preiselbeeren: [15, 5],
+  gries: [10, 3],
 };
 // Flüssiges in ml (1 g ≈ 1 ml)
-const LIQUID = new Set(['milch', 'kochsahne', 'sahne', 'weisswein', 'rotwein', 'espresso', 'kokosmilch', 'amaretto', 'sojasauce']);
+const LIQUID = new Set(['rinderfond', 'bier', 'milch', 'kochsahne', 'sahne', 'weisswein', 'rotwein', 'espresso', 'kokosmilch', 'amaretto', 'sojasauce']);
 
 const FRAC = { 0.25: '¼', 0.5: '½', 0.75: '¾' };
 /** 1,5 → „1½“, 0,25 → „¼“ */
