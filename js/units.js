@@ -50,6 +50,17 @@ const PIECES = {
   paprikasauce: [400, 'Glas', 'Gläser'],
   schmelzkaese: [200, 'Packung', 'Packungen'],
   saucenpulver: [30, 'Päckchen', 'Päckchen'],
+  chinakohl: [800, '×'],
+  eisbergsalat: [500, '×'],
+  chicoree: [100, '×'],
+  mie_nudeln: [83, 'Lage', 'Lagen'],
+  kidneybohnen: [255, 'Dose', 'Dosen'],
+  nachos: [125, 'Tüte', 'Tüten'],
+  sellerie_glas: [200, 'Glas', 'Gläser'],
+  pflaumen_glas: [400, 'Glas', 'Gläser'],
+  salatcreme: [500, 'Glas', 'Gläser'],
+  kresse: [20, 'Beet', 'Beete'],
+  vanilleschote: [3, 'Schote', 'Schoten'],
 };
 // Löffelmengen: Gramm pro EL / TL; max = bis wie viele EL noch in Löffeln angezeigt wird
 const SPOONS = {
@@ -81,9 +92,17 @@ const SPOONS = {
   semmelbroesel: [8, 3],
   preiselbeeren: [15, 5],
   gries: [10, 3],
+  mayonnaise: [15, 5],
+  saure_sahne: [15, 5],
+  mangosirup: [15, 5],
+  balsamico_bianco: [15, 5],
+  essig: [15, 5],
+  puderzucker: [8, 3],
+  brauner_zucker: [12, 4],
+  speisestaerke: [10, 3],
 };
 // Flüssiges in ml (1 g ≈ 1 ml)
-const LIQUID = new Set(['rinderfond', 'bier', 'milch', 'kochsahne', 'sahne', 'weisswein', 'rotwein', 'espresso', 'kokosmilch', 'amaretto', 'sojasauce']);
+const LIQUID = new Set(['olivenoel', 'rapsoel', 'essig', 'balsamico_bianco', 'rinderfond', 'bier', 'milch', 'kochsahne', 'sahne', 'weisswein', 'rotwein', 'espresso', 'kokosmilch', 'amaretto', 'sojasauce']);
 
 const FRAC = { 0.25: '¼', 0.5: '½', 0.75: '¾' };
 /** 1,5 → „1½“, 0,25 → „¼“ */
@@ -106,11 +125,15 @@ export function kitchenAmount(id, g, note = '') {
     const n = Math.max(1, Math.round(g / 18));
     return { n: String(n), unit: '×' };
   }
+  if (id === 'eier' && /eiweiß|eiweiss/i.test(note)) {
+    const n = Math.max(1, Math.round(g / 33));
+    return { n: String(n), unit: '×' };
+  }
   const p = PIECES[id];
   if (p) {
     const [w, one, many = one] = p;
     // große Stücke (Melone, Blätterteig-Rolle …) in Vierteln, Knoblauchzehen ganz, sonst in Halben
-    const step = w >= 250 ? 0.25 : id === 'knoblauch' ? 1 : 0.5;
+    const step = w >= 250 || id === 'vanilleschote' ? 0.25 : id === 'knoblauch' ? 1 : 0.5;
     const n = roundTo(g / w, step);
     if (n >= step) return { n: fracText(n), unit: n > 1 ? many : one };
   }

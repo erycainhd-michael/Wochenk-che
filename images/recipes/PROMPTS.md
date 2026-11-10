@@ -646,3 +646,98 @@ Datei: `images/recipes/haehnchen_schinkenmantel.webp`
 Datei: `images/recipes/wildgulasch.webp`
 
 > Photorealistic overhead food photo, square-friendly 3:2 landscape (main subject centered so a square center crop works), served on a rich deep-green matte surface (#0e5a34, soft radial light from the upper left, dark vignette at the edges), warm natural studio light, soft shadow to the lower right, vivid fresh colors, glossy appetizing textures, a few scattered fresh herbs and spices as garnish, clean minimal composition, no text, no hands, no logos, high detail, same visual style as a premium iOS app icon of a meal-prep lunchbox. Dish: „Wildgulasch“ – Kartoffeln, festkochend, Wildgulasch (TK, Hirsch/Reh), Rotwein, trocken (zum Kochen), Gehackte Tomaten (Dose), Rinderfond / Wildfond (Glas), Möhren (roh verwendet), on a ceramic plate or in a shallow bowl.
+
+## Ofenlachs mit Limette & Basilikum-Käsesauce
+Datei: `images/recipes/ofenlachs_limette.webp`
+
+> Photorealistic overhead food photo, square-friendly 3:2 landscape (main subject centered so a square center crop works), served on a rich deep-green matte surface (#0e5a34, soft radial light from the upper left, dark vignette at the edges), warm natural studio light, soft shadow to the lower right, vivid fresh colors, glossy appetizing textures, a few scattered fresh herbs and spices as garnish, clean minimal composition, no text, no hands, no logos, high detail, same visual style as a premium iOS app icon of a meal-prep lunchbox. Dish: „Ofenlachs mit Limette & Basilikum-Käsesauce“ – Lachsfilet (frisch, Theke/Kühlregal), Basmatireis, Milch 1,5 %, Schlagsahne 30 %, Limetten, Schmelzkäse (Kräuter), on a ceramic plate or in a shallow bowl.
+
+## Nacho-Salat mit Hackfleisch
+Datei: `images/recipes/nacho_salat.webp`
+
+> Photorealistic overhead food photo, square-friendly 3:2 landscape (main subject centered so a square center crop works), served on a rich deep-green matte surface (#0e5a34, soft radial light from the upper left, dark vignette at the edges), warm natural studio light, soft shadow to the lower right, vivid fresh colors, glossy appetizing textures, a few scattered fresh herbs and spices as garnish, clean minimal composition, no text, no hands, no logos, high detail, same visual style as a premium iOS app icon of a meal-prep lunchbox. Dish: „Nacho-Salat mit Hackfleisch“ – Rinderhackfleisch, Salsa-Sauce (Dip, mild/medium), Paprika rot/gelb, Saure Sahne / Sauerrahm 10 %, Mais (Dose, abgetropft), Tomaten (Rispe), on a ceramic plate or in a shallow bowl.
+
+## Bunter Salat mit Thunfischsoße & Ei
+Datei: `images/recipes/bunter_salat_thunfischsosse.webp`
+
+> Photorealistic overhead food photo, square-friendly 3:2 landscape (main subject centered so a square center crop works), served on a rich deep-green matte surface (#0e5a34, soft radial light from the upper left, dark vignette at the edges), warm natural studio light, soft shadow to the lower right, vivid fresh colors, glossy appetizing textures, a few scattered fresh herbs and spices as garnish, clean minimal composition, no text, no hands, no logos, high detail, same visual style as a premium iOS app icon of a meal-prep lunchbox. Dish: „Bunter Salat mit Thunfischsoße & Ei“ – Thunfisch im eigenen Saft (abgetropft), Cherrytomaten, Eier (Freiland, M), Baguette, Feldsalat, Naturjoghurt 3,5 %, on a ceramic plate or in a shallow bowl.
+
+## Brotsalat mit Kirschtomaten
+Datei: `images/recipes/brotsalat.webp`
+
+> Photorealistic overhead food photo, square-friendly 3:2 landscape (main subject centered so a square center crop works), served on a rich deep-green matte surface (#0e5a34, soft radial light from the upper left, dark vignette at the edges), warm natural studio light, soft shadow to the lower right, vivid fresh colors, glossy appetizing textures, a few scattered fresh herbs and spices as garnish, clean minimal composition, no text, no hands, no logos, high detail, same visual style as a premium iOS app icon of a meal-prep lunchbox. Dish: „Brotsalat mit Kirschtomaten“ – Cherrytomaten, Vollkornbrot (geschnitten), Rote Zwiebeln, Zitronen (Bio, unbehandelt), Petersilie, glatt (Bund), as an appetizer on a small plate or board.
+
+## Chinakohlsalat mit Mie-Nudeln
+Datei: `images/recipes/chinakohlsalat_mie.webp`
+
+> Photorealistic overhead food photo, square-friendly 3:2 landscape (main subject centered so a square center crop works), served on a rich deep-green matte surface (#0e5a34, soft radial light from the upper left, dark vignette at the edges), warm natural studio light, soft shadow to the lower right, vivid fresh colors, glossy appetizing textures, a few scattered fresh herbs and spices as garnish, clean minimal composition, no text, no hands, no logos, high detail, same visual style as a premium iOS app icon of a meal-prep lunchbox. Dish: „Chinakohlsalat mit Mie-Nudeln“ – Chinakohl, Zucker (auch Puder-/Vanillezucker), Mandeln (gehobelt/Splitter), Frühlingszwiebeln, Mie-Nudeln, Weißweinessig / Branntweinessig, as an appetizer on a small plate or board.
+
+## Tabouleh-Salat (Original)
+Datei: `images/recipes/tabouleh.webp`
+
+> Photorealistic overhead food photo, square-friendly 3:2 landscape (main subject centered so a square center crop works), served on a rich deep-green matte surface (#0e5a34, soft radial light from the upper left, dark vignette at the edges), warm natural studio light, soft shadow to the lower right, vivid fresh colors, glossy appetizing textures, a few scattered fresh herbs and spices as garnish, clean minimal composition, no text, no hands, no logos, high detail, same visual style as a premium iOS app icon of a meal-prep lunchbox. Dish: „Tabouleh-Salat (Original)“ – Tomaten (Rispe), Zitronen (Bio, unbehandelt), Zwiebeln, Petersilie, glatt (Bund), Bulgur, Minze (Bund), as an appetizer on a small plate or board.
+
+## Klassischer Kartoffelsalat mit Ei & Kresse
+Datei: `images/recipes/kartoffelsalat_ei_kresse.webp`
+
+> Photorealistic overhead food photo, square-friendly 3:2 landscape (main subject centered so a square center crop works), served on a rich deep-green matte surface (#0e5a34, soft radial light from the upper left, dark vignette at the edges), warm natural studio light, soft shadow to the lower right, vivid fresh colors, glossy appetizing textures, a few scattered fresh herbs and spices as garnish, clean minimal composition, no text, no hands, no logos, high detail, same visual style as a premium iOS app icon of a meal-prep lunchbox. Dish: „Klassischer Kartoffelsalat mit Ei & Kresse“ – Kartoffeln, festkochend, Eier (Freiland, M), Naturjoghurt 3,5 %, Cornichons (Glas, abgetropft), Zwiebeln, Mayonnaise, as an appetizer on a small plate or board.
+
+## Schichtsalat
+Datei: `images/recipes/schichtsalat.webp`
+
+> Photorealistic overhead food photo, square-friendly 3:2 landscape (main subject centered so a square center crop works), served on a rich deep-green matte surface (#0e5a34, soft radial light from the upper left, dark vignette at the edges), warm natural studio light, soft shadow to the lower right, vivid fresh colors, glossy appetizing textures, a few scattered fresh herbs and spices as garnish, clean minimal composition, no text, no hands, no logos, high detail, same visual style as a premium iOS app icon of a meal-prep lunchbox. Dish: „Schichtsalat“ – Salatcreme (Miracel Whip), Ananas-Scheiben (Dose, abgetropft), Eier (Freiland, M), Porree / Lauch, Mais (Dose, abgetropft), Selleriesalat (Glas, abgetropft), as an appetizer on a small plate or board.
+
+## Bananen-Tomaten-Salat mit Curry
+Datei: `images/recipes/bananen_tomaten_salat.webp`
+
+> Photorealistic overhead food photo, square-friendly 3:2 landscape (main subject centered so a square center crop works), served on a rich deep-green matte surface (#0e5a34, soft radial light from the upper left, dark vignette at the edges), warm natural studio light, soft shadow to the lower right, vivid fresh colors, glossy appetizing textures, a few scattered fresh herbs and spices as garnish, clean minimal composition, no text, no hands, no logos, high detail, same visual style as a premium iOS app icon of a meal-prep lunchbox. Dish: „Bananen-Tomaten-Salat mit Curry“ – Tomaten (Rispe), Bananen, Zitronen (Bio, unbehandelt), Zucker (auch Puder-/Vanillezucker), as an appetizer on a small plate or board.
+
+## Mango-Balsamico-Dressing
+Datei: `images/recipes/mango_balsamico_dressing.webp`
+
+> Photorealistic overhead food photo, square-friendly 3:2 landscape (main subject centered so a square center crop works), served on a rich deep-green matte surface (#0e5a34, soft radial light from the upper left, dark vignette at the edges), warm natural studio light, soft shadow to the lower right, vivid fresh colors, glossy appetizing textures, a few scattered fresh herbs and spices as garnish, clean minimal composition, no text, no hands, no logos, high detail, same visual style as a premium iOS app icon of a meal-prep lunchbox. Dish: „Mango-Balsamico-Dressing“ – Mango-Sirup, Balsamico Bianco (weißer Balsamico), Balsamico-Essig, Zucker (auch Puder-/Vanillezucker), as an appetizer on a small plate or board.
+
+## Joghurt-Dressing (leicht)
+Datei: `images/recipes/joghurt_dressing.webp`
+
+> Photorealistic overhead food photo, square-friendly 3:2 landscape (main subject centered so a square center crop works), served on a rich deep-green matte surface (#0e5a34, soft radial light from the upper left, dark vignette at the edges), warm natural studio light, soft shadow to the lower right, vivid fresh colors, glossy appetizing textures, a few scattered fresh herbs and spices as garnish, clean minimal composition, no text, no hands, no logos, high detail, same visual style as a premium iOS app icon of a meal-prep lunchbox. Dish: „Joghurt-Dressing (leicht)“ – Naturjoghurt 3,5 %, Saure Sahne / Sauerrahm 10 %, Zitronen (Bio, unbehandelt), Senf, Kräuter (TK, z. B. Petersilie/8-Kräuter), as an appetizer on a small plate or board.
+
+## Essig-Öl-Dressing (leicht)
+Datei: `images/recipes/essig_oel_dressing.webp`
+
+> Photorealistic overhead food photo, square-friendly 3:2 landscape (main subject centered so a square center crop works), served on a rich deep-green matte surface (#0e5a34, soft radial light from the upper left, dark vignette at the edges), warm natural studio light, soft shadow to the lower right, vivid fresh colors, glossy appetizing textures, a few scattered fresh herbs and spices as garnish, clean minimal composition, no text, no hands, no logos, high detail, same visual style as a premium iOS app icon of a meal-prep lunchbox. Dish: „Essig-Öl-Dressing (leicht)“ – Weißweinessig / Branntweinessig, Senf, Kräuter (TK, z. B. Petersilie/8-Kräuter), Speisestärke, as an appetizer on a small plate or board.
+
+## Cocktail-Dressing
+Datei: `images/recipes/cocktail_dressing.webp`
+
+> Photorealistic overhead food photo, square-friendly 3:2 landscape (main subject centered so a square center crop works), served on a rich deep-green matte surface (#0e5a34, soft radial light from the upper left, dark vignette at the edges), warm natural studio light, soft shadow to the lower right, vivid fresh colors, glossy appetizing textures, a few scattered fresh herbs and spices as garnish, clean minimal composition, no text, no hands, no logos, high detail, same visual style as a premium iOS app icon of a meal-prep lunchbox. Dish: „Cocktail-Dressing“ – Saure Sahne / Sauerrahm 10 %, Mayonnaise, Tomatenketchup, Milch 1,5 %, Zitronen (Bio, unbehandelt), as an appetizer on a small plate or board.
+
+## Kaiserschmarrn Franz Joseph
+Datei: `images/recipes/kaiserschmarrn.webp`
+
+> Photorealistic overhead food photo, square-friendly 3:2 landscape (main subject centered so a square center crop works), served on a rich deep-green matte surface (#0e5a34, soft radial light from the upper left, dark vignette at the edges), warm natural studio light, soft shadow to the lower right, vivid fresh colors, glossy appetizing textures, a few scattered fresh herbs and spices as garnish, clean minimal composition, no text, no hands, no logos, high detail, same visual style as a premium iOS app icon of a meal-prep lunchbox. Dish: „Kaiserschmarrn Franz Joseph“ – Eier (Freiland, M), Weizenmehl (Type 405), Milch 1,5 %, Butter, Rosinen, Zucker (auch Puder-/Vanillezucker), in a small bowl, glass or on a small plate.
+
+## Zimtparfait mit Rotweinpflaumen
+Datei: `images/recipes/zimtparfait_rotweinpflaumen.webp`
+
+> Photorealistic overhead food photo, square-friendly 3:2 landscape (main subject centered so a square center crop works), served on a rich deep-green matte surface (#0e5a34, soft radial light from the upper left, dark vignette at the edges), warm natural studio light, soft shadow to the lower right, vivid fresh colors, glossy appetizing textures, a few scattered fresh herbs and spices as garnish, clean minimal composition, no text, no hands, no logos, high detail, same visual style as a premium iOS app icon of a meal-prep lunchbox. Dish: „Zimtparfait mit Rotweinpflaumen“ – Pflaumen im Glas (abgetropft), Rotwein, trocken (zum Kochen), Schlagsahne 30 %, Zucker (auch Puder-/Vanillezucker), Eier (Freiland, M), as an appetizer on a small plate or board.
+
+## Mousse au Chocolat
+Datei: `images/recipes/mousse_au_chocolat.webp`
+
+> Photorealistic overhead food photo, square-friendly 3:2 landscape (main subject centered so a square center crop works), served on a rich deep-green matte surface (#0e5a34, soft radial light from the upper left, dark vignette at the edges), warm natural studio light, soft shadow to the lower right, vivid fresh colors, glossy appetizing textures, a few scattered fresh herbs and spices as garnish, clean minimal composition, no text, no hands, no logos, high detail, same visual style as a premium iOS app icon of a meal-prep lunchbox. Dish: „Mousse au Chocolat“ – Schlagsahne 30 %, Eier (Freiland, M), Zartbitterschokolade 70 %, Espresso/Kaffee (für Tiramisu), Butter, Amaretto, as an appetizer on a small plate or board.
+
+## Crème Brûlée
+Datei: `images/recipes/creme_brulee.webp`
+
+> Photorealistic overhead food photo, square-friendly 3:2 landscape (main subject centered so a square center crop works), served on a rich deep-green matte surface (#0e5a34, soft radial light from the upper left, dark vignette at the edges), warm natural studio light, soft shadow to the lower right, vivid fresh colors, glossy appetizing textures, a few scattered fresh herbs and spices as garnish, clean minimal composition, no text, no hands, no logos, high detail, same visual style as a premium iOS app icon of a meal-prep lunchbox. Dish: „Crème Brûlée“ – Schlagsahne 30 %, Milch 1,5 %, Eier (Freiland, M), Zucker (auch Puder-/Vanillezucker), Brauner Zucker, Vanilleschote, as an appetizer on a small plate or board.
+
+## Beerentraum (nach Heinz)
+Datei: `images/recipes/beerentraum.webp`
+
+> Photorealistic overhead food photo, square-friendly 3:2 landscape (main subject centered so a square center crop works), served on a rich deep-green matte surface (#0e5a34, soft radial light from the upper left, dark vignette at the edges), warm natural studio light, soft shadow to the lower right, vivid fresh colors, glossy appetizing textures, a few scattered fresh herbs and spices as garnish, clean minimal composition, no text, no hands, no logos, high detail, same visual style as a premium iOS app icon of a meal-prep lunchbox. Dish: „Beerentraum (nach Heinz)“ – Beerenmischung (TK), Zucker (auch Puder-/Vanillezucker), Frische Beeren (Himbeeren/Heidelbeeren), Eier (Freiland, M), Limetten, as an appetizer on a small plate or board.
+
+## Spaghetti-Creme
+Datei: `images/recipes/spaghetti_creme.webp`
+
+> Photorealistic overhead food photo, square-friendly 3:2 landscape (main subject centered so a square center crop works), served on a rich deep-green matte surface (#0e5a34, soft radial light from the upper left, dark vignette at the edges), warm natural studio light, soft shadow to the lower right, vivid fresh colors, glossy appetizing textures, a few scattered fresh herbs and spices as garnish, clean minimal composition, no text, no hands, no logos, high detail, same visual style as a premium iOS app icon of a meal-prep lunchbox. Dish: „Spaghetti-Creme“ – Speisequark 20 %, Beerenmischung (TK), Schlagsahne 30 %, Mascarpone, Puderzucker, Naturjoghurt 3,5 %, as an appetizer on a small plate or board.
