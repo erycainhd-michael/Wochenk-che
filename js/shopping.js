@@ -1,4 +1,10 @@
 // Einkaufsliste: Bedarf aus dem Plan minus Vorrat, auf ganze Packungen gerundet.
+// Wahlweise zwei Einkäufe pro Woche: Frisches (Salat, Kräuter, Fisch, Fleisch …) für Donnerstag bis Sonntag
+// wird erst beim zweiten Einkauf am Donnerstag gekauft.
+
+/** Tag des zweiten Einkaufs (0 = Montag) und ab wann eine Zutat als „frisch“ gilt (Haltbarkeit in Tagen) */
+export const SECOND_TRIP_DAY = 3;
+export const FRESH_SHELF = 6;
 
 /**
  * @param plan       fertiger Wochenplan (days[].meals[].items)
@@ -7,7 +13,7 @@
  * @param priceOf    Preisfunktion aus prices.js
  * @param recipesById Map für Gerichtsnamen
  */
-export function buildShopping({ plan, idx, pantry = {}, priceOf, recipesById }) {
+export function buildShopping({ plan, idx, pantry = {}, priceOf, recipesById, twice = false }) {
   const need = new Map();
   const bakedCakes = new Set();
   for (const day of plan.days) {
@@ -27,10 +33,15 @@ export function buildShopping({ plan, idx, pantry = {}, priceOf, recipesById }) 
       for (const it of items) {
         const rid = it.addon || meal.recipeId;
         const rname = recipesById?.get(rid)?.name || rid;
-        const e = need.get(it.id) || { g: 0, uses: new Set(), useIds: new Map() };
+        const e = need.get(it.id) || { g: 0, g2: 0, uses: new Set(), useIds: new Map(), useIds1: new Map(), useIds2: new Map() };
         e.g += it.g * people;
         e.uses.add(rname);
         e.useIds.set(rid, rname);
+        // Bedarf ab Donnerstag getrennt merken (für den zweiten Einkauf)
+        if (day.day >= SECOND_TRIP_DAY) {
+          e.g2 += it.g * people;
+          e.useIds2.set(rid, rname);
+        } else e.useIds1.set(rid, rname);
         need.set(it.id, e);
       }
     }
@@ -52,40 +63,59 @@ export function buildShopping({ plan, idx, pantry = {}, priceOf, recipesById }) 
       staples.push({ id, name: ing.name, g: Math.round(e.g), uses, useRefs });
       continue;
     }
-    const have = Math.max(0, pantry[id] || 0);
-    const toBuy = e.g - have;
-    // 5 % Toleranz: lieber minimal kleinere Portion als eine ganze Extra-Packung
-    const packs = toBuy <= 0 ? 0 : Math.max(1, Math.ceil((toBuy - 0.05 * ing.pack) / ing.pack));
     const pr = priceOf(id);
-    const cost = packs * pr.price;
-    const left = Math.max(0, have + packs * ing.pack - e.g);
+    const row = (g, have, trip, refs) => {
+      const toBuy = g - have;
+      // 5 % Toleranz: lieber minimal kleinere Portion als eine ganze Extra-Packung
+      const packs = toBuy <= 0 ? 0 : Math.max(1, Math.ceil((toBuy - 0.05 * ing.pack) / ing.pack));
+      return {
+        id,
+        key: trip === 2 ? `${id}@2` : id,
+        trip,
+        name: ing.name,
+        cat: ing.cat,
+        store: pr.store,
+        need: Math.round(g),
+        have: Math.round(Math.min(have, g)),
+        packs,
+        pack: ing.pack,
+        packLabel: ing.packLabel || `${ing.pack} g`,
+        piece: ing.piece,
+        pieceName: ing.pieceName,
+        price: pr.price,
+        regular: pr.regular,
+        offer: pr.offer && packs > 0,
+        offerTitle: pr.offerTitle,
+        cost: packs * pr.price,
+        uses,
+        useRefs: refs,
+        note: ing.note,
+        elsewhere: !!pr.elsewhere,
+      };
+    };
+    const have = Math.max(0, pantry[id] || 0);
+    // Zwei Einkäufe nur für Frisches, das (auch) ab Donnerstag gebraucht wird
+    const split = twice && ing.shelf <= FRESH_SHELF && e.g2 > 0;
+    const rows = [];
+    if (split) {
+      const g1 = e.g - e.g2;
+      const refs2 = [...e.useIds2].map(([rid, name]) => ({ id: rid, name }));
+      const refs1 = [...e.useIds1].map(([rid, name]) => ({ id: rid, name }));
+      const r1 = row(g1, have, 1, refs1);
+      const left1 = Math.max(0, have + r1.packs * ing.pack - g1);
+      if (g1 > 0 && r1.packs > 0) rows.push(r1);
+      rows.push(row(e.g2, left1, 2, refs2));
+    } else rows.push(row(e.g, have, 1, useRefs));
+    const bought = rows.reduce((a, r) => a + r.packs * ing.pack, 0);
+    const left = Math.max(0, have + bought - e.g);
     if (left >= 1) leftovers[id] = Math.round(left);
     if (left > 0 && ing.shelf <= 10) wasteEuro += (left / ing.pack) * pr.price;
-    else if (left > 0) stockEuro += (Math.min(left, packs * ing.pack) / ing.pack) * pr.price;
-    total += cost;
-    items.push({
-      id,
-      name: ing.name,
-      cat: ing.cat,
-      store: pr.store,
-      need: Math.round(e.g),
-      have: Math.round(Math.min(have, e.g)),
-      packs,
-      pack: ing.pack,
-      packLabel: ing.packLabel || `${ing.pack} g`,
-      piece: ing.piece,
-      pieceName: ing.pieceName,
-      price: pr.price,
-      regular: pr.regular,
-      offer: pr.offer && packs > 0,
-      offerTitle: pr.offerTitle,
-      cost,
-      leftover: Math.round(left),
-      uses,
-      useRefs,
-      note: ing.note,
-      elsewhere: !!pr.elsewhere,
-    });
+    else if (left > 0) stockEuro += (Math.min(left, bought) / ing.pack) * pr.price;
+    for (const r of rows) {
+      total += r.cost;
+      r.leftover = r === rows[rows.length - 1] ? Math.round(left) : 0;
+      items.push(r);
+    }
   }
 
   // Vorrat, der diese Woche nicht gebraucht wird, bleibt erhalten
@@ -93,7 +123,7 @@ export function buildShopping({ plan, idx, pantry = {}, priceOf, recipesById }) 
     if (!need.has(id) && g > 0 && idx.get(id) && !idx.get(id).staple) leftovers[id] = Math.round(g);
   }
 
-  items.sort((a, b) => a.name.localeCompare(b.name, 'de'));
+  items.sort((a, b) => a.trip - b.trip || a.name.localeCompare(b.name, 'de'));
   return { items, staples, total, leftovers, wasteEuro, stockEuro, effective: total - stockEuro };
 }
 

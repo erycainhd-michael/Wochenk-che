@@ -956,3 +956,29 @@ body { min-height: calc(100vh + 1px); min-height: calc(100lvh + 1px); }
 .key-row { display: flex; align-items: center; gap: 8px; margin-top: 6px; }
 .key-ok { flex: 1; font-weight: 600; color: var(--accent); }
 .key-ok small { font-weight: 400; color: var(--muted); }
+
+/* Rezeptliste: Filter einklappbar */
+.filter-bar { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; }
+.filter-toggle { font-weight: 600; }
+.filter-n { display: inline-block; min-width: 1.4em; padding: 0 6px; border-radius: 999px; background: var(--accent); color: var(--accent-text); font-size: 0.8rem; text-align: center; }
+.filters .chips.cats { margin-top: 8px; }
+/* „Schon gekocht“ im Rezept */
+.cooked-line { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin: 10px 0 4px; flex-wrap: wrap; }
+.cooked-line .btn.on { background: var(--accent); color: var(--accent-text); }
+/* Kochmodus: Zutaten des Schritts */
+.cook-ings { margin: 12px 0 0; }
+.cook-ings ul { list-style: none; margin: 6px 0 0; padding: 0; }
+.cook-ings li { display: flex; justify-content: space-between; gap: 12px; padding: 7px 0; border-bottom: 1px solid var(--line, rgba(127,127,127,.2)); font-size: 1.05rem; }
+.cook-ings li b { white-space: nowrap; }
+.cook-ings-now { background: var(--accent-soft); border-radius: 14px; padding: 10px 14px; margin-bottom: 8px; }
+.cook-ings-now > span { font-size: 0.85rem; color: var(--muted); }
+.cook-ings-all { padding: 0 4px; }
+/* Einstellungen: Quellen */
+.src-list { list-style: none; margin: 8px 0 0; padding: 0; }
+.src-list li { padding: 9px 0; border-bottom: 1px solid var(--line); display: flex; flex-direction: column; gap: 2px; }
+.src-list li:last-child { border-bottom: 0; }
+.src-list a { font-weight: 600; color: var(--accent); text-decoration: none; }
+.src-list span { font-size: 0.85rem; color: var(--muted); }
+.trip-head { margin: 22px 4px 6px; display: flex; justify-content: space-between; align-items: baseline; }
+.trip-sub { margin: -2px 4px 8px; }
+.twice-row { align-items: flex-start; gap: 10px; margin-top: 10px; }

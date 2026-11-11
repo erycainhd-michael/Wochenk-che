@@ -17,6 +17,7 @@ import { NAV_ICONS } from './navicons.js';
 import { autoSnapshot, getSnapshot, listSnapshots } from './backup.js';
 import { haptic, hapticBurst } from './haptics.js';
 import { stepTools } from './tools.js';
+import { recipeMatches, stepTerms } from './steps.js';
 import { lookupBarcode, searchProducts, scanBarcode } from './foodlookup.js';
 
 const S = {
@@ -32,6 +33,8 @@ const S = {
   checks: store.get('checks', {}),
   feedback: store.get('feedback', []),
   manualOffers: store.get('manualOffers', []),
+  // Selbst gekochte Gerichte – nur auf diesem Gerät: [{ id, at: 'JJJJ-MM-TT' }]
+  cooked: store.get('cooked', []),
   // Eigene Rezept-Kategorien (z. B. „Familienrezepte“): Namen + Zuordnung Rezept-ID → Kategorien
   cats: store.get('recipeCats', { names: ['Familienrezepte'], map: {} }),
   // Eigene Zutaten aus dem Rezept-Editor (mit Nährwerten pro 100 g)
@@ -794,24 +797,67 @@ const H2 = (icon, text) => `<h2 class="ih"><span class="hi">${icon}</span>${text
 function greeting() {
   const b = berlinNow();
   const h = b.hour;
+  const wd = b.weekday;
   const n = (S.settings.name || '').trim();
   const nm = n ? ', ' + e(n) : '';
   const plan = displayedPlan();
-  const today = plan?.weekStart === currentWeek() ? plan.structure?.sport?.[b.weekday] : null;
+  const isCurrent = plan?.weekStart === currentWeek();
+  const sport = isCurrent ? plan.structure?.sport?.[wd] : null;
+  // Was gibt es heute bzw. morgen? (Kurzname, damit der Spruch kurz bleibt)
+  const dish = (day, slot) => {
+    const d = isCurrent && plan.days.find((x) => x.day === day && !x.away);
+    const m = d?.meals.find((x) => x.slot === slot && x.kind === 'recipe');
+    return m && recipe(m.recipeId) ? e(shortName(recipe(m.recipeId))) : '';
+  };
+  const breakfast = dish(wd, 'fruehstueck');
+  const lunch = dish(wd, 'mittag');
+  const dinner = dish(wd, 'abend');
+  const eatOut = isCurrent && plan.days.find((x) => x.day === wd)?.meals.some((m) => m.slot === 'abend' && m.kind === 'eatout');
+  const tomorrow = wd < 6 ? dish(wd + 1, 'abend') : '';
+  const weekend = wd >= 5;
   let pool;
-  if (today?.length) pool = [`Stark trainiert heute${nm} 💪`, `Sport erledigt${nm} – jetzt gut essen 🍽️`];
-  else if (h < 5) pool = [`Noch wach${nm}? 🌙`, `Gute Nacht${nm} 🌙`];
+  if (h < 5) pool = [`Noch wach${nm}? 🌙`, `Späte Stunde${nm} – gute Nacht bald 🌙`, `Die Küche schläft schon${nm} 😴`];
+  else if (h < 8)
+    pool = [
+      `Früh auf den Beinen${nm} 🌅`,
+      `Guten Morgen${nm} ☕`,
+      ...(breakfast ? [`Zum Frühstück: ${breakfast} 🥣`] : []),
+      ...(wd === 0 ? [`Neue Woche, neuer Plan${nm} 🌱`] : []),
+    ];
   else if (h < 11)
-    pool =
-      b.weekday === 0
-        ? [`Neue Woche, neuer Plan${nm} 🌱`, `Guten Start in die Woche${nm} ☀️`]
-        : [`Guten Morgen${nm} 👋`, `Moin${nm}! Das Frühstück wartet 🥣`, `Guten Start in den Tag${nm} ☀️`];
-  else if (h < 14) pool = [`Mahlzeit${nm}! 🥗`, `Hallo${nm} – Zeit für eine Pause 🌿`];
-  else if (h < 17) pool = [`Schönen Nachmittag${nm} ☕`, `Hallo${nm} 👋`];
-  else if (b.weekday === 4) pool = [`Wochenende in Sicht${nm} 🎉`, `Guten Abend${nm} 👋`];
-  else if (b.weekday >= 5) pool = [`Schönes Wochenende${nm} ☀️`, `Entspannten Abend${nm} 🌙`];
-  else pool = [`Guten Abend${nm} 👋`, `Feierabend${nm}! Was kochen wir? 🍳`, `Schönen Abend${nm} 🌙`];
-  const seed = Number(b.iso.replace(/-/g, '')) + Math.floor(h / 6);
+    pool = [
+      `Guten Morgen${nm} 👋`,
+      ...(weekend ? [`Entspannten ${wd === 5 ? 'Samstag' : 'Sonntag'}${nm} ☀️`, `Zeit für ein langes Frühstück${nm} 🥐`] : [`Guten Start in den Tag${nm} ☀️`]),
+      ...(breakfast ? [`Heute früh: ${breakfast} 🥣`] : []),
+      ...(wd === 0 ? [`Neue Woche, neuer Plan${nm} 🌱`] : []),
+    ];
+  else if (h < 14)
+    pool = [`Mahlzeit${nm}! 🥗`, `Zeit für eine Pause${nm} 🌿`, ...(lunch ? [`Mittags gibt's ${lunch} 🍱`] : [])];
+  else if (h < 17)
+    pool = [
+      `Schönen Nachmittag${nm} ☕`,
+      ...(weekend ? [`Zeit für Kaffee & Kuchen${nm} 🍰`] : [`Durchhalten${nm}, gleich ist Feierabend 💪`]),
+      ...(dinner ? [`Heute Abend: ${dinner} 🍽️`] : []),
+    ];
+  else if (h < 20)
+    pool = eatOut
+      ? [`Heute wird auswärts gegessen${nm} 🍴`, `Guten Appetit beim Essen gehen${nm} 🍴`]
+      : [
+          `Guten Abend${nm} 👋`,
+          ...(dinner ? [`Heute Abend gibt's ${dinner} 🍳`, `Ab in die Küche${nm}: ${dinner} 👨‍🍳`] : [`Feierabend${nm}! 🌙`]),
+          ...(wd === 4 ? [`Wochenende in Sicht${nm} 🎉`] : []),
+        ];
+  else if (h < 22)
+    pool = [
+      `Schönen Abend noch${nm} 🌙`,
+      `Füße hoch${nm} – die Küche hat Feierabend 🛋️`,
+      ...(tomorrow ? [`Morgen Abend gibt's ${tomorrow} 😋`] : []),
+      ...(wd === 6 ? [`Morgen kommt der neue Wochenplan${nm} 📅`] : []),
+    ];
+  else pool = [`Gute Nacht${nm} 🌙`, `Schlaf gut${nm} 😴`, ...(tomorrow ? [`Morgen gibt's ${tomorrow} – gute Nacht 🌙`] : [])];
+  if (sport?.length && h >= 11 && h < 22) pool.push(`Stark trainiert heute${nm} 💪`, `Sport erledigt${nm} – jetzt gut essen 🍽️`);
+  // pro Stunde ein anderer Spruch, innerhalb der Stunde stabil
+  const seed = Number(b.iso.replace(/-/g, '')) + h;
   return pool[seed % pool.length];
 }
 
@@ -940,21 +986,13 @@ function viewWeek() {
     ${daysHtml(plan, firstDay, todayIdx)}`;
 }
 
-/** Wird an diesem Tag gekocht? (Frühstück, Snacks, Reste vom Vortag und Auswärtsessen zählen nicht) */
-const cooksOn = (d) => !d.away && d.meals.some((m) => m.kind === 'recipe' && !m.leftover && m.slot !== 'fruehstueck' && m.slot !== 'snack');
 
-/** Tage ohne Kochen sind eingeklappt und über einen Knopf einblendbar (heute bleibt immer sichtbar) */
+/** Alle Tage der Woche – auch ohne Kochen (Frühstück gibt es trotzdem). Nur Abwesenheit und ein späterer Wochenstart blenden Tage aus. */
 function daysHtml(plan, firstDay, todayIdx) {
-  const quiet = plan.days.filter((d) => !cooksOn(d) && d.day !== todayIdx);
-  const show = S.ui.showQuiet || !quiet.length;
-  const cards = plan.days
-    .filter((d) => show || !quiet.includes(d))
+  return plan.days
+    .filter((d) => !d.away)
     .map((d) => dayCard(plan, d, S.ui.openDays[d.day] ?? d.day === Math.max(firstDay, todayIdx), d.day === todayIdx))
     .join('');
-  const btn = quiet.length
-    ? `<button class="hidden-days" data-action="toggle-quiet">${show ? '▾ Tage ohne Kochen ausblenden' : `▸ <b>${quiet.length} ${quiet.length === 1 ? 'Tag' : 'Tage'} ohne Kochen</b> einblenden (${quiet.map((d) => d.short).join(', ')})`}</button>`
-    : '';
-  return btn + cards;
 }
 
 /** „Woche später starten“: Plan ab einem gewählten Tag neu erstellen (z. B. nach dem Urlaub) */
@@ -980,7 +1018,7 @@ const slotLabel = (m) => (isCake(m) ? 'Kaffee & Kuchen' : m.slot === 'snack' ? '
 
 function mealRow(plan, m) {
   if (m.kind === 'eatout') {
-    return `<li class="meal eatout"><span class="mi">${ICON.eatout}</span><div class="mt"><div class="ml">${SLOT_LABEL[m.slot]} · auswärts</div>
+    return `<li class="meal eatout"><div class="mt"><div class="ml">${SLOT_LABEL[m.slot]} · auswärts</div>
       <div class="mn">Auswärtsessen</div><div class="mm">≈ ${num(m.macros.kcal)} kcal · ≈ ${g_(m.macros.p)} Protein</div></div></li>`;
   }
   const r = recipe(m.recipeId);
@@ -992,10 +1030,9 @@ function mealRow(plan, m) {
   if (peopleOf(m) > 1) badges.push(`<span class="badge">für ${peopleOf(m)} Personen</span>`);
   if (r.source === 'ki' || isFresh(r)) badges.push('<span class="badge new">neu</span>');
   for (const a of m.addons || []) badges.push(`<span class="badge">+ ${e(recipe(a)?.name || a)}</span>`);
-  const isSnack = m.slot === 'snack';
   return `<li class="meal ${themeCls(r)}" data-key="${m.key}">
     <a class="mt" href="#/mahlzeit/${m.key}">
-      <div class="ml">${isCake(m) ? '☕' : ICON[isSnack ? 'snack' : m.slot]} ${slotLabel(m)} · ${r.time} Min.</div>
+      <div class="ml">${slotLabel(m)} · ${r.time} Min.</div>
       <div class="mn">${e(r.name)}</div>
       <div class="mm">${num(m.macros.kcal)} kcal · ${g_(m.macros.p)} Protein</div>
       ${badges.length ? `<div class="badges">${badges.join('')}</div>` : ''}
@@ -1233,6 +1270,15 @@ const catsOf = (id) => {
 };
 const saveCats = () => store.set('recipeCats', S.cats);
 const isFav = (id) => catsOf(id).includes('Favoriten');
+/** Verlauf „Schon gekocht“ (nur dieses Gerät) */
+const cookedOf = (id) => S.cooked.filter((c) => c.id === id);
+const lastCooked = (id) => cookedOf(id).reduce((a, c) => (c.at > a ? c.at : a), '');
+function markCooked(id) {
+  const today = berlinNow().iso;
+  // am selben Tag nur einmal zählen
+  if (!S.cooked.some((c) => c.id === id && c.at === today)) S.cooked.push({ id, at: today });
+  store.set('cooked', S.cooked);
+}
 /** Stern-Knopf und Kategorie-Chip „Favoriten“ im Rezept auf denselben Stand bringen */
 function syncFav(id) {
   const on = isFav(id);
@@ -1270,12 +1316,18 @@ function viewRecipes() {
   });
   const all = S.recipes.filter((r) => r.type !== 'addon');
   // skip = Gruppe, die für die Zählung ausgelassen wird (zeigt, wie viele Rezepte ein Chip ergeben würde)
+  const cookedOnly = !!S.ui.rCooked;
   const match = (r, skip = null, time = tf) =>
-    (skip === 'time' || time === 'all' || timeClass(r) === time) && groups.every((_, i) => i === skip || !sel[i] || catsOf(r.id).includes(sel[i]));
-  const list = searchRecipes(all.filter((r) => match(r)));
+    (skip === 'cooked' || !cookedOnly || cookedOf(r.id).length) &&
+    (skip === 'time' || time === 'all' || timeClass(r) === time) &&
+    groups.every((_, i) => i === skip || !sel[i] || catsOf(r.id).includes(sel[i]));
+  let list = searchRecipes(all.filter((r) => match(r)));
+  // „Schon gekocht“: zuletzt Gekochtes zuerst
+  if (cookedOnly && !(S.ui.rQuery || '').trim()) list = [...list].sort((a, b) => lastCooked(b.id).localeCompare(lastCooked(a.id)));
   // Darstellung: Liste (ohne Bild) oder Raster (zwei quadratische Bilder nebeneinander, darunter der Kurzname wie im Einkauf)
   const grid = store.get('recipeView', 'list') === 'grid';
-  const any = tf !== 'all' || Object.keys(sel).length;
+  const nActive = (tf !== 'all' ? 1 : 0) + Object.keys(sel).length + (cookedOnly ? 1 : 0);
+  const any = nActive > 0;
   const hints = { kurz: 'bis 15 Min.', mittel: '15–30 Min.', aufwendig: 'über 30 Min. oder aufwendig' };
   const sep = '<span class="chip-sep" aria-hidden="true"></span>';
   const timeChips = TIME_FILTERS.filter(([v]) => v !== 'all')
@@ -1291,14 +1343,29 @@ function viewRecipes() {
   const groupChips = groups
     .map((g, i) => (i > 0 && g.length ? sep + chipsOf(g, i) : ''))
     .join('');
+  const cookedChip = `<button class="chip ${cookedOnly ? 'on' : ''}" data-action="rfilter-cooked">✓ Schon gekocht <small>${all.filter((r) => match(r, 'cooked') && cookedOf(r.id).length).length}</small></button>`;
+  // Filter sind normalerweise eingeklappt; gewählte Filter stehen dann klein unter der Suche
+  const open = !!S.ui.rFiltersOpen;
+  const activeChips = [
+    cookedOnly ? cookedChip : '',
+    tf !== 'all' ? `<button class="chip on" data-action="rfilter-time" data-val="${tf}">${TIME_FILTERS.find(([v]) => v === tf)[1]}</button>` : '',
+    ...Object.entries(sel).map(([i, n]) => `<button class="chip on" data-action="rfilter-cat" data-group="${i}" data-val="${e(n)}">${n === 'Favoriten' ? '⭐ ' : ''}${e(n)}</button>`),
+  ].join('');
   return `<header class="top col"><h1><span class="h-count">${list.length}</span> ${list.length === 1 ? 'Rezept' : 'Rezepte'}</h1></header>
     <section class="card accent filters">
       <label class="rsearch"><span aria-hidden="true">🔍</span><input type="search" data-rsearch placeholder="Suchen: Gericht, Zutat, Küche …" value="${e(S.ui.rQuery || '')}" autocomplete="off" enterkeyhint="search"></label>
-      <div class="chips cats">
-        <button class="chip ${!any ? 'on' : ''}" data-action="rfilter-all">Alle <small>${all.length}</small></button>${chipsOf(groups[0], 0)}
+      <div class="filter-bar"><button class="link filter-toggle" data-action="rfilters-toggle">${open ? '▾' : '▸'} Filter${nActive ? ` <b class="filter-n">${nActive}</b>` : ''}</button>${any ? `<button class="link" data-action="rfilter-all">Zurücksetzen</button>` : ''}</div>
+      ${
+        open
+          ? `<div class="chips cats">
+        <button class="chip ${!any ? 'on' : ''}" data-action="rfilter-all">Alle <small>${all.length}</small></button>${chipsOf(groups[0], 0)}${cookedChip}
         ${sep}${timeChips}${groupChips}
       </div>
-      ${tf !== 'all' ? `<p class="hint">${TIME_FILTERS.find(([v]) => v === tf)[1]}: ${hints[tf]}</p>` : ''}
+      ${tf !== 'all' ? `<p class="hint">${TIME_FILTERS.find(([v]) => v === tf)[1]}: ${hints[tf]}</p>` : ''}`
+          : any
+            ? `<div class="chips cats">${activeChips}</div>`
+            : ''
+      }
     </section>
     <section class="card new-recipe">${H2('✏️', 'Neues Rezept')}
       <div class="add-row"><input placeholder="z. B. Pilzrisotto" data-new-title="main" value="${e(S.ui.newTitle.main || '')}"><button class="btn pill" data-action="new-recipe" data-type="main">Erstellen</button></div>
@@ -1345,12 +1412,13 @@ function recipeListHtml(list, grid, fbw = recipeWeights(S.feedback)) {
               .join('')}</ul>`
           : `<ul class="list">${list
         .map((r) => {
-          const w = fbw[r.id]?.weight;
-          const tag = r.source === 'ki' ? ' · ✨ KI' : isFresh(r) ? ' · ✨ neu' : r.source === 'eigen' ? ' · eigenes' : '';
+          const tag = r.source === 'ki' ? ' · KI' : isFresh(r) ? ' · neu' : r.source === 'eigen' ? ' · eigenes' : '';
+          const nCooked = cookedOf(r.id).length;
+          const cookedTxt = nCooked ? ` · ✓ ${nCooked}× gekocht, zuletzt ${formatDate(lastCooked(r.id))}` : '';
           const m = macrosOf(r.ingredients.filter((l) => !l.opt || S.settings[l.opt]));
           const tags = catsOf(r.id).filter((c) => !/Abwasch/.test(c));
-          return `<li class="${themeCls(r)}"><a href="#/rezept/${r.id}"><span class="rl-n">${isFancy(r) ? '✨ ' : ''}${e(r.name)}${w > 1.15 ? ' 👍' : w < 0.85 ? ' 👎' : ''}</span>
-            <span class="rmeta">${r.time} Min. · ${dishesText(r.dishes)} · <b>${num(m.kcal)} kcal</b> · ${g_(m.c)} Kohlenhydrate · ${g_(m.p)} Protein · ${g_(m.f)} Fett${r.season ? ' · saisonal' : ''}${tag}</span>
+          return `<li class="${themeCls(r)}"><a href="#/rezept/${r.id}"><span class="rl-n">${e(r.name)}</span>
+            <span class="rmeta">${r.time} Min. · ${dishesText(r.dishes)} · <b>${num(m.kcal)} kcal</b> · ${g_(m.c)} Kohlenhydrate · ${g_(m.p)} Protein · ${g_(m.f)} Fett${r.season ? ' · saisonal' : ''}${tag}${cookedTxt}</span>
             ${tags.length ? `<span class="rcats">${tags.map((c) => `<i>${e(c)}</i>`).join('')}</span>` : ''}</a></li>`;
         })
         .join('')}</ul>`;
@@ -1582,6 +1650,15 @@ function viewRecipeBase(id) {
   return recipeHtml(r, items, per, `Basisrezept · ${n === 1 ? '1 Portion' : n + ' Portionen'}`, back, '', 'r:' + id, true, n);
 }
 
+/** „Schon 3× gekocht · zuletzt am …“ und Knopf zum Abhaken (Verlauf bleibt auf diesem Gerät) */
+function cookedLine(r) {
+  if (!recipe(r.id)) return '';
+  const n = cookedOf(r.id).length;
+  const today = S.cooked.some((c) => c.id === r.id && c.at === berlinNow().iso);
+  return `<div class="cooked-line"><span class="sub">${n ? `✓ ${n}× gekocht · zuletzt am ${formatDate(lastCooked(r.id), { day: 'numeric', month: 'long' })}` : 'Noch nicht gekocht'}</span>
+    <button class="btn small pill ${today ? 'on' : ''}" data-action="mark-cooked" data-id="${e(r.id)}">${today ? '✓ Heute gekocht' : 'Heute gekocht'}</button></div>`;
+}
+
 function recipeHtml(r, items, macros, subtitle, back, info, cookKey, withServings, cur = 1, perPerson = 1) {
   const cookHref = `#/kochen/${encodeURIComponent(cookKey)}`;
   // Läuft der Kochmodus schon, gibt es oben nur „Weiter kochen“
@@ -1598,7 +1675,7 @@ function recipeHtml(r, items, macros, subtitle, back, info, cookKey, withServing
   const steps = r.steps
     .map(
       (s, n) =>
-        `<li>${tools[n]?.length ? `<div class="step-tools">${tools[n].map((t) => `<span class="tool">${e(t)}</span>`).join('')}</div>` : ''}<p>${stepHtml(s.t, items, r)}</p>${s.timer ? `<button class="btn small pill timer-btn" data-action="timer" data-sec="${s.timer}" data-label="${e(s.label || 'Schritt ' + (n + 1))}" data-ctx="${e(r.name)}">⏱️ ${e(s.label || '')} ${fmtTime(s.timer)}</button>` : ''}</li>`
+        `<li>${tools[n]?.length ? `<div class="step-tools">${tools[n].map((t) => `<span class="tool">${e(t)}</span>`).join('')}</div>` : ''}<p>${stepHtml(r, n, items)}</p>${s.timer ? `<button class="btn small pill timer-btn" data-action="timer" data-sec="${s.timer}" data-label="${e(s.label || 'Schritt ' + (n + 1))}" data-ctx="${e(r.name)}">⏱️ ${e(s.label || '')} ${fmtTime(s.timer)}</button>` : ''}</li>`
     )
     .join('');
   const allTools = tools.flat();
@@ -1636,6 +1713,7 @@ function recipeHtml(r, items, macros, subtitle, back, info, cookKey, withServing
       <div class="card-head"><div class="sub">${e(subtitle)}</div><a class="btn small pill" href="#/bearbeiten/${r.id}">✏️ Ändern</a></div>
       <h1 class="rtitle">${e(r.name)}</h1>
       <div class="chips"><span class="chip on">⏱️ ${r.time} Min.</span><span class="chip">🧽 ${dishesText(allTools.length || r.dishes)}</span><span class="chip">${isFancy(r) ? `✨ ${fancyLabel(r)}` : ['', 'einfach', 'normal', 'aufwendig'][r.effort]}</span>${r.protein ? `<span class="chip">${e(r.protein)}</span>` : ''}</div>
+      ${cookedLine(r)}
       <div class="mtiles">
         <div class="mt-k"><b>${num(macros.kcal)}</b><span>kcal</span></div>
         <div><b>${g_(macros.c)}</b><span>Kohlenhydrate</span></div>
@@ -1657,13 +1735,30 @@ function recipeHtml(r, items, macros, subtitle, back, info, cookKey, withServing
     </section>`;
 }
 
+/** Kochmodus: Zutaten dieses Schritts mit Mengen, darunter aufklappbar alle Zutaten (passend zur gewählten Portionenzahl) */
+function cookIngs(r, n, items) {
+  const amount = (it) => kitchenText(it.id, it.g, it.note || noteOf(r, it.id));
+  const row = (it) => `<li><span>${e(ing(it.id)?.name || it.id)}${it.note ? ` <small class="muted">${e(it.note)}</small>` : ''}</span><b>${e(amount(it))}</b></li>`;
+  // „Alles in ein Schraubglas geben“, „Alle Zutaten verkneten“: dann gehört die ganze Liste zum Schritt
+  const all = /\balle(s| zutaten)\b/i.test(r.steps[n].t) && !/\balles (zusammen )?servieren/i.test(r.steps[n].t);
+  const idxs = all ? items.map((_, i) => i) : [...new Set((stepHits(r, items)[n] || []).map((h) => h.idx))];
+  const now = idxs.map((i) => items[i]).filter((it) => it.id !== 'gewuerze');
+  const open = !!S.ui.cookAllIngs;
+  return `<div class="cook-ings">
+    ${now.length ? `<div class="cook-ings-now"><span>Für diesen Schritt</span><ul>${now.map(row).join('')}</ul></div>` : ''}
+    <button class="link" data-action="cook-all-ings">${open ? '▾' : '▸'} Alle Zutaten (${items.length})</button>
+    ${open ? `<ul class="cook-ings-all">${items.map(row).join('')}</ul>` : ''}
+  </div>`;
+}
+
 function viewCooking(key) {
   let r;
   let items;
   let backHref = '#/woche';
   if (key.startsWith('r:')) {
     r = recipe(key.slice(2));
-    items = r?.ingredients.map((l) => ({ id: l.id, g: l.g * (S.ui.servings || startServings(r.id)) }));
+    const sv = S.ui.servings || startServings(r?.id);
+    items = r?.ingredients.filter((l) => !l.opt || S.settings[l.opt]).map((l) => ({ id: l.id, g: l.g * sv, note: l.note }));
     backHref = `#/rezept/${key.slice(2)}`;
   } else {
     const plan = displayedPlan();
@@ -1686,7 +1781,8 @@ function viewCooking(key) {
     <div class="cook-progress" aria-hidden="true">${r.steps.map((_, i) => `<i class="${i <= n ? 'on' : ''}"></i>`).join('')}</div>
     <div class="step-count">Schritt ${n + 1} von ${r.steps.length}</div>
     ${tools.length ? `<div class="cook-tools"><span>Du brauchst jetzt</span>${tools.map((t) => `<b class="tool">${e(t)}</b>`).join('')}</div>` : ''}
-    <p class="step-text" data-step="${n}">${stepHtml(s.t, items, r)}</p>
+    ${cookIngs(r, n, items)}
+    <p class="step-text" data-step="${n}">${stepHtml(r, n, items)}</p>
     <div class="cook-actions">
       ${s.timer ? `<button class="btn primary block big" data-action="timer" data-sec="${s.timer}" data-label="${e(s.label || 'Schritt ' + (n + 1))}" data-ctx="${e(r.name)}">⏱️ Timer ${fmtTime(s.timer)} starten</button>` : ''}
     <div class="cook-nav">
@@ -1708,32 +1804,31 @@ function viewCooking(key) {
 /** Hinweis zur Zutat aus dem Rezept (z. B. „nur das Eigelb“) */
 const noteOf = (r, id) => r?.ingredients?.find((l) => l.id === id)?.note || '';
 
-function stepHtml(text, items = [], r = null) {
-  const norm = (w) => w.toLowerCase().replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue').replace(/ß/g, 'ss');
-  const terms = items.map((it) => {
-    const i = ing(it.id);
-    const raw = [i?.name || '', ...(i?.kw || [])].join(' ').replace(/\(.*?\)/g, ' ');
-    const toks = raw.split(/[^A-Za-zÄÖÜäöüß]+/).filter((t) => t.length >= 4).map(norm);
-    // Küchenmengen: „2×“ Ei, „3 Zehen“ Knoblauch, „1 EL“ Öl, „160 ml“ Milch – Gewürze ohne Menge
-    let amount = i ? kitchenText(it.id, it.g, it.note || noteOf(r, it.id)) : '';
-    if (amount === 'etwas') amount = '';
-    return { toks, amount, done: false };
-  });
-  // Wörter durchgehen und Mengen vor dem ersten Treffer je Zutat einsetzen (Platzhalter, damit sie nicht doppelt gefärbt werden)
+function stepHtml(r, n, items = []) {
+  const text = r.steps[n].t;
+  // Küchenmengen: „2×“ Ei, „3 Zehen“ Knoblauch, „1 EL“ Öl, „160 ml“ Milch – Gewürze ohne Menge.
+  // Die Gesamtmenge steht nur bei der ersten Erwähnung im Rezept und nicht bei „die Hälfte des …“ oder wenn schon eine Zahl davorsteht.
   const slots = [];
-  let out = text.replace(/[A-Za-zÄÖÜäöüß][A-Za-zÄÖÜäöüß-]*/g, (word) => {
-    const w = norm(word);
-    if (w.length < 3) return word;
-    const t = terms.find((x) => !x.done && x.amount && x.toks.some((tok) => (w.length >= 4 && tok.startsWith(w.slice(0, Math.max(4, w.length - 2)))) || (tok.length >= 4 && w.startsWith(tok))));
-    if (!t) return word;
-    t.done = true;
-    slots.push(t.amount);
-    return `\u0001${String.fromCharCode(65 + slots.length - 1)}\u0002${word}`;
-  });
+  let out = '';
+  let pos = 0;
+  for (const h of stepHits(r, items)[n] || []) {
+    if (!h.first || h.partial) continue;
+    const it = items[h.idx];
+    const a = kitchenText(it.id, it.g, it.note || noteOf(r, it.id));
+    if (a === 'etwas') continue;
+    slots.push(a);
+    out += text.slice(pos, h.start) + `\u0001${String.fromCharCode(65 + slots.length - 1)}\u0002`;
+    pos = h.start;
+  }
+  out += text.slice(pos);
   // Zahl und Gramm (kg, ml) immer ohne Lücke: „250g“
   out = e(out).replace(/(\d+(?:[.,]\d+)?(?:\s?[–-]\s?\d+(?:[.,]\d+)?)?(?:\s?(?:g|kg|ml|l|EL|TL|Min\.?|Minuten|Std\.?|Stunden|°C|°|cm|Stück|%))?)(?![A-Za-zÄÖÜäöüß])/g, (m) => `<span class="amt">${m.replace(/(\d)\s(g|kg|ml)$/, '$1$2')}</span>`);
   return out.replace(/\u0001([A-Z])\u0002/g, (_, c) => `<span class="amt">${e(slots[c.charCodeAt(0) - 65])}</span> `);
 }
+
+/** Erwähnte Zutaten je Schritt (siehe steps.js) */
+const stepHits = (r, items) => recipeMatches(r.steps.map((s) => s.t), stepTerms(items, ing));
+
 
 // --- Einkaufsliste -----------------------------------------------------------
 
@@ -1747,7 +1842,8 @@ function viewShopping() {
   const checks = (S.checks[ws] ||= {});
   const sh = plan.shopping;
   const toBuy = sh.items.filter((i) => i.packs > 0);
-  const openCost = toBuy.filter((i) => !checks[i.id]).reduce((a, i) => a + i.cost, 0);
+  const keyOf = (i) => i.key || i.id;
+  const openCost = toBuy.filter((i) => !checks[keyOf(i)]).reduce((a, i) => a + i.cost, 0);
   const cats = S.ingData.categories;
   const stores = [...new Set(toBuy.map((i) => i.store))].sort((a, b) => (a === S.settings.mainStore ? -1 : b === S.settings.mainStore ? 1 : 0));
   const offerInfo = S.offers?.updated ? `Angebote: Stand ${new Date(S.offers.updated).toLocaleDateString('de-DE')}` : 'Keine aktuellen Angebote – Richtpreise';
@@ -1764,24 +1860,39 @@ function viewShopping() {
   };
   const itemRow = (it) =>
     row(
-      it.id,
+      keyOf(it),
       it.name,
       euro(it.cost),
       `${packText(it).replace(/(\d) g\b/g, '$1g').replace(/(\d) Liter\b/, '$1L')} · benötigt ${g_(it.need)}${it.have ? ` (davon ${g_(it.have)} Rest)` : ''}${it.offer ? ` · <span class="badge offer">Angebot${it.offerTitle ? ': ' + e(it.offerTitle) : ''}</span>` : ''}${it.note ? ` · ${e(it.note)}` : ''}${it.elsewhere ? ` · nur bei ${e(STORES[it.store]?.short || it.store)} erhältlich` : ''}`,
       it.useRefs || []
     );
   const staples = sh.staples.map((s) => row('staple:' + s.id, s.name, '', g_(s.g), s.useRefs || [])).join('');
-  const storeBlocks = stores
-    .map((st) => {
-      const list = toBuy.filter((i) => i.store === st);
-      const total = list.reduce((a, i) => a + i.cost, 0);
-      return `<section class="card"><h2>${e(STORES[st]?.short || st)} ${euro(total)}</h2>
+  // Bei zwei Einkäufen: erst alles für Montag, dann das Frische für Donnerstag
+  const trips = [...new Set(toBuy.map((i) => i.trip || 1))].sort();
+  const twoTrips = trips.includes(2);
+  const storeBlocks = trips
+    .map((trip) => {
+      const inTrip = toBuy.filter((i) => (i.trip || 1) === trip);
+      const head = twoTrips
+        ? `<h2 class="trip-head">${trip === 1 ? '🛒 Einkauf 1 · Montag' : '🥬 Einkauf 2 · Donnerstag'} <span class="sub">${euro(inTrip.reduce((a, i) => a + i.cost, 0))}</span></h2>${trip === 2 ? '<p class="sub trip-sub">Nur Frisches für Donnerstag bis Sonntag.</p>' : ''}`
+        : '';
+      return (
+        head +
+        stores
+          .map((st) => {
+            const list = inTrip.filter((i) => i.store === st);
+            if (!list.length) return '';
+            const total = list.reduce((a, i) => a + i.cost, 0);
+            return `<section class="card"><h2>${e(STORES[st]?.short || st)} ${euro(total)}</h2>
         ${cats
           .map((c) => {
             const rows = list.filter((i) => i.cat === c).map(itemRow).join('');
             return rows ? `<h3>${e(c)}</h3><ul class="shop">${rows}</ul>` : '';
           })
           .join('')}</section>`;
+          })
+          .join('')
+      );
     })
     .join('');
   return `<header class="top col"><h1>Einkauf</h1><div class="sub">KW ${isoWeek(ws)} · ${e(offerInfo)}</div></header>
@@ -1790,7 +1901,7 @@ function viewShopping() {
       <div class="kpis">
         <div><b>${euro(plan.cost)}</b><span>Gesamt</span></div>
         <div><b data-count="s-open" data-to="${openCost}" data-fmt="euro">${euro(openCost)}</b><span>noch offen</span></div>
-        <div><b><i data-count="s-done" data-to="${toBuy.filter((i) => checks[i.id]).length}" data-fmt="int">${toBuy.filter((i) => checks[i.id]).length}</i>/${toBuy.length}</b><span>erledigt</span></div>
+        <div><b><i data-count="s-done" data-to="${toBuy.filter((i) => checks[keyOf(i)]).length}" data-fmt="int">${toBuy.filter((i) => checks[keyOf(i)]).length}</i>/${toBuy.length}</b><span>erledigt</span></div>
       </div>
     </section>
     ${staples ? `<section class="card"><h2>Vorrat prüfen</h2><ul class="shop">${staples}</ul></section>` : ''}
@@ -2229,6 +2340,29 @@ const DISHES = [
 ];
 const nearest = (opts, v) => opts.reduce((a, b) => (Math.abs(b[1] - v) < Math.abs(a[1] - v) ? b : a))[1];
 
+// Quellen, nach denen Mise rechnet (Einstellungen → „Quellen & Richtlinien“)
+const SOURCES = [
+  ['Mifflin-St Jeor (1990)', 'Grundumsatz aus Geschlecht, Alter, Größe und Gewicht – Basis der Tageskalorien', 'https://pubmed.ncbi.nlm.nih.gov/2305711/'],
+  ['DGE-Referenzwerte', 'Energie, Fett (ca. 30 % der Kalorien), Ballaststoffe (mind. 30 g/Tag)', 'https://www.dge.de/wissenschaft/referenzwerte/'],
+  ['DGE: Gut essen und trinken', 'Gemüse & Obst (mind. 400 g Gemüse, 250 g Obst/Tag), 1–2× Fisch pro Woche, wenig rotes Fleisch', 'https://www.dge.de/gesunde-ernaehrung/gut-essen-und-trinken/dge-empfehlungen/'],
+  ['ISSN Position Stand: Protein & Sport (2017)', 'Protein 1,2–2,0 g pro kg Körpergewicht, je nach Ziel; ≥ 25 g pro Hauptmahlzeit', 'https://jissn.biomedcentral.com/articles/10.1186/s12970-017-0177-8'],
+  ['EFSA: Ernährungs-Referenzwerte', 'Europäische Richtwerte für Energie und Nährstoffe', 'https://www.efsa.europa.eu/de/topics/topic/dietary-reference-values'],
+  ['Compendium of Physical Activities', 'MET-Werte: wie viele Kalorien eine Sportart zusätzlich verbraucht', 'https://pacompendium.com/'],
+  ['WHO: Bewegungsempfehlungen (2020)', 'Sport-Richtwert: 150–300 Min. moderate oder 75–150 Min. intensive Bewegung pro Woche, dazu 2× Krafttraining', 'https://www.who.int/publications/i/item/9789240015128'],
+  ['Bundeslebensmittelschlüssel (BLS)', 'Nährwerte der Zutaten pro 100 g', 'https://www.blsdb.de/'],
+  ['Open Food Facts', 'Nährwerte von Markenprodukten und beim Barcode-Scan', 'https://de.openfoodfacts.org/'],
+];
+const GOAL_HINT = {
+  abnehmen: 'Abnehmen: ca. 450 kcal unter deinem Bedarf und viel Protein (1,5 g/kg), damit die Muskeln bleiben.',
+  halten: 'Halten: so viel Energie, wie du verbrauchst, mit 1,2 g Protein pro kg.',
+  aufbauen: 'Aufbauen: ca. 300 kcal über deinem Bedarf und 1,8 g Protein pro kg für Muskelaufbau.',
+};
+/** Ziel direkt in den Einstellungen wechseln: rechnet die Tagesziele aus deinen Angaben neu */
+function goalSeg() {
+  const cur = S.settings.profile?.goal || 'halten';
+  return `<div class="seg">${GOALS.map(([v, l]) => `<button class="pill ${cur === v ? 'on' : ''}" data-action="set-goal" data-val="${v}">${l}</button>`).join('')}</div>`;
+}
+
 function viewSettings() {
   const st = S.settings;
   const pl = plausibility(st.goals);
@@ -2240,7 +2374,12 @@ function viewSettings() {
   };
   return `<header class="top"><h1>Einstellungen</h1></header>
 
-  <section class="card accent"><h2>Tagesziele</h2>
+  <section class="card accent"><h2>Dein Ziel</h2>
+    ${goalSeg()}
+    <p class="hint">${e(GOAL_HINT[st.profile?.goal || 'halten'])}</p>
+  </section>
+
+  <section class="card"><h2>Tagesziele</h2>
     <a class="btn small pill" href="#/start/1">🧮 Mit Assistent neu berechnen</a>
     <div class="grid2">
       ${field('goals.kcal', 'Kalorien (kcal)', 'step="50"')}
@@ -2272,6 +2411,7 @@ function viewSettings() {
       <label class="field">Wochenbudget<span class="unit-input"><input type="number" inputmode="numeric" step="1" data-set="budget" value="${st.budget}"><i>€</i></span></label>
       <label class="studi-toggle"><input type="checkbox" class="big-check" data-set="studi" ${st.studi ? 'checked' : ''}><span>Studi-Modus</span></label>
     </div>
+    <label class="row twice-row"><input type="checkbox" data-set="shopTwice" ${st.shopTwice ? 'checked' : ''}> <span><b>Zweimal pro Woche einkaufen</b><br><span class="sub">Montag alles, Donnerstag nur Frisches für den Rest der Woche – Salat, Kräuter, Fisch und Fleisch bleiben so frisch.</span></span></label>
     ${S.plans[currentWeek()] && (S.plans[currentWeek()].studi ?? false) !== !!st.studi ? `<button class="btn small pill" data-action="replan-studi">Diese Woche ${st.studi ? 'im Studi-Modus ' : ''}neu planen</button>` : ''}
   </section>
 
@@ -2315,7 +2455,12 @@ function viewSettings() {
     <button class="link danger" data-action="reset-settings">Einstellungen zurücksetzen</button>
     <button class="link danger" data-action="reset-app">App zurücksetzen (alles löschen, neu beginnen)</button>
   </section>
-  <p class="sub center">Mise · Nährwerte aus BLS/Open-Food-Facts-Richtwerten · Preise sind Richtwerte</p>`;
+  <section class="card sources"><h2>Quellen & Richtlinien</h2>
+    <p class="sub">Daran hält sich Mise bei Tageszielen, Wochenplan und Sport. Tippe einen Eintrag an, um die Quelle zu öffnen.</p>
+    <ul class="src-list">${SOURCES.map(([title, what, url]) => `<li><a href="${url}" target="_blank" rel="noopener">${e(title)} ↗</a><span>${e(what)}</span></li>`).join('')}</ul>
+    <p class="hint">Mise ersetzt keine ärztliche oder Ernährungsberatung. Preise und Nährwerte sind Richtwerte.</p>
+  </section>
+  <p class="sub center">Mise</p>`;
 }
 
 // ---------------------------------------------------------------------------
@@ -2445,7 +2590,31 @@ async function onClick(ev) {
     case 'rfilter-all':
       S.ui.rTime = 'all';
       S.ui.rSel = {};
+      S.ui.rCooked = false;
       return render();
+    case 'rfilter-cooked':
+      S.ui.rCooked = !S.ui.rCooked;
+      return render();
+    case 'rfilters-toggle':
+      S.ui.rFiltersOpen = !S.ui.rFiltersOpen;
+      return render();
+    case 'cook-all-ings':
+      S.ui.cookAllIngs = !S.ui.cookAllIngs;
+      return render();
+    case 'mark-cooked': {
+      const id = el.dataset.id;
+      const today = berlinNow().iso;
+      if (S.cooked.some((c) => c.id === id && c.at === today)) {
+        S.cooked = S.cooked.filter((c) => !(c.id === id && c.at === today));
+        store.set('cooked', S.cooked);
+        toast('Heute doch nicht gekocht', { icon: '↩️' });
+      } else {
+        markCooked(id);
+        haptic();
+        toast('Als gekocht gespeichert', { icon: '✓', sub: 'Nur auf diesem Gerät' });
+      }
+      return render();
+    }
     case 'rfilter-time':
       // nochmal antippen hebt den Zeitfilter wieder auf
       S.ui.rTime = S.ui.rTime === el.dataset.val ? 'all' : el.dataset.val;
@@ -2577,6 +2746,25 @@ async function onClick(ev) {
         window.scrollTo(0, 0);
       }
       return;
+    }
+    case 'set-goal': {
+      const goal = el.dataset.val;
+      const p = { ...(S.settings.profile || {}), goal };
+      const complete = p.sex && Number(p.age) && Number(p.height) && Number(p.weight);
+      if (!complete) {
+        // ohne Angaben zu Größe & Gewicht geht's über den Assistenten
+        S.ui.prof = { ...profDraft(), goal };
+        location.hash = '#/start/1';
+        return;
+      }
+      S.settings.profile = p;
+      S.settings.goals = calcGoals(p);
+      S.ui.prof = null;
+      saveSettings();
+      refitCurrent();
+      haptic();
+      toast(`Ziel: ${GOALS.find((g) => g[0] === goal)[1]}`, { icon: '🎯', sub: `${num(S.settings.goals.kcal)} kcal · ${S.settings.goals.protein}g Protein – Wochenplan angepasst` });
+      return render();
     }
     case 'ob-done':
       refitCurrent();
@@ -2811,6 +2999,8 @@ async function onClick(ev) {
       return render();
     case 'cook-done': {
       const fancyDone = document.body.classList.contains('fancy');
+      const doneR = S.ui.cookActive && cookRecipe(S.ui.cookActive);
+      if (doneR) markCooked(doneR.id);
       S.ui.cookActive = null;
       (fancyDone ? sound.magicDone : sound.cookDone)();
       const ov = document.createElement('div');
@@ -2850,7 +3040,7 @@ async function onClick(ev) {
       haptic();
       // Letzter Artikel abgehakt: kleiner Erfolgsmoment
       const items = plan.shopping.items.filter((i) => i.packs > 0);
-      const allDone = on && items.length && items.every((i) => S.checks[ws][i.id]);
+      const allDone = on && items.length && items.every((i) => S.checks[ws][i.key || i.id]);
       if (allDone) {
         sound.allDone();
         hapticBurst(2);
@@ -2966,7 +3156,7 @@ function onChange(ev) {
     if (el.dataset.set === 'mainStore') S.settings.stores[S.settings.mainStore] = true;
     if (!S.settings.stores[S.settings.mainStore]) S.settings.mainStore = STORE_IDS.find((id) => S.settings.stores[id]);
     saveSettings();
-    if (/^(goals\.|stores\.|mainStore$)/.test(el.dataset.set)) refitCurrent();
+    if (/^(goals\.|stores\.|mainStore$|shopTwice$)/.test(el.dataset.set)) refitCurrent();
     if (el.dataset.set === 'theme') applyTheme();
     if (el.dataset.set === 'shareToken') {
       S.settings.shareToken = String(S.settings.shareToken || '').trim();

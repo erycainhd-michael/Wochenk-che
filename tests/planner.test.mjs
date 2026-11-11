@@ -307,3 +307,39 @@ test('Snacks lassen sich tauschen', () => {
   const chosen = swapMeal(p, snack.key, { recipes, idx, settings: settings(), weekStart: '2026-10-05' }, 'snack_apfel_nuesse');
   assert.equal(chosen.days[day.day].meals.find((m) => m.key === snack.key).recipeId, 'snack_apfel_nuesse');
 });
+
+test('Aufwendiges Frühstück (Pfannkuchen, Wraps …) nie unter der Woche, am Wochenende nur ab und zu', async () => {
+  const { isFancyBreakfast } = await import('../js/planner.js');
+  let weekend = 0;
+  let weekendSlots = 0;
+  for (let seed = 1; seed <= 12; seed++) {
+    const p = generatePlan({ recipes, idx, settings: settings(), weekStart: '2026-10-05', seed, candidates: 4 });
+    for (const d of p.days) {
+      const m = d.meals.find((x) => x.slot === 'fruehstueck' && x.kind === 'recipe');
+      if (!m) continue;
+      const fancy = isFancyBreakfast(recipes.find((r) => r.id === m.recipeId));
+      if (d.day < 5) assert.ok(!fancy, `${d.name}: ${m.recipeId}`);
+      else {
+        weekendSlots++;
+        if (fancy) weekend++;
+      }
+    }
+  }
+  assert.ok(weekend < weekendSlots / 2, `${weekend} von ${weekendSlots} Wochenend-Frühstücken aufwendig`);
+});
+
+test('Zwei Einkäufe: Frisches ab Donnerstag kommt auf den zweiten Einkauf, Haltbares nur auf den ersten', () => {
+  const s = { ...settings(), shopTwice: true };
+  const p = generatePlan({ recipes, idx, settings: s, weekStart: '2026-10-05', seed: 7 });
+  const second = p.shopping.items.filter((i) => i.trip === 2);
+  assert.ok(second.length > 0, 'kein zweiter Einkauf');
+  for (const it of second) assert.ok(idx.get(it.id).shelf <= 6, `${it.id} ist haltbar und gehört zum ersten Einkauf`);
+  for (const it of p.shopping.items) assert.equal(it.key, it.trip === 2 ? `${it.id}@2` : it.id);
+  // Gesamtmenge deckt den Bedarf
+  const need = new Map();
+  for (const d of p.days) for (const m of d.meals) for (const it of m.items || []) need.set(it.id, (need.get(it.id) || 0) + it.g * (m.people || 1));
+  for (const id of new Set(second.map((i) => i.id))) {
+    const bought = p.shopping.items.filter((i) => i.id === id).reduce((a, i) => a + i.packs * i.pack, 0);
+    assert.ok(bought >= need.get(id) * 0.9, `${id}: ${bought} g gekauft, ${need.get(id)} g gebraucht`);
+  }
+});

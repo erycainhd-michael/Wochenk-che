@@ -75,7 +75,7 @@ export function prepareContext(input) {
     // Studi-Modus: keine teure Großpackung (z. B. Proteinpulver) für eine Ergänzung anbrechen – nur aus dem Vorrat
     // Kaffee & Kuchen ersetzt eine Mahlzeit: nur Kuchen mit genug Protein, keine Desserts (Tiramisu, Crumble …).
     // Klassiker wie Waffeln oder Tiramisu bleiben in den Rezepten zum Selberwählen.
-    snacks: byType('snack').filter((r) => !isDessert(r) && info.get(r.id).macros.p >= 20),
+    snacks: byType('snack').filter((r) => !isDessert(r) && info.get(r.id).macros.p >= 25),
     addons: byType('addon').filter((r) => !settings.studi || r.ingredients.every((l) => (idx.get(l.id)?.price || 0) < 6 || (input.pantry || {})[l.id] > 0)),
     avgMainCost: avg(mains, (r) => info.get(r.id).cost) || 3,
     fiberTarget: fiberTargetFor(settings),
@@ -105,6 +105,9 @@ const slotKey = (day, slot) => `${day}-${slot}`;
 const CAKE_DAYS = [5, 6];
 /** Kuchen-Mahlzeiten eines Plans (ältere Pläne kannten nur den Sonntag) */
 /** Dessert statt Kuchen: wird nicht automatisch eingeplant */
+/** Aufwendiges Frühstück (Pfannkuchen, Wraps, pochierte Eier, Frittata …): nur am Wochenende */
+export const isFancyBreakfast = (r) =>
+  r.type === 'breakfast' && (r.time >= 15 || r.effort >= 2 || (r.tags || []).some((t) => /pfannkuchen|brunch|gourmet|pfanne/i.test(t)) || /pfannkuchen|wrap|frittata|hash|benedict|pochiert/i.test(r.name));
 export const isDessert = (r) => (r.tags || []).includes('dessert') || /tiramisu|crumble|mousse|pudding|panna cotta|parfait|\beis\b/i.test(r.name);
 export const cakesOf = (structure) => structure.cakes || (structure.sunday ? [structure.sunday] : []);
 
@@ -255,10 +258,13 @@ export function buildStructure(ctx, rng, mode = {}) {
     }
   }
 
-  // Frühstück: 1–3 verschiedene Frühstücke im Wechsel (Vielfalt vs. weniger Packungen)
-  const k = clamp(1 + Math.round(variety * 2), 1, Math.min(3, ctx.breakfasts.length));
+  // Frühstück: 1–3 verschiedene schnelle Frühstücke im Wechsel (Vielfalt vs. weniger Packungen).
+  // Aufwendiges (Pfannkuchen, Wraps, pochierte Eier …) gibt es nie unter der Woche – am Wochenende nur ab und zu.
+  const quick = ctx.breakfasts.filter((r) => !isFancyBreakfast(r));
+  const quickPool = quick.length ? quick : ctx.breakfasts;
+  const k = clamp(1 + Math.round(variety * 2), 1, Math.min(3, quickPool.length));
   const chosen = [];
-  let pool = [...ctx.breakfasts];
+  let pool = [...quickPool];
   for (let i = 0; i < k && pool.length; i++) {
     const weights = pool.map((r) => {
       const inf = info.get(r.id);
@@ -271,6 +277,13 @@ export function buildStructure(ctx, rng, mode = {}) {
     stock.consume(baseItems(r, settings, 7 / k));
   }
   const breakfasts = Array.from({ length: 7 }, (_, d) => (eatOut.has(slotKey(d, 'fruehstueck')) ? null : chosen[d % chosen.length]));
+  const fancyPool = ctx.breakfasts.filter(isFancyBreakfast);
+  const weekendDay = [6, 5].find((d) => breakfasts[d]);
+  if (fancyPool.length && weekendDay !== undefined && rng() < 0.35) {
+    const r = pickWeighted(fancyPool, fancyPool.map((x) => info.get(x.id).weight * macroFit(info.get(x.id).macros, settings.goals)), rng);
+    breakfasts[weekendDay] = r.id;
+    stock.consume(baseItems(r, settings, 1));
+  }
 
   // Samstag und Sonntag: derselbe Kuchen (einmal backen bzw. einkaufen, reicht fürs Wochenende)
   let cakes = [];
@@ -420,7 +433,8 @@ function absorbLeftovers(days, ctx) {
   for (const lo of leftovers) {
     for (const d of days) {
       for (const m of d.meals) {
-        if (lo.left <= 5 || m.kind !== 'recipe') continue;
+        // Mahlzeiten für mehrere Personen bleiben unverändert – deine Portion soll nicht von den Gästen abhängen
+        if (lo.left <= 5 || m.kind !== 'recipe' || (m.people || 1) > 1) continue;
         const it = m.items.find((x) => x.id === lo.ing.id);
         if (!it) continue;
         const room = ((d.goalKcal || settings.goals.kcal) * 1.02 - d.totals.kcal) / (lo.ing.kcal / 100 || 0.01);
@@ -550,7 +564,7 @@ export function finalizePlan(structure, ctx) {
     days,
     cooks,
   };
-  plan.shopping = buildShopping({ plan, idx, pantry: ctx.pantry, priceOf: ctx.priceOf, recipesById: ctx.recipesById });
+  plan.shopping = buildShopping({ plan, idx, pantry: ctx.pantry, priceOf: ctx.priceOf, recipesById: ctx.recipesById, twice: !!settings.shopTwice });
   plan.cost = plan.shopping.total;
   plan.score = scorePlan(plan, ctx);
   return plan;
@@ -762,7 +776,8 @@ export function swapMeal(plan, mealKey, input, chosenId = null) {
     else cake.recipeId = pickWeighted(pool, pool.map((r) => ctx.info.get(r.id).weight), rng).id;
   } else if (slot === 'fruehstueck') {
     const current = structure.breakfasts[d];
-    const pool = ctx.breakfasts.filter((r) => r.id !== current);
+    // Tausch unter der Woche: nur schnelle Frühstücke
+    const pool = ctx.breakfasts.filter((r) => r.id !== current && (d >= 5 || !isFancyBreakfast(r)));
     if (chosenId) structure.breakfasts[d] = chosenId;
     else if (!pool.length) return plan;
     else structure.breakfasts[d] = pickWeighted(pool, pool.map((r) => ctx.info.get(r.id).weight), rng).id;

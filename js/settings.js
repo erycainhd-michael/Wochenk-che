@@ -10,6 +10,8 @@ export const DEFAULT_SETTINGS = {
   stores: { lidl: true, aldi: false, edeka: true, dm: false, rossmann: false },
   mainStore: 'lidl',
   budget: 60,
+  // Zwei Einkäufe pro Woche (Montag + Donnerstag): Frisches für die zweite Wochenhälfte erst donnerstags
+  shopTwice: false,
   // day: 0 = Montag … 6 = Sonntag; slot: fruehstueck | mittag | abend
   eatOut: [],
   eatOutKcal: 1000,

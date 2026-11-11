@@ -570,7 +570,7 @@ Datei: `images/recipes/avocado_vollkorntoast_mit_ruehrei_skyr.webp`
 ## Sauerkrautpasta mit Speck & Zwiebeln
 Datei: `images/recipes/sauerkrautpasta.webp`
 
-> Photorealistic overhead food photo, square-friendly 3:2 landscape (main subject centered so a square center crop works), served on a rich deep-green matte surface (#0e5a34, soft radial light from the upper left, dark vignette at the edges), warm natural studio light, soft shadow to the lower right, vivid fresh colors, glossy appetizing textures, a few scattered fresh herbs and spices as garnish, clean minimal composition, no text, no hands, no logos, high detail, same visual style as a premium iOS app icon of a meal-prep lunchbox. Dish: „Sauerkrautpasta mit Speck & Zwiebeln“ – Sauerkraut (Dose/Beutel), Zwiebeln, Penne / Rigatoni (Röhrennudeln), Schlagsahne 30 %, Speckwürfel / Pancetta, Petersilie, glatt (Bund), on a ceramic plate or in a shallow bowl.
+> Photorealistic overhead food photo, square-friendly 3:2 landscape (main subject centered so a square center crop works), served on a rich deep-green matte surface (#0e5a34, soft radial light from the upper left, dark vignette at the edges), warm natural studio light, soft shadow to the lower right, vivid fresh colors, glossy appetizing textures, a few scattered fresh herbs and spices as garnish, clean minimal composition, no text, no hands, no logos, high detail, same visual style as a premium iOS app icon of a meal-prep lunchbox. Dish: „Sauerkrautpasta mit Speck & Zwiebeln“ – Sauerkraut (Dose/Beutel), Penne / Rigatoni (Röhrennudeln), Zwiebeln, Schlagsahne 30 %, Speckwürfel / Pancetta, Butter, on a ceramic plate or in a shallow bowl.
 
 ## Gyros-Partytopf
 Datei: `images/recipes/gyros_partytopf.webp`
@@ -630,7 +630,7 @@ Datei: `images/recipes/toskanischer_filettopf.webp`
 ## Kalbsleber mit Salbei & Schalottensauce
 Datei: `images/recipes/kalbsleber_salbei.webp`
 
-> Photorealistic overhead food photo, square-friendly 3:2 landscape (main subject centered so a square center crop works), served on a rich deep-green matte surface (#0e5a34, soft radial light from the upper left, dark vignette at the edges), warm natural studio light, soft shadow to the lower right, vivid fresh colors, glossy appetizing textures, a few scattered fresh herbs and spices as garnish, clean minimal composition, no text, no hands, no logos, high detail, same visual style as a premium iOS app icon of a meal-prep lunchbox. Dish: „Kalbsleber mit Salbei & Schalottensauce“ – Kartoffeln, festkochend, Kalbsleber, Rotwein, trocken (zum Kochen), Zwiebeln, Butter, Salbei (frisch), on a ceramic plate or in a shallow bowl.
+> Photorealistic overhead food photo, square-friendly 3:2 landscape (main subject centered so a square center crop works), served on a rich deep-green matte surface (#0e5a34, soft radial light from the upper left, dark vignette at the edges), warm natural studio light, soft shadow to the lower right, vivid fresh colors, glossy appetizing textures, a few scattered fresh herbs and spices as garnish, clean minimal composition, no text, no hands, no logos, high detail, same visual style as a premium iOS app icon of a meal-prep lunchbox. Dish: „Kalbsleber mit Salbei & Schalottensauce“ – Gnocchi (Kühlregal), Kalbsleber, Rotwein, trocken (zum Kochen), Zwiebeln, Butter, Salbei (frisch), on a ceramic plate or in a shallow bowl.
 
 ## Serrano-Schweinemedaillons in Champignonrahm
 Datei: `images/recipes/serrano_schweinemedaillons.webp`
@@ -750,7 +750,7 @@ Datei: `images/recipes/herrencreme.webp`
 ## Fleischfondue mit drei Soßen
 Datei: `images/recipes/fleischfondue.webp`
 
-> Photorealistic overhead food photo, square-friendly 3:2 landscape (main subject centered so a square center crop works), served on a rich deep-green matte surface (#0e5a34, soft radial light from the upper left, dark vignette at the edges), warm natural studio light, soft shadow to the lower right, vivid fresh colors, glossy appetizing textures, a few scattered fresh herbs and spices as garnish, clean minimal composition, no text, no hands, no logos, high detail, same visual style as a premium iOS app icon of a meal-prep lunchbox. Dish: „Fleischfondue mit drei Soßen“ – Rinderfilet, Palmin / Frittierfett für Fondue (Nährwerte = vom Fleisch aufgenommener Anteil), Brötchen (Rosen-/Kaiserbrötchen), Champignons braun, Salatcreme (Miracel Whip), Naturjoghurt 3,5 %, on a ceramic plate or in a shallow bowl.
+> Photorealistic overhead food photo, square-friendly 3:2 landscape (main subject centered so a square center crop works), served on a rich deep-green matte surface (#0e5a34, soft radial light from the upper left, dark vignette at the edges), warm natural studio light, soft shadow to the lower right, vivid fresh colors, glossy appetizing textures, a few scattered fresh herbs and spices as garnish, clean minimal composition, no text, no hands, no logos, high detail, same visual style as a premium iOS app icon of a meal-prep lunchbox. Dish: „Fleischfondue mit drei Soßen“ – Rinderfilet, Palmin / Frittierfett (Nährwerte = vom Fleisch aufgenommener Anteil), Brötchen (Rosen-/Kaiserbrötchen), Champignons braun, Salatcreme (Miracel Whip), Naturjoghurt 3,5 %, on a ceramic plate or in a shallow bowl.
 
 ## Krabbencocktail
 Datei: `images/recipes/krabbencocktail.webp`
