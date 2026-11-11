@@ -26,6 +26,8 @@ for (const r of rec) {
   for (const f of ['name', 'type', 'time', 'dishes', 'effort', 'tags', 'protein', 'ingredients', 'steps']) if (r[f] === undefined) errors.push(`${r.id}: Feld ${f} fehlt`);
   for (const l of r.ingredients) if (!idx.has(l.id)) errors.push(`${r.id}: Zutat ${l.id} fehlt in der Datenbank`);
   for (const s of r.steps) if (s.timer !== undefined && !(s.timer > 0)) errors.push(`${r.id}: ungültiger Timer`);
+  // Gewürze immer mit Angabe, welche (sonst steht im Rezept nur „Gewürze“)
+  if (r.ingredients.some((l) => l.id === 'gewuerze' && !l.note)) errors.push(`${r.id}: Gewürze ohne Angabe, welche (note)`);
   if (r.img && !fs.existsSync(r.img)) errors.push(`${r.id}: Bild ${r.img} fehlt`);
   const m = recipeMacros(r, idx, {}, 1);
   // Eingereichte Rezepte (source „nutzer“) haben keine Protein-/Zeit-Vorgaben
