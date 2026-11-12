@@ -7,8 +7,10 @@ export const DEFAULT_SETTINGS = {
   goals: { kcal: 2800, protein: 140, carbs: 350, fat: 90 },
   // 0–100 %
   sliders: { simple: 70, dishes: 70, offers: 50, variety: 60 },
-  stores: { lidl: true, aldi: false, edeka: true, dm: false, rossmann: false },
+  stores: { lidl: true, aldi: false, edeka: true, rewe: true, dm: false, rossmann: false },
   mainStore: 'lidl',
+  // Reihenfolge der Läden (per Ziehen in den Einstellungen): oben = Hauptladen. Leer = Hauptladen zuerst
+  storeOrder: [],
   budget: 60,
   // Zwei Einkäufe pro Woche (Montag + Donnerstag): Frisches für die zweite Wochenhälfte erst donnerstags
   shopTwice: false,

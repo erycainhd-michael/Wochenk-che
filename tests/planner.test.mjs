@@ -308,24 +308,23 @@ test('Snacks lassen sich tauschen', () => {
   assert.equal(chosen.days[day.day].meals.find((m) => m.key === snack.key).recipeId, 'snack_apfel_nuesse');
 });
 
-test('Aufwendiges Frühstück (Pfannkuchen, Wraps …) nie unter der Woche, am Wochenende nur ab und zu', async () => {
+test('Aufwendiges Frühstück (Pfannkuchen, Wraps …) nie unter der Woche, am Wochenende alle zwei Wochen', async () => {
   const { isFancyBreakfast } = await import('../js/planner.js');
-  let weekend = 0;
-  let weekendSlots = 0;
-  for (let seed = 1; seed <= 12; seed++) {
-    const p = generatePlan({ recipes, idx, settings: settings(), weekStart: '2026-10-05', seed, candidates: 4 });
-    for (const d of p.days) {
-      const m = d.meals.find((x) => x.slot === 'fruehstueck' && x.kind === 'recipe');
-      if (!m) continue;
-      const fancy = isFancyBreakfast(recipes.find((r) => r.id === m.recipeId));
-      if (d.day < 5) assert.ok(!fancy, `${d.name}: ${m.recipeId}`);
-      else {
-        weekendSlots++;
-        if (fancy) weekend++;
+  // KW 41 (ungerade): keins · KW 42 (gerade): genau eins am Wochenende
+  for (const [weekStart, expected] of [['2026-10-05', 0], ['2026-10-12', 1]]) {
+    for (let seed = 1; seed <= 6; seed++) {
+      const p = generatePlan({ recipes, idx, settings: settings(), weekStart, seed, candidates: 3 });
+      let weekend = 0;
+      for (const d of p.days) {
+        const m = d.meals.find((x) => x.slot === 'fruehstueck' && x.kind === 'recipe');
+        if (!m) continue;
+        const fancy = isFancyBreakfast(recipes.find((r) => r.id === m.recipeId));
+        if (d.day < 5) assert.ok(!fancy, `${d.name}: ${m.recipeId}`);
+        else if (fancy) weekend++;
       }
+      assert.equal(weekend, expected, `${weekStart} (Seed ${seed})`);
     }
   }
-  assert.ok(weekend < weekendSlots / 2, `${weekend} von ${weekendSlots} Wochenend-Frühstücken aufwendig`);
 });
 
 test('Zwei Einkäufe: Frisches ab Donnerstag kommt auf den zweiten Einkauf, Haltbares nur auf den ersten', () => {
@@ -333,7 +332,12 @@ test('Zwei Einkäufe: Frisches ab Donnerstag kommt auf den zweiten Einkauf, Halt
   const p = generatePlan({ recipes, idx, settings: s, weekStart: '2026-10-05', seed: 7 });
   const second = p.shopping.items.filter((i) => i.trip === 2);
   assert.ok(second.length > 0, 'kein zweiter Einkauf');
-  for (const it of second) assert.ok(idx.get(it.id).shelf <= 6, `${it.id} ist haltbar und gehört zum ersten Einkauf`);
+  // Bedarf je Wochenhälfte
+  const half = (id, late) => p.days.filter((d) => (d.day >= 3) === late).reduce((a, d) => a + d.meals.reduce((b, m) => b + (m.items || []).filter((i) => i.id === id).reduce((c, i) => c + i.g, 0), 0), 0);
+  // zweiter Einkauf: nur Frisches oder Zutaten, die erst ab Donnerstag gebraucht werden
+  for (const it of second) assert.ok(idx.get(it.id).shelf <= 6 || half(it.id, false) === 0, `${it.id} ist haltbar und wird schon vorher gebraucht – gehört zum ersten Einkauf`);
+  // Haltbares, das in beiden Hälften gebraucht wird (z. B. Kartoffeln), steht nur auf dem ersten Einkauf
+  for (const it of p.shopping.items.filter((i) => i.trip === 1 && idx.get(i.id).shelf > 6 && half(i.id, true) > 0)) assert.ok(!second.some((x) => x.id === it.id), `${it.id} doppelt`);
   for (const it of p.shopping.items) assert.equal(it.key, it.trip === 2 ? `${it.id}@2` : it.id);
   // Gesamtmenge deckt den Bedarf
   const need = new Map();
@@ -342,4 +346,46 @@ test('Zwei Einkäufe: Frisches ab Donnerstag kommt auf den zweiten Einkauf, Halt
     const bought = p.shopping.items.filter((i) => i.id === id).reduce((a, i) => a + i.packs * i.pack, 0);
     assert.ok(bought >= need.get(id) * 0.9, `${id}: ${bought} g gekauft, ${need.get(id)} g gebraucht`);
   }
+});
+
+test('Mengen im Kochmodus: jede Erwähnung mit der Menge, die in diesem Schritt gemeint ist', async () => {
+  const { recipeMatches, stepTerms } = await import('../js/steps.js');
+  const items = [{ id: 'fruehlingszwiebeln', g: 45 }, { id: 'olivenoel', g: 30 }, { id: 'salbei', g: 20 }, { id: 'champignons_glas', g: 330 }, { id: 'rohschinken', g: 90 }];
+  const texts = [
+    'Frühlingszwiebeln in Ringe schneiden. Die Hälfte des Öls erhitzen.',
+    'Frühlingszwiebeln anbraten, Champignons dazugeben. Jedes Filet mit einer Scheibe Schinken umwickeln.',
+    'Im restlichen Öl braten und mit Frühlingszwiebeln bestreuen.',
+  ];
+  const amts = [{}, { fruehlingszwiebeln: 2 / 3 }, { fruehlingszwiebeln: 1 / 3 }];
+  const hits = recipeMatches(texts, stepTerms(items, (id) => idx.get(id)), amts);
+  const at = (n, id) => hits[n].find((h) => items[h.idx].id === id);
+  assert.equal(at(0, 'fruehlingszwiebeln').frac, 1);
+  assert.equal(at(0, 'olivenoel').frac, 0.5);
+  assert.ok(Math.abs(at(1, 'fruehlingszwiebeln').frac - 2 / 3) < 1e-9);
+  assert.equal(at(2, 'olivenoel').frac, 0.5);
+  assert.ok(Math.abs(at(2, 'fruehlingszwiebeln').frac - 1 / 3) < 1e-9);
+  // „Scheibe Schinken“ gehört zum Schinken, nie zu „Champignons in Scheiben“
+  assert.equal(items[hits[1].find((h) => texts[1].slice(h.start, h.end) === 'Schinken').idx].id, 'rohschinken');
+});
+
+test('Rezepte: keine unklaren Mengen in den Schritten (alles berechenbar oder im Rezept angegeben)', async () => {
+  const { recipeMatches, stepTerms } = await import('../js/steps.js');
+  for (const r of recipes) {
+    const items = r.ingredients.map((l) => ({ id: l.id, g: l.g, note: l.note }));
+    const hits = recipeMatches(r.steps.map((s) => s.t), stepTerms(items, (id) => idx.get(id)), r.steps.map((s) => s.amt));
+    for (const [n, hs] of hits.entries())
+      for (const h of hs) if (items[h.idx].id !== 'gewuerze') assert.ok(!['vague', 'number'].includes(h.kind), `${r.id}, Schritt ${n + 1}: „${r.steps[n].t.slice(h.start, h.end)}“ (${h.kind})`);
+  }
+});
+
+test('Läden: Reihenfolge bestimmt den Hauptladen, Rewe hat Richtpreise', async () => {
+  const { storeOrder, regularPrice } = await import('../js/prices.js');
+  assert.deepEqual(storeOrder({ storeOrder: [], mainStore: 'edeka' }).slice(0, 1), ['edeka']);
+  assert.deepEqual(storeOrder({ storeOrder: ['rewe', 'lidl'], mainStore: 'lidl' }).slice(0, 2), ['rewe', 'lidl']);
+  const ing = idx.get('haehnchenbrust');
+  assert.ok(regularPrice(ing, 'rewe') > 0 && regularPrice(ing, 'rewe') <= regularPrice(ing, 'edeka'));
+  const { normalizeRewe } = await import('../scripts/fetch-offers.mjs');
+  const raw = normalizeRewe({ data: { categories: [{ offers: [{ title: 'Hähnchenbrustfilet', subtitle: 'je 400-g-Packung', priceData: { price: '4,44 €' } }] }] } });
+  assert.equal(raw.length, 1);
+  assert.equal(raw[0].price, 4.44);
 });

@@ -10,6 +10,9 @@ on:
       find_market:
         description: 'Optional: PLZ oder Straße, um die Edeka-Markt-ID zu finden (z. B. 12163)'
         required: false
+      find_rewe:
+        description: 'Optional: PLZ, um die Rewe-Markt-ID zu finden (z. B. 12163)'
+        required: false
 
 permissions:
   contents: write
@@ -35,6 +38,9 @@ jobs:
           FIND_MARKET: ${{ github.event.inputs.find_market }}
           # EDEKA Center No. 1, Schloßstr. 1, 12163 Berlin (per Suchlauf ermittelt)
           EDEKA_MARKET_ID: ${{ vars.EDEKA_MARKET_ID || '10001290' }}
+          FIND_REWE: ${{ github.event.inputs.find_rewe }}
+          # Rewe-Markt: Repository-Variable REWE_MARKET_ID (ohne ID gelten für Rewe Richtpreise)
+          REWE_MARKET_ID: ${{ vars.REWE_MARKET_ID }}
         run: node scripts/fetch-offers.mjs
       - name: offers.json speichern
         run: |
