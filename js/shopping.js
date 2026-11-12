@@ -1,6 +1,6 @@
 // Einkaufsliste: Bedarf aus dem Plan minus Vorrat, auf ganze Packungen gerundet.
-// Wahlweise zwei Einkäufe pro Woche: Frisches (Salat, Kräuter, Fisch, Fleisch …) für Donnerstag bis Sonntag
-// wird erst beim zweiten Einkauf am Donnerstag gekauft.
+// Wahlweise zwei Einkäufe pro Woche (Montag + Donnerstag): Zutaten, die erst ab Donnerstag gebraucht werden, und
+// Frisches (Salat, Kräuter, Fisch, Fleisch …) für Donnerstag bis Sonntag kommen auf den zweiten Einkauf.
 
 /** Tag des zweiten Einkaufs (0 = Montag) und ab wann eine Zutat als „frisch“ gilt (Haltbarkeit in Tagen) */
 export const SECOND_TRIP_DAY = 3;
@@ -94,11 +94,14 @@ export function buildShopping({ plan, idx, pantry = {}, priceOf, recipesById, tw
       };
     };
     const have = Math.max(0, pantry[id] || 0);
-    // Zwei Einkäufe nur für Frisches, das (auch) ab Donnerstag gebraucht wird
-    const split = twice && ing.shelf <= FRESH_SHELF && e.g2 > 0;
+    // Zwei Einkäufe: Was erst ab Donnerstag gebraucht wird, kommt auf den zweiten Einkauf. Wird eine Zutat in beiden
+    // Wochenhälften gebraucht, kauft man Haltbares (z. B. Kartoffeln) gleich am Montag – nur Frisches wird geteilt.
+    const g1 = e.g - e.g2;
+    const onlyLater = twice && e.g2 > 0 && g1 <= 0;
+    const split = twice && !onlyLater && ing.shelf <= FRESH_SHELF && e.g2 > 0;
     const rows = [];
-    if (split) {
-      const g1 = e.g - e.g2;
+    if (onlyLater) rows.push(row(e.g, have, 2, [...e.useIds2].map(([rid, name]) => ({ id: rid, name }))));
+    else if (split) {
       const refs2 = [...e.useIds2].map(([rid, name]) => ({ id: rid, name }));
       const refs1 = [...e.useIds1].map(([rid, name]) => ({ id: rid, name }));
       const r1 = row(g1, have, 1, refs1);

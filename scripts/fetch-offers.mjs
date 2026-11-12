@@ -4,12 +4,16 @@
 // Ehrliche Einordnung: Weder Lidl noch Edeka bieten eine offizielle, öffentliche Angebots-API.
 //  - Edeka: Die Marktseiten auf edeka.de laden Angebote aus einem JSON-Endpunkt pro Markt.
 //    Der ist inoffiziell und kann sich jederzeit ändern. Wir rufen ihn 1× pro Woche auf.
+//  - Rewe: Die Angebotsseite eines Markts lädt die Angebote als JSON (inoffiziell, kann sich ändern).
+//    Markt-ID: auf rewe.de den Markt wählen – die Zahl in der Adresse (…/marktseite/…/<ID>/) – oder FIND_REWE.
 //  - Lidl: Kein stabiler, maschinenlesbarer Endpunkt bekannt (Prospekt ist ein Blätterkatalog).
 //    Deshalb hier keine Automatik – Lidl-Angebote bei Bedarf in der App manuell eintragen.
 // Bei jedem Fehler bleibt die App funktionsfähig: Sie nutzt dann Richtpreise.
 //
 // Umgebungsvariablen:
 //   EDEKA_MARKET_ID  – Markt-ID des Edeka-Markts (siehe README: „Markt-ID finden“)
+//   REWE_MARKET_ID   – Markt-ID des Rewe-Markts
+//   FIND_REWE        – z. B. "12163": listet passende Rewe-Märkte und beendet
 //   FIND_MARKET      – z. B. "12163" oder "Schloßstraße": listet passende Märkte und beendet
 //   FORCE=1          – Zeitprüfung überspringen (manueller Start)
 //   CRON_SCHEDULE    – vom Workflow übergeben, für die Sommer-/Winterzeit-Prüfung
@@ -17,7 +21,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { matchIngredient, parseGrams } from '../js/prices.js';
+import { matchIngredient, parseGrams, regularPrice } from '../js/prices.js';
 import { shouldRunNow } from './berlin-time.mjs';
 
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -76,12 +80,71 @@ export function mapOffers(raw, store, ingredients) {
       if (grams && grams > 0 && Math.abs(grams - ing.pack) / ing.pack > 0.1) packPrice = Math.round((o.price / grams) * ing.pack * 100) / 100;
       else packPrice = o.price;
       // Plausibilitätsprüfung: Ein Angebot ist nie teurer als der Normalpreis; extrem billig = falsche Einheit
-      const regular = store === 'edeka' ? ing.priceEdeka ?? ing.price * 1.15 : ing.price;
+      const regular = regularPrice(ing, store);
       if (packPrice > regular * 1.05 || packPrice < ing.price * 0.25) packPrice = null;
     }
     out.push({ store, title: o.title, price: o.price, unit: o.unitText, validFrom: o.validFrom, validTo: o.validTo, ingredientId: packPrice ? ing.id : null, packPrice });
   }
   return out;
+}
+
+/**
+ * Rewe-Antwort defensiv auswerten: Die Angebote stecken (je nach Version) in data.categories[].offers[]
+ * oder einer flachen Liste. Gesucht werden Objekte mit Titel und Preis.
+ */
+export function normalizeRewe(json) {
+  const out = [];
+  const seen = new Set();
+  const priceOf = (o) => toNum(first(o.priceData?.price, o.price?.value, o.price?.price, o.price, o.currentPrice, o.pricing?.price));
+  const walk = (x, depth = 0) => {
+    if (!x || depth > 8) return;
+    if (Array.isArray(x)) return x.forEach((y) => walk(y, depth + 1));
+    if (typeof x !== 'object') return;
+    const title = String(first(x.title, x.name, x.headline, x.productName, '')).trim();
+    const price = priceOf(x);
+    if (title && price > 0 && !seen.has(title + price)) {
+      seen.add(title + price);
+      out.push({
+        title,
+        description: String(first(x.subtitle, x.description, x.subTitle, '')),
+        price,
+        regular: toNum(first(x.priceData?.regularPrice, x.oldPrice, x.regularPrice)),
+        unitText: [first(x.subtitle, x.subTitle, ''), first(x.priceData?.grammage, x.grammage, x.unit, ''), first(x.priceData?.basePrice, x.basePrice, '')].filter(Boolean).join(', '),
+        validFrom: toDate(first(x.validFrom, x.startDate, json?.validFrom, json?.data?.validFrom)),
+        validTo: toDate(first(x.validUntil, x.validTo, x.endDate, json?.validUntil, json?.data?.validUntil)),
+      });
+      return;
+    }
+    for (const v of Object.values(x)) if (v && typeof v === 'object') walk(v, depth + 1);
+  };
+  walk(json);
+  return out;
+}
+
+async function fetchRewe(marketId) {
+  const id = encodeURIComponent(marketId);
+  const urls = [`https://www.rewe.de/api/stationary-offers/${id}`, `https://www.rewe.de/api/all-offers?marketCode=${id}`, `https://mobile-api.rewe.de/api/v3/all-offers?marketCode=${id}`];
+  let lastErr;
+  for (const u of urls) {
+    try {
+      const json = await getJSON(u);
+      const raw = normalizeRewe(json);
+      console.log(`${u.split('?')[0]}: ${raw.length} Rewe-Angebote`);
+      if (raw.length) return raw;
+      console.log('Antwort von', u.split('?')[0], '– Schlüssel:', Object.keys(json || {}).join(', '));
+      lastErr = new Error('keine Angebote in der Antwort');
+    } catch (e) {
+      lastErr = e;
+    }
+  }
+  throw lastErr;
+}
+
+async function findRewe(q) {
+  const json = await getJSON(`https://www.rewe.de/api/wksmarketsearch?searchTerm=${encodeURIComponent(q)}`);
+  const markets = first(json?.markets, json?.items, json?.data?.markets, json) || [];
+  for (const m of Array.isArray(markets) ? markets : []) console.log(`${first(m.id, m.wwIdent, m.marketId)}  ${first(m.name, m.companyName, '')}  ${first(m.contactStreet, m.address?.street, m.street, '')} ${first(m.contactZipCode, m.address?.zip, m.zip, '')}`);
+  if (!Array.isArray(markets) || !markets.length) console.log('Keine Rewe-Märkte gefunden.');
 }
 
 async function fetchEdeka(marketId) {
@@ -117,6 +180,7 @@ async function findMarket(q) {
 
 async function main() {
   if (process.env.FIND_MARKET) return findMarket(process.env.FIND_MARKET);
+  if (process.env.FIND_REWE) return findRewe(process.env.FIND_REWE);
   if (!process.env.FORCE && !shouldRunNow(process.env.CRON_SCHEDULE)) {
     console.log('Nicht die richtige Berliner Uhrzeit für diesen Cron-Eintrag (Sommer-/Winterzeit) – übersprungen.');
     return;
@@ -136,6 +200,19 @@ async function main() {
       for (const o of mapped.filter((x) => x.ingredientId)) console.log(`Angebot: ${o.title} → ${o.ingredientId} (${o.price} €, umgerechnet ${o.packPrice} €)`);
     } catch (e) {
       result.sources.edeka = { ok: false, message: `nicht erreichbar (${e.message})` };
+    }
+  }
+  const reweId = process.env.REWE_MARKET_ID;
+  if (!reweId) {
+    result.sources.rewe = { ok: false, message: 'keine Markt-ID hinterlegt' };
+  } else {
+    try {
+      const mapped = mapOffers(await fetchRewe(reweId), 'rewe', ingredients);
+      result.offers.push(...mapped);
+      result.sources.rewe = { ok: true, count: mapped.length, matched: mapped.filter((o) => o.ingredientId).length };
+      for (const o of mapped.filter((x) => x.ingredientId)) console.log(`Rewe-Angebot: ${o.title} → ${o.ingredientId} (${o.price} €)`);
+    } catch (e) {
+      result.sources.rewe = { ok: false, message: `nicht erreichbar (${e.message})` };
     }
   }
   result.sources.lidl = { ok: false, message: 'keine öffentliche Quelle – es gelten Richtpreise' };

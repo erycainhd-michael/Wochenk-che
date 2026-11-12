@@ -4,6 +4,7 @@ export const STORES = {
   lidl: { id: 'lidl', name: 'Lidl', short: 'Lidl' },
   aldi: { id: 'aldi', name: 'Aldi Nord', short: 'Aldi' },
   edeka: { id: 'edeka', name: 'Edeka No1 Center Schloßstraße', short: 'Edeka' },
+  rewe: { id: 'rewe', name: 'Rewe', short: 'Rewe' },
   dm: { id: 'dm', name: 'dm', short: 'dm' },
   rossmann: { id: 'rossmann', name: 'Rossmann', short: 'Rossmann' },
 };
@@ -26,10 +27,11 @@ export function sells(store, ing) {
   return true;
 }
 
-/** Richtpreis je Laden (Lidl = Basis; Aldi ≈ Lidl; Edeka ≈ +15 %; Drogerie ≈ +10 % bzw. günstiger bei Spezialartikeln) */
+/** Richtpreis je Laden (Lidl = Basis; Aldi ≈ Lidl; Edeka ≈ +15 %; Rewe ≈ 3 % unter Edeka; Drogerie ≈ +10 % bzw. günstiger bei Spezialartikeln) */
 export function regularPrice(ing, store) {
   const r = (x) => Math.round(x * 100) / 100;
   if (store === 'edeka') return ing.priceEdeka ?? r(ing.price * 1.15);
+  if (store === 'rewe') return ing.priceRewe ?? r((ing.priceEdeka ?? ing.price * 1.15) * 0.97);
   if (store === 'aldi') return ing.priceAldi ?? ing.price;
   if (store === 'dm' || store === 'rossmann') return r(ing.price * (DRUGSTORE_CHEAPER.has(ing.id) ? 0.9 : 1.1));
   return ing.price;
@@ -61,10 +63,18 @@ export function mergeOffers(remote, manual) {
  * Erzeugt eine Funktion ingId -> { store, price, regular, offer, offerTitle }.
  * Einkauf standardmäßig im Hauptladen; Wechsel nur, wenn ein Angebot im anderen Laden ≥ 10 % spart.
  */
+/** Ausgewählte Läden in der Reihenfolge aus den Einstellungen – der erste ist der Hauptladen */
+export function storeOrder(settings) {
+  const order = [...new Set([...(settings.storeOrder || []), settings.mainStore, ...STORE_IDS].filter((s) => STORES[s]))];
+  // ohne gespeicherte Reihenfolge steht der bisherige Hauptladen vorn
+  if (!settings.storeOrder?.length && settings.mainStore) order.sort((a, b) => (a === settings.mainStore ? -1 : b === settings.mainStore ? 1 : 0));
+  return order;
+}
+
 export function makePriceFn({ idx, settings, offers = [], weekStart }) {
-  const subscribed = STORE_IDS.filter((s) => settings.stores?.[s]);
+  const subscribed = storeOrder(settings).filter((s) => settings.stores?.[s]);
   const stores = subscribed.length ? subscribed : ['lidl'];
-  const mainStore = stores.includes(settings.mainStore) ? settings.mainStore : stores[0];
+  const mainStore = stores[0];
   const valid = offers.filter((o) => offerValidFor(o, weekStart) && stores.includes(o.store));
   const cache = new Map();
   return function priceOf(id) {
@@ -85,7 +95,8 @@ export function makePriceFn({ idx, settings, offers = [], weekStart }) {
       cands.push({ store, price: regular, regular, offer: false, offerTitle: '', elsewhere: true });
     }
     const main = cands.find((c) => c.store === mainStore);
-    const cheapest = cands.reduce((a, b) => (b.price < a.price ? b : a));
+    // bei gleichem Preis gewinnt der Laden weiter oben in der Liste
+    const cheapest = cands.reduce((a, b) => (b.price < a.price - 0.005 ? b : a));
     // Hauptladen, außer ein anderer ausgewählter Laden ist mindestens 10 % günstiger (Studi-Modus: 3 %)
     const best = main && !(cheapest.price <= main.price * (settings.studi ? 0.97 : 0.9)) ? main : cheapest;
     cache.set(id, best);

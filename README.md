@@ -113,6 +113,12 @@ Zum Ausprobieren: **Actions → Angebote holen → Run workflow**. Nach ca. 30 S
 
 Falls Edeka den Abruf blockiert, steht dort „nicht erreichbar“ – die App funktioniert trotzdem mit Richtpreisen.
 
+### Schritt 5 (optional): Rewe-Markt hinterlegen
+1. **Actions → Angebote holen → Run workflow**, ins Feld „find_rewe“ deine PLZ (z. B. `12163`) eintragen → **Run workflow**. Im Lauf unter „Angebote laden“ stehen die Märkte mit ID.
+   Alternativ: auf rewe.de deinen Markt wählen – die Zahl am Ende der Marktseiten-Adresse ist die ID.
+2. **Settings → Secrets and variables → Actions → Variables → New repository variable**: Name `REWE_MARKET_ID`, Wert = die ID.
+3. Ab dann holt die Action montags auch die Rewe-Angebote. Der Abruf ist inoffiziell – blockiert Rewe ihn, gelten für Rewe Richtpreise.
+
 ### Schritt 5: Auf dem iPhone installieren
 1. Öffne die Adresse aus Schritt 2 in **Safari** (nicht Chrome).
 2. Tippe unten auf **Teilen** (Quadrat mit Pfeil nach oben).

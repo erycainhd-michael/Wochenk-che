@@ -7,7 +7,7 @@
 //  3. scorePlan: bewertet den Plan nach deinen Prioritäten (Kalorien > Protein > Gemüse/Ballaststoffe >
 //     Vielfalt > Geschmack/Alltag > Feinschliff). Aus vielen Kandidaten gewinnt der beste.
 
-import { DAY_NAMES, DAY_SHORT, SLOT_LABEL, addDays, avg, clamp, clone, mulberry32, pickWeighted, round, sum, euro, num } from './util.js';
+import { DAY_NAMES, DAY_SHORT, SLOT_LABEL, addDays, avg, clamp, clone, isoWeek, mulberry32, pickWeighted, round, sum, euro, num } from './util.js';
 import { addMacros, emptyMacros, hasFish, itemsMacros, mainProteinCategory, recipeItems, recipeMacros, recipeParts } from './nutrition.js';
 import { itemsCost, makePriceFn } from './prices.js';
 import { buildShopping } from './shopping.js';
@@ -279,7 +279,8 @@ export function buildStructure(ctx, rng, mode = {}) {
   const breakfasts = Array.from({ length: 7 }, (_, d) => (eatOut.has(slotKey(d, 'fruehstueck')) ? null : chosen[d % chosen.length]));
   const fancyPool = ctx.breakfasts.filter(isFancyBreakfast);
   const weekendDay = [6, 5].find((d) => breakfasts[d]);
-  if (fancyPool.length && weekendDay !== undefined && rng() < 0.35) {
+  // alle zwei Wochen (gerade Kalenderwochen) ein aufwendiges Frühstück am Wochenende
+  if (fancyPool.length && weekendDay !== undefined && ctx.weekStart && isoWeek(ctx.weekStart) % 2 === 0) {
     const r = pickWeighted(fancyPool, fancyPool.map((x) => info.get(x.id).weight * macroFit(info.get(x.id).macros, settings.goals)), rng);
     breakfasts[weekendDay] = r.id;
     stock.consume(baseItems(r, settings, 1));

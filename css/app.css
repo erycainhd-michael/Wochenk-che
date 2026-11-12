@@ -942,7 +942,7 @@ body { min-height: calc(100vh + 1px); min-height: calc(100lvh + 1px); }
 .rgrid li.gourmet .rtile-name { color: var(--gourmet-ink); }
 .rtile .r-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
 .rtile .r-emoji { font-size: 3.6rem; filter: drop-shadow(0 8px 10px rgba(0, 0, 0, 0.35)); }
-.rtile-fav { position: absolute; top: 8px; right: 8px; font-style: normal; font-size: 1rem; filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.4)); }
+.rtile-fav { position: absolute; top: 8px; left: 8px; font-style: normal; font-size: 1rem; filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.4)); }
 .rgrid li.fancy .rtile { box-shadow: 0 0 0 3px var(--fancy), var(--shadow); }
 .rgrid li.gourmet .rtile { box-shadow: 0 0 0 3px var(--gourmet), var(--shadow); }
 
@@ -962,17 +962,12 @@ body { min-height: calc(100vh + 1px); min-height: calc(100lvh + 1px); }
 .filter-toggle { font-weight: 600; }
 .filter-n { display: inline-block; min-width: 1.4em; padding: 0 6px; border-radius: 999px; background: var(--accent); color: var(--accent-text); font-size: 0.8rem; text-align: center; }
 .filters .chips.cats { margin-top: 8px; }
-/* „Schon gekocht“ im Rezept */
-.cooked-line { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin: 10px 0 4px; flex-wrap: wrap; }
-.cooked-line .btn.on { background: var(--accent); color: var(--accent-text); }
-/* Kochmodus: Zutaten des Schritts */
-.cook-ings { margin: 12px 0 0; }
-.cook-ings ul { list-style: none; margin: 6px 0 0; padding: 0; }
-.cook-ings li { display: flex; justify-content: space-between; gap: 12px; padding: 7px 0; border-bottom: 1px solid var(--line, rgba(127,127,127,.2)); font-size: 1.05rem; }
-.cook-ings li b { white-space: nowrap; }
-.cook-ings-now { background: var(--accent-soft); border-radius: 14px; padding: 10px 14px; margin-bottom: 8px; }
-.cook-ings-now > span { font-size: 0.85rem; color: var(--muted); }
-.cook-ings-all { padding: 0 4px; }
+/* Wie oft schon gekocht: rechts oben auf dem Bild, fett auf durchscheinendem Grund */
+.rhero-art { position: relative; }
+.rhero-art span.cooked-badge, .cooked-badge { position: absolute; top: 12px; right: 12px; z-index: 2; animation: none; filter: none;
+  font-size: 1.15rem; font-weight: 800; line-height: 1; color: #fff; padding: 6px 11px; border-radius: 999px;
+  background: rgba(0, 0, 0, 0.28); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35); }
+.rtile .cooked-badge { top: 8px; right: 8px; font-size: 0.95rem; padding: 4px 9px; }
 /* Einstellungen: Quellen */
 .src-list { list-style: none; margin: 8px 0 0; padding: 0; }
 .src-list li { padding: 9px 0; border-bottom: 1px solid var(--line); display: flex; flex-direction: column; gap: 2px; }
@@ -982,3 +977,40 @@ body { min-height: calc(100vh + 1px); min-height: calc(100lvh + 1px); }
 .trip-head { margin: 22px 4px 6px; display: flex; justify-content: space-between; align-items: baseline; }
 .trip-sub { margin: -2px 4px 8px; }
 .twice-row { align-items: flex-start; gap: 10px; margin-top: 10px; }
+/* Snacks im Wochenplan: kleiner, ohne Tausch-Knöpfe */
+.meal.snack { padding: 7px 0; }
+.meal.snack .ml, .meal.snack .mm { font-size: 0.75rem; }
+.meal.snack .mn { font-size: 0.9rem; font-weight: 500; color: var(--muted); }
+/* Suche: ✕ löscht die Eingabe */
+.rsearch input::-webkit-search-cancel-button { display: none; -webkit-appearance: none; }
+.rsearch-x { border: 0; background: var(--line); color: var(--muted); width: 26px; height: 26px; border-radius: 50%; font-size: 0.8rem; line-height: 26px; padding: 0; flex: none; cursor: pointer; }
+.rsearch-x[hidden] { display: none; }
+/* Neues Rezept als erster Eintrag der Liste bzw. erste Kachel */
+.new-row { display: flex; align-items: center; gap: 12px; width: 100%; padding: 12px 0; border: 0; background: none; color: var(--accent); font: inherit; text-align: left; cursor: pointer; }
+.new-plus { display: grid; place-items: center; width: 30px; height: 30px; border-radius: 50%; border: 2px dashed var(--accent); font-size: 1.2rem; font-weight: 700; }
+.new-row-open, .new-tile-open { padding: 8px 0 12px; }
+.new-tile-open { grid-column: 1 / -1; }
+.new-cell { display: block; width: 100%; border: 0; background: none; padding: 0; font: inherit; color: inherit; cursor: pointer; }
+.rtile.new-tile { display: grid; place-items: center; background: transparent; border: 2px dashed var(--accent); box-shadow: none; color: var(--accent); font-size: 3rem; font-weight: 300; }
+/* Später starten / Tage abwählen */
+.later .pill.circle.off { background: #d93c3c; border-color: #d93c3c; color: #fff; text-decoration: line-through; }
+.later .pill.circle.before { opacity: 0.4; }
+.shop-tools { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.shop-tools .hide-btn { margin: 0; }
+.twice-switch { display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 0.95rem; }
+.twice-switch input { width: 22px; height: 22px; accent-color: var(--accent); }
+.twice-hint { margin: 8px 4px 0; }
+/* Läden sortieren */
+.store-sort { list-style: none; margin: 8px 0 12px; padding: 0; }
+.store-row { display: flex; align-items: center; gap: 12px; padding: 10px 12px; margin-bottom: 6px; border-radius: 14px; background: var(--field); transition: box-shadow 0.15s, transform 0.15s; }
+.store-row.off .store-name { opacity: 0.45; }
+.store-row.dragging { box-shadow: var(--shadow); transform: scale(1.02); position: relative; z-index: 3; }
+.drag-handle { font-size: 1.3rem; color: var(--muted); padding: 4px 6px; cursor: grab; touch-action: none; user-select: none; -webkit-user-select: none; }
+.store-name { flex: 1; font-weight: 600; }
+.switch { position: relative; display: inline-block; width: 46px; height: 28px; flex: none; }
+.switch input { position: absolute; opacity: 0; width: 100%; height: 100%; margin: 0; cursor: pointer; }
+.switch i { position: absolute; inset: 0; border-radius: 999px; background: var(--line); transition: background 0.2s; pointer-events: none; }
+.switch i::after { content: ''; position: absolute; top: 3px; left: 3px; width: 22px; height: 22px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25); transition: transform 0.2s; }
+.switch input:checked + i { background: var(--accent); }
+.switch input:checked + i::after { transform: translateX(18px); }
+.store-sort { user-select: none; -webkit-user-select: none; }

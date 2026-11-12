@@ -2,7 +2,7 @@
 import { DAY_NAMES, DAY_SHORT, SLOT_LABEL, addDays, clone, berlinNow, escapeHtml as e, euro, formatDate, isoWeek, mondayOf, num, shortName } from './util.js';
 import { buildIndex, plausibility } from './nutrition.js';
 import { cakesOf, generatePlan, refitPlan, swapMeal } from './planner.js';
-import { mergeOffers, STORES, STORE_IDS } from './prices.js';
+import { mergeOffers, storeOrder, STORES, STORE_IDS } from './prices.js';
 import { packText } from './shopping.js';
 import { kitchenText } from './units.js';
 import { searchScore } from './search.js';
@@ -140,6 +140,7 @@ async function init() {
   document.addEventListener('click', onClick);
   document.addEventListener('change', onChange);
   document.addEventListener('input', onInput);
+  document.addEventListener('pointerdown', onSortStart);
   // iOS gibt Audio nur bei Berührungen frei – bei jeder Berührung prüfen (z. B. nach dem Hintergrund)
   document.addEventListener('touchend', unlockAudio, { passive: true });
   document.addEventListener('click', unlockAudio);
@@ -425,9 +426,10 @@ function freshBoost() {
 }
 
 /** start = erster Tag mit Plan (0 = Montag). Davor ist man noch unterwegs: kein Plan, kein Einkauf. */
-function createPlan({ pantry, eatOut, boost, start = 0 } = {}) {
+function createPlan({ pantry, eatOut, boost, start = 0, off = [] } = {}) {
   const ws = currentWeek();
-  const away = Array.from({ length: start }, (_, i) => i);
+  // nicht geplant: Tage vor dem Start und abgewählte Tage (rot) – dort gibt es gar nichts, auch kein Frühstück
+  const away = [...new Set([...Array.from({ length: start }, (_, i) => i), ...off])].sort();
   const plan = generatePlan(plannerInput({ pantry: pantry || {}, boost, away, settings: { ...S.settings, eatOut: eatOut || S.settings.eatOut } }));
   plan.done = {};
   plan.studi = !!S.settings.studi;
@@ -466,10 +468,10 @@ async function createPlanFromDraft() {
 }
 
 /** Laufende Woche ab Tag `start` neu planen (Auswärtstage und Vorrat bleiben). false = abgebrochen */
-async function replanWeek(plan, start) {
+async function replanWeek(plan, start, off = []) {
   if (Object.values(S.checks[plan.weekStart] || {}).some(Boolean) && !(await confirmBox('Woche neu planen?', 'Haken auf der Einkaufsliste werden zurückgesetzt.', 'Neu planen'))) return false;
   const eatOut = (plan.structure?.eatOut || []).map((k) => ({ day: Number(k.split('-')[0]), slot: k.split('-')[1] })).filter((x) => x.day >= start && !(plan.structure.away || []).includes(x.day));
-  createPlan({ pantry: plan.pantryUsed || {}, eatOut, start });
+  createPlan({ pantry: plan.pantryUsed || {}, eatOut: eatOut.filter((x) => !off.includes(x.day)), start, off });
   return true;
 }
 
@@ -995,17 +997,22 @@ function daysHtml(plan, firstDay, todayIdx) {
     .join('');
 }
 
-/** „Woche später starten“: Plan ab einem gewählten Tag neu erstellen (z. B. nach dem Urlaub) */
+/** „Woche später starten“ bzw. Tage abwählen: Plan neu erstellen – ab einem Tag (einmal tippen), ohne rote Tage (zweimal tippen) */
 function laterStart(plan, todayIdx, firstDay) {
+  const offNow = plan.days.filter((d) => d.away && d.day > firstDay).map((d) => d.day);
   if (!S.ui.laterOpen) {
-    return `<button class="link later-link" data-action="later-open">📅 ${firstDay ? `Plan startet am ${DAY_NAMES[firstDay]} – ändern` : 'Erst später in die Woche starten?'}</button>`;
+    const parts = [firstDay ? `ab ${DAY_NAMES[firstDay]}` : '', offNow.length ? `ohne ${offNow.map((d) => DAY_SHORT[d]).join(', ')}` : ''].filter(Boolean);
+    return `<button class="link later-link" data-action="later-open">📅 ${parts.length ? `Plan ${parts.join(' · ')} – ändern` : 'Später starten oder Tage abwählen?'}</button>`;
   }
   const sel = S.ui.laterDay ?? (firstDay || Math.max(0, todayIdx));
+  const off = (S.ui.laterOff || []).filter((d) => d > sel);
+  const cls = (i) => (off.includes(i) ? 'off' : i === sel ? 'on' : i < sel ? 'before' : '');
+  const label = [sel ? `Ab ${DAY_SHORT[sel]}` : 'Ganze Woche', off.length ? `ohne ${off.map((d) => DAY_SHORT[d]).join(', ')}` : ''].filter(Boolean).join(' · ');
   return `<section class="card later">
-    <h2>Ab wann bist du da?</h2>
-    <p class="sub">Mise plant die Woche ab diesem Tag neu und du kaufst nur für die restlichen Tage ein. „Mo“ plant wieder die ganze Woche. Haken auf der Einkaufsliste werden zurückgesetzt.</p>
-    <div class="pills days">${DAY_SHORT.map((d, i) => `<button class="pill circle ${sel === i ? 'on' : ''}" data-action="later-day" data-day="${i}">${d}</button>`).join('')}</div>
-    <div class="grid2"><button class="btn" data-action="later-cancel">Abbrechen</button><button class="btn primary" data-action="later-go" data-day="${sel}">${sel ? `Ab ${DAY_SHORT[sel]} planen` : 'Ganze Woche'}</button></div>
+    <h2>Wann bist du da?</h2>
+    <p class="sub"><b>Einmal tippen:</b> ab diesem Tag planen. <b>Zweimal tippen:</b> der Tag wird rot – dort plant Mise gar nichts, auch kein Frühstück. Du kaufst nur für die geplanten Tage ein. Haken auf der Einkaufsliste werden zurückgesetzt.</p>
+    <div class="pills days">${DAY_SHORT.map((d, i) => `<button class="pill circle ${cls(i)}" data-action="later-day" data-day="${i}">${d}</button>`).join('')}</div>
+    <div class="grid2"><button class="btn" data-action="later-cancel">Abbrechen</button><button class="btn primary" data-action="later-go" data-day="${sel}">${label} planen</button></div>
   </section>`;
 }
 
@@ -1030,6 +1037,11 @@ function mealRow(plan, m) {
   if (peopleOf(m) > 1) badges.push(`<span class="badge">für ${peopleOf(m)} Personen</span>`);
   if (r.source === 'ki' || isFresh(r)) badges.push('<span class="badge new">neu</span>');
   for (const a of m.addons || []) badges.push(`<span class="badge">+ ${e(recipe(a)?.name || a)}</span>`);
+  // Snacks: kleiner und ohne Tauschen – die Hauptmahlzeiten sind wichtiger
+  if (m.slot === 'snack') {
+    return `<li class="meal snack" data-key="${m.key}"><a class="mt" href="#/mahlzeit/${m.key}">
+      <div class="ml">Snack</div><div class="mn">${e(r.name)}</div><div class="mm">${num(m.macros.kcal)} kcal · ${g_(m.macros.p)} Protein</div></a></li>`;
+  }
   return `<li class="meal ${themeCls(r)}" data-key="${m.key}">
     <a class="mt" href="#/mahlzeit/${m.key}">
       <div class="ml">${slotLabel(m)} · ${r.time} Min.</div>
@@ -1353,7 +1365,7 @@ function viewRecipes() {
   ].join('');
   return `<header class="top col"><h1><span class="h-count">${list.length}</span> ${list.length === 1 ? 'Rezept' : 'Rezepte'}</h1></header>
     <section class="card accent filters">
-      <label class="rsearch"><span aria-hidden="true">🔍</span><input type="search" data-rsearch placeholder="Suchen: Gericht, Zutat, Küche …" value="${e(S.ui.rQuery || '')}" autocomplete="off" enterkeyhint="search"></label>
+      <label class="rsearch"><span aria-hidden="true">🔍</span><input type="search" data-rsearch placeholder="Suchen: Gericht, Zutat, Küche …" value="${e(S.ui.rQuery || '')}" autocomplete="off" enterkeyhint="search"><button type="button" class="rsearch-x" data-action="rsearch-clear" aria-label="Suche löschen" ${S.ui.rQuery ? '' : 'hidden'}>✕</button></label>
       <div class="filter-bar"><button class="link filter-toggle" data-action="rfilters-toggle">${open ? '▾' : '▸'} Filter${nActive ? ` <b class="filter-n">${nActive}</b>` : ''}</button>${any ? `<button class="link" data-action="rfilter-all">Zurücksetzen</button>` : ''}</div>
       ${
         open
@@ -1366,9 +1378,6 @@ function viewRecipes() {
             ? `<div class="chips cats">${activeChips}</div>`
             : ''
       }
-    </section>
-    <section class="card new-recipe">${H2('✏️', 'Neues Rezept')}
-      <div class="add-row"><input placeholder="z. B. Pilzrisotto" data-new-title="main" value="${e(S.ui.newTitle.main || '')}"><button class="btn pill" data-action="new-recipe" data-type="main">Erstellen</button></div>
     </section>
     <section class="card ${grid ? 'rgrid-card' : ''}">
       <div class="view-toggle seg" role="group" aria-label="Darstellung">
@@ -1404,13 +1413,22 @@ function searchRecipes(list) {
 /** Rezeptliste bzw. -raster (wird beim Tippen in der Suche allein neu gezeichnet) */
 function recipeListHtml(list, grid, fbw = recipeWeights(S.feedback)) {
   const sel = S.ui.rSel || {};
+  // Neues Rezept: erster Eintrag der Liste bzw. erste Kachel mit Plus – Antippen öffnet das Eingabefeld
+  const newForm = `<div class="add-row new-form"><input placeholder="Titel, z. B. Pilzrisotto" data-new-title="main" value="${e(S.ui.newTitle.main || '')}" enterkeyhint="done"><button class="btn pill primary" data-action="new-recipe" data-type="main">Erstellen</button></div>`;
+  const newEntry = grid
+    ? S.ui.newOpen
+      ? `<li class="new-tile-open">${newForm}</li>`
+      : `<li><button class="rcell new-cell" data-action="new-open" aria-label="Neues Rezept"><span class="rtile new-tile" aria-hidden="true">+</span><span class="rtile-name">Neues Rezept</span></button></li>`
+    : S.ui.newOpen
+      ? `<li class="new-row-open">${newForm}</li>`
+      : `<li><button class="new-row" data-action="new-open"><span class="new-plus" aria-hidden="true">+</span><span class="rl-n">Neues Rezept</span></button></li>`;
   if (!list.length)
     return `<p class="sub">${S.ui.rQuery ? `Nichts gefunden für „${e(S.ui.rQuery)}“${Object.keys(sel).length ? ' in den gewählten Kategorien' : ''}.` : Object.keys(sel).length ? 'Keine Rezepte für diese Auswahl – tippe eine Kategorie nochmal an, um sie aufzuheben.' : 'Keine Rezepte für diesen Filter.'}</p>`;
   return grid
-          ? `<ul class="rgrid">${list
-              .map((r) => `<li class="${themeCls(r)}"><a class="rcell" href="#/rezept/${r.id}" aria-label="${e(r.name)}"><span class="rtile">${recipeArt(r)}${isFav(r.id) ? '<i class="rtile-fav" aria-hidden="true">⭐</i>' : ''}</span><span class="rtile-name">${e(shortName(r))}</span></a></li>`)
+          ? `<ul class="rgrid">${newEntry}${list
+              .map((r) => `<li class="${themeCls(r)}"><a class="rcell" href="#/rezept/${r.id}" aria-label="${e(r.name)}"><span class="rtile">${recipeArt(r)}${isFav(r.id) ? '<i class="rtile-fav" aria-hidden="true">⭐</i>' : ''}${cookedBadge(r.id)}</span><span class="rtile-name">${e(shortName(r))}</span></a></li>`)
               .join('')}</ul>`
-          : `<ul class="list">${list
+          : `<ul class="list">${newEntry}${list
         .map((r) => {
           const tag = r.source === 'ki' ? ' · KI' : isFresh(r) ? ' · neu' : r.source === 'eigen' ? ' · eigenes' : '';
           const nCooked = cookedOf(r.id).length;
@@ -1650,14 +1668,11 @@ function viewRecipeBase(id) {
   return recipeHtml(r, items, per, `Basisrezept · ${n === 1 ? '1 Portion' : n + ' Portionen'}`, back, '', 'r:' + id, true, n);
 }
 
-/** „Schon 3× gekocht · zuletzt am …“ und Knopf zum Abhaken (Verlauf bleibt auf diesem Gerät) */
-function cookedLine(r) {
-  if (!recipe(r.id)) return '';
-  const n = cookedOf(r.id).length;
-  const today = S.cooked.some((c) => c.id === r.id && c.at === berlinNow().iso);
-  return `<div class="cooked-line"><span class="sub">${n ? `✓ ${n}× gekocht · zuletzt am ${formatDate(lastCooked(r.id), { day: 'numeric', month: 'long' })}` : 'Noch nicht gekocht'}</span>
-    <button class="btn small pill ${today ? 'on' : ''}" data-action="mark-cooked" data-id="${e(r.id)}">${today ? '✓ Heute gekocht' : 'Heute gekocht'}</button></div>`;
-}
+/** Wie oft schon gekocht (nur auf diesem Gerät, zählt beim Abschluss des Kochmodus) – rechts oben auf dem Bild */
+const cookedBadge = (id) => {
+  const n = cookedOf(id).length;
+  return n ? `<span class="cooked-badge" title="Zuletzt gekocht am ${formatDate(lastCooked(id), { day: 'numeric', month: 'long' })}">${n}×</span>` : '';
+};
 
 function recipeHtml(r, items, macros, subtitle, back, info, cookKey, withServings, cur = 1, perPerson = 1) {
   const cookHref = `#/kochen/${encodeURIComponent(cookKey)}`;
@@ -1709,11 +1724,10 @@ function recipeHtml(r, items, macros, subtitle, back, info, cookKey, withServing
       : `<button class="fav-btn ${fav ? 'on' : ''}" data-action="fav-toggle" data-id="${e(r.id)}" aria-label="${fav ? 'Aus Favoriten entfernen' : 'Zu Favoriten hinzufügen'}">⭐</button>`;
   return `<header class="top">${back}<div class="top-actions">${star}${active ? `<a class="btn primary pill ${activeMagic}" href="${resumeHref}">👨‍🍳 Weiter kochen</a>` : startBtn('pill')}</div></header>
     <section class="card accent rhero">
-      <div class="rhero-art ${r.img ? 'has-img' : ''} slot-${r.type === 'breakfast' ? 'fruehstueck' : 'abend'}">${recipeArt(r, false)}</div>
+      <div class="rhero-art ${r.img ? 'has-img' : ''} slot-${r.type === 'breakfast' ? 'fruehstueck' : 'abend'}">${recipeArt(r, false)}${recipe(r.id) ? cookedBadge(r.id) : ''}</div>
       <div class="card-head"><div class="sub">${e(subtitle)}</div><a class="btn small pill" href="#/bearbeiten/${r.id}">✏️ Ändern</a></div>
       <h1 class="rtitle">${e(r.name)}</h1>
       <div class="chips"><span class="chip on">⏱️ ${r.time} Min.</span><span class="chip">🧽 ${dishesText(allTools.length || r.dishes)}</span><span class="chip">${isFancy(r) ? `✨ ${fancyLabel(r)}` : ['', 'einfach', 'normal', 'aufwendig'][r.effort]}</span>${r.protein ? `<span class="chip">${e(r.protein)}</span>` : ''}</div>
-      ${cookedLine(r)}
       <div class="mtiles">
         <div class="mt-k"><b>${num(macros.kcal)}</b><span>kcal</span></div>
         <div><b>${g_(macros.c)}</b><span>Kohlenhydrate</span></div>
@@ -1733,22 +1747,6 @@ function recipeHtml(r, items, macros, subtitle, back, info, cookKey, withServing
     <section class="card">${H2('👨‍🍳', 'Zubereitung')}<ol class="steps tl">${steps}</ol>
       ${startBtn('block')}
     </section>`;
-}
-
-/** Kochmodus: Zutaten dieses Schritts mit Mengen, darunter aufklappbar alle Zutaten (passend zur gewählten Portionenzahl) */
-function cookIngs(r, n, items) {
-  const amount = (it) => kitchenText(it.id, it.g, it.note || noteOf(r, it.id));
-  const row = (it) => `<li><span>${e(ing(it.id)?.name || it.id)}${it.note ? ` <small class="muted">${e(it.note)}</small>` : ''}</span><b>${e(amount(it))}</b></li>`;
-  // „Alles in ein Schraubglas geben“, „Alle Zutaten verkneten“: dann gehört die ganze Liste zum Schritt
-  const all = /\balle(s| zutaten)\b/i.test(r.steps[n].t) && !/\balles (zusammen )?servieren/i.test(r.steps[n].t);
-  const idxs = all ? items.map((_, i) => i) : [...new Set((stepHits(r, items)[n] || []).map((h) => h.idx))];
-  const now = idxs.map((i) => items[i]).filter((it) => it.id !== 'gewuerze');
-  const open = !!S.ui.cookAllIngs;
-  return `<div class="cook-ings">
-    ${now.length ? `<div class="cook-ings-now"><span>Für diesen Schritt</span><ul>${now.map(row).join('')}</ul></div>` : ''}
-    <button class="link" data-action="cook-all-ings">${open ? '▾' : '▸'} Alle Zutaten (${items.length})</button>
-    ${open ? `<ul class="cook-ings-all">${items.map(row).join('')}</ul>` : ''}
-  </div>`;
 }
 
 function viewCooking(key) {
@@ -1781,7 +1779,6 @@ function viewCooking(key) {
     <div class="cook-progress" aria-hidden="true">${r.steps.map((_, i) => `<i class="${i <= n ? 'on' : ''}"></i>`).join('')}</div>
     <div class="step-count">Schritt ${n + 1} von ${r.steps.length}</div>
     ${tools.length ? `<div class="cook-tools"><span>Du brauchst jetzt</span>${tools.map((t) => `<b class="tool">${e(t)}</b>`).join('')}</div>` : ''}
-    ${cookIngs(r, n, items)}
     <p class="step-text" data-step="${n}">${stepHtml(r, n, items)}</p>
     <div class="cook-actions">
       ${s.timer ? `<button class="btn primary block big" data-action="timer" data-sec="${s.timer}" data-label="${e(s.label || 'Schritt ' + (n + 1))}" data-ctx="${e(r.name)}">⏱️ Timer ${fmtTime(s.timer)} starten</button>` : ''}
@@ -1806,28 +1803,39 @@ const noteOf = (r, id) => r?.ingredients?.find((l) => l.id === id)?.note || '';
 
 function stepHtml(r, n, items = []) {
   const text = r.steps[n].t;
-  // Küchenmengen: „2×“ Ei, „3 Zehen“ Knoblauch, „1 EL“ Öl, „160 ml“ Milch – Gewürze ohne Menge.
-  // Die Gesamtmenge steht nur bei der ersten Erwähnung im Rezept und nicht bei „die Hälfte des …“ oder wenn schon eine Zahl davorsteht.
+  // Jede Zutat mit der Menge, die in diesem Schritt gemeint ist (passend zur Portionenzahl). Ganze Menge davor
+  // („2× Frühlingszwiebeln schneiden“), Teilmengen dahinter in Klammern („die Hälfte des Salbeis (½ Bund)“). Gewürze ohne Menge.
+  const marks = [];
+  for (const h of stepHits(r, items)[n] || []) {
+    if (h.frac === null) continue;
+    const it = items[h.idx];
+    const a = kitchenText(it.id, it.g * h.frac, it.note || noteOf(r, it.id));
+    if (a === 'etwas') continue;
+    if (h.kind === 'full') marks.push({ at: h.start, a, before: true });
+    else marks.push({ at: h.end, a, before: false });
+  }
   const slots = [];
   let out = '';
   let pos = 0;
-  for (const h of stepHits(r, items)[n] || []) {
-    if (!h.first || h.partial) continue;
-    const it = items[h.idx];
-    const a = kitchenText(it.id, it.g, it.note || noteOf(r, it.id));
-    if (a === 'etwas') continue;
-    slots.push(a);
-    out += text.slice(pos, h.start) + `\u0001${String.fromCharCode(65 + slots.length - 1)}\u0002`;
-    pos = h.start;
+  for (const mk of marks.sort((x, y) => x.at - y.at)) {
+    let chunk = text.slice(pos, mk.at);
+    // „in etwas Mehl wenden“ → „in 1 EL Mehl wenden“
+    if (mk.before) chunk = chunk.replace(/\b(etwas|ein wenig|ein paar|einen Klecks|einen Schuss)\s+$/i, '');
+    slots.push(mk);
+    out += chunk + `\u0001${String.fromCharCode(65 + slots.length - 1)}\u0002`;
+    pos = mk.at;
   }
   out += text.slice(pos);
   // Zahl und Gramm (kg, ml) immer ohne Lücke: „250g“
   out = e(out).replace(/(\d+(?:[.,]\d+)?(?:\s?[–-]\s?\d+(?:[.,]\d+)?)?(?:\s?(?:g|kg|ml|l|EL|TL|Min\.?|Minuten|Std\.?|Stunden|°C|°|cm|Stück|%))?)(?![A-Za-zÄÖÜäöüß])/g, (m) => `<span class="amt">${m.replace(/(\d)\s(g|kg|ml)$/, '$1$2')}</span>`);
-  return out.replace(/\u0001([A-Z])\u0002/g, (_, c) => `<span class="amt">${e(slots[c.charCodeAt(0) - 65])}</span> `);
+  return out.replace(/\u0001([A-Z])\u0002/g, (_, c) => {
+    const mk = slots[c.charCodeAt(0) - 65];
+    return mk.before ? `<span class="amt">${e(mk.a)}</span> ` : ` <span class="amt">(${e(mk.a)})</span>`;
+  });
 }
 
 /** Erwähnte Zutaten je Schritt (siehe steps.js) */
-const stepHits = (r, items) => recipeMatches(r.steps.map((s) => s.t), stepTerms(items, ing));
+const stepHits = (r, items) => recipeMatches(r.steps.map((s) => s.t), stepTerms(items, ing), r.steps.map((s) => s.amt));
 
 
 // --- Einkaufsliste -----------------------------------------------------------
@@ -1845,7 +1853,8 @@ function viewShopping() {
   const keyOf = (i) => i.key || i.id;
   const openCost = toBuy.filter((i) => !checks[keyOf(i)]).reduce((a, i) => a + i.cost, 0);
   const cats = S.ingData.categories;
-  const stores = [...new Set(toBuy.map((i) => i.store))].sort((a, b) => (a === S.settings.mainStore ? -1 : b === S.settings.mainStore ? 1 : 0));
+  const order = storeOrder(S.settings);
+  const stores = [...new Set(toBuy.map((i) => i.store))].sort((a, b) => order.indexOf(a) - order.indexOf(b));
   const offerInfo = S.offers?.updated ? `Angebote: Stand ${new Date(S.offers.updated).toLocaleDateString('de-DE')}` : 'Keine aktuellen Angebote – Richtpreise';
   const row = (id, name, price, sub, refs) => {
     const done = checks[id];
@@ -1869,12 +1878,12 @@ function viewShopping() {
   const staples = sh.staples.map((s) => row('staple:' + s.id, s.name, '', g_(s.g), s.useRefs || [])).join('');
   // Bei zwei Einkäufen: erst alles für Montag, dann das Frische für Donnerstag
   const trips = [...new Set(toBuy.map((i) => i.trip || 1))].sort();
-  const twoTrips = trips.includes(2);
+  const twoTrips = trips.includes(1) && trips.includes(2);
   const storeBlocks = trips
     .map((trip) => {
       const inTrip = toBuy.filter((i) => (i.trip || 1) === trip);
       const head = twoTrips
-        ? `<h2 class="trip-head">${trip === 1 ? '🛒 Einkauf 1 · Montag' : '🥬 Einkauf 2 · Donnerstag'} <span class="sub">${euro(inTrip.reduce((a, i) => a + i.cost, 0))}</span></h2>${trip === 2 ? '<p class="sub trip-sub">Nur Frisches für Donnerstag bis Sonntag.</p>' : ''}`
+        ? `<h2 class="trip-head">${trip === 1 ? '🛒 Einkauf 1 · Montag' : '🥬 Einkauf 2 · Donnerstag'} <span class="sub">${euro(inTrip.reduce((a, i) => a + i.cost, 0))}</span></h2>${trip === 2 ? '<p class="sub trip-sub">Neue Zutaten und Frisches für Donnerstag bis Sonntag.</p>' : ''}`
         : '';
       return (
         head +
@@ -1896,7 +1905,9 @@ function viewShopping() {
     })
     .join('');
   return `<header class="top col"><h1>Einkauf</h1><div class="sub">KW ${isoWeek(ws)} · ${e(offerInfo)}</div></header>
-    <button class="btn pill hide-btn" data-action="toggle-hide">${S.ui.hideChecked ? 'Alle zeigen' : 'Erledigte ausblenden'}</button>
+    <div class="shop-tools"><button class="btn pill hide-btn" data-action="toggle-hide">${S.ui.hideChecked ? 'Alle zeigen' : 'Erledigte ausblenden'}</button>
+      <label class="twice-switch"><input type="checkbox" data-set="shopTwice" ${S.settings.shopTwice ? 'checked' : ''}><span>Zweimal einkaufen</span></label></div>
+    ${S.settings.shopTwice ? '<p class="hint twice-hint">Montag: alles für Montag bis Mittwoch, dazu Haltbares für die ganze Woche. Donnerstag: neue Zutaten und Frisches für Donnerstag bis Sonntag.</p>' : ''}
     <section class="card accent sticky">
       <div class="kpis">
         <div><b>${euro(plan.cost)}</b><span>Gesamt</span></div>
@@ -2249,7 +2260,8 @@ function viewReview(weekArg) {
   for (const d of plan?.days || []) {
     const list = [];
     for (const m of d.meals) {
-      if (m.kind !== 'recipe') continue;
+      // Snacks bekommen kein Feedback – nur die Hauptmahlzeiten
+      if (m.kind !== 'recipe' || m.slot === 'snack') continue;
       if (also.has(m.recipeId)) {
         const a = also.get(m.recipeId);
         if (!a.includes(d.short) && a[0] !== d.short) a.push(d.short);
@@ -2374,13 +2386,9 @@ function viewSettings() {
   };
   return `<header class="top"><h1>Einstellungen</h1></header>
 
-  <section class="card accent"><h2>Dein Ziel</h2>
+  <section class="card accent"><h2>Ziel & Tagesziele</h2>
     ${goalSeg()}
     <p class="hint">${e(GOAL_HINT[st.profile?.goal || 'halten'])}</p>
-  </section>
-
-  <section class="card"><h2>Tagesziele</h2>
-    <a class="btn small pill" href="#/start/1">🧮 Mit Assistent neu berechnen</a>
     <div class="grid2">
       ${field('goals.kcal', 'Kalorien (kcal)', 'step="50"')}
       ${field('goals.carbs', 'Kohlenhydrate (g)', 'step="5"')}
@@ -2389,6 +2397,7 @@ function viewSettings() {
     </div>
     ${pl.ok ? '' : `<p class="warn-text">⚠️ ${e(pl.message)}</p>`}
     ${!pl.ok && pl.suggestedCarbs > 0 ? `<button class="btn small pill" data-action="fix-carbs" data-val="${pl.suggestedCarbs}">Kohlenhydrate auf ${pl.suggestedCarbs}g setzen</button>` : ''}
+    <a class="btn small pill" href="#/start/1">🧮 Mit Assistent neu berechnen</a>
   </section>
 
   <section class="card"><h2>Feineinstellungen</h2>
@@ -2402,16 +2411,19 @@ function viewSettings() {
   </section>
 
   <section class="card"><h2>Einkauf</h2>
-    ${STORE_IDS.map((id) => `<label class="row"><input type="checkbox" data-set="stores.${id}" ${st.stores[id] ? 'checked' : ''}> ${e(id === 'edeka' ? 'Edeka No1 Center Schloßstraße (Berlin)' : STORES[id].name)}</label>`).join('')}
-    <label class="field">Hauptladen<select data-set="mainStore">${STORE_IDS
-      .map((id) => `<option value="${id}" ${st.mainStore === id ? 'selected' : ''}>${e(STORES[id].short)}</option>`)
-      .join('')}</select></label>
-    <p class="sub">Gekauft wird im Hauptladen. Nur wenn ein anderer ausgewählter Laden mindestens 10 % günstiger ist (z. B. durch ein Angebot) oder der Hauptladen den Artikel nicht führt, landet er dort – z. B. Spezielles wie grüne Tagliatelle bei Edeka. dm und Rossmann führen nur Trockenware, Nüsse & Co.</p>
+    <p class="sub">Halte ≡ gedrückt und zieh die Läden in deine Reihenfolge. Ganz oben steht dein Hauptladen.</p>
+    <ul class="store-sort" data-sortable="stores">${storeOrder(st)
+      .map(
+        (id, i) => `<li class="store-row ${st.stores[id] ? '' : 'off'}" data-store="${id}"><span class="drag-handle" aria-label="Verschieben">≡</span>
+        <span class="store-name">${e(id === 'edeka' ? 'Edeka No1 Center Schloßstraße' : STORES[id].name)}${i === 0 ? ' <small class="badge">Hauptladen</small>' : ''}</span>
+        <label class="switch"><input type="checkbox" data-set="stores.${id}" ${st.stores[id] ? 'checked' : ''} aria-label="${e(STORES[id].short)} verwenden"><i></i></label></li>`
+      )
+      .join('')}</ul>
+    <p class="sub">Gekauft wird im obersten eingeschalteten Laden. Nur wenn ein anderer eingeschalteter Laden mindestens 10 % günstiger ist (z. B. durch ein Angebot) oder der Hauptladen den Artikel nicht führt, landet er dort – z. B. Spezielles wie grüne Tagliatelle bei Edeka. dm und Rossmann führen nur Trockenware, Nüsse & Co.</p>
     <div class="grid2 budget-row">
       <label class="field">Wochenbudget<span class="unit-input"><input type="number" inputmode="numeric" step="1" data-set="budget" value="${st.budget}"><i>€</i></span></label>
       <label class="studi-toggle"><input type="checkbox" class="big-check" data-set="studi" ${st.studi ? 'checked' : ''}><span>Studi-Modus</span></label>
     </div>
-    <label class="row twice-row"><input type="checkbox" data-set="shopTwice" ${st.shopTwice ? 'checked' : ''}> <span><b>Zweimal pro Woche einkaufen</b><br><span class="sub">Montag alles, Donnerstag nur Frisches für den Rest der Woche – Salat, Kräuter, Fisch und Fleisch bleiben so frisch.</span></span></label>
     ${S.plans[currentWeek()] && (S.plans[currentWeek()].studi ?? false) !== !!st.studi ? `<button class="btn small pill" data-action="replan-studi">Diese Woche ${st.studi ? 'im Studi-Modus ' : ''}neu planen</button>` : ''}
   </section>
 
@@ -2526,22 +2538,45 @@ async function onClick(ev) {
       haptic();
       return;
     }
-    case 'later-open':
+    case 'later-open': {
       S.ui.laterOpen = true;
       S.ui.laterDay = null;
+      // abgewählte Tage des aktuellen Plans (nach dem Start) vorbelegen
+      const first = plan.days.find((d) => !d.away)?.day ?? 0;
+      S.ui.laterOff = plan.days.filter((d) => d.away && d.day > first).map((d) => d.day);
       return render();
+    }
     case 'later-cancel':
       S.ui.laterOpen = false;
       return render();
-    case 'later-day':
-      S.ui.laterDay = Number(el.dataset.day);
+    case 'later-day': {
+      // einmal tippen: ab diesem Tag planen · zweimal tippen: Tag rot – dort wird gar nichts geplant
+      const day = Number(el.dataset.day);
+      const off = new Set(S.ui.laterOff || []);
+      const tap = S.ui.laterTap;
+      if (tap && tap.day === day && Date.now() - tap.at < 500) {
+        if (off.has(day)) off.delete(day);
+        else off.add(day);
+        S.ui.laterDay = tap.prev;
+        S.ui.laterTap = null;
+        haptic();
+      } else {
+        S.ui.laterTap = { day, at: Date.now(), prev: S.ui.laterDay };
+        if (off.has(day)) off.delete(day);
+        else S.ui.laterDay = day;
+      }
+      S.ui.laterOff = [...off].sort();
       return render();
+    }
     case 'later-go': {
       const start = Number(el.dataset.day);
-      if (!(await replanWeek(plan, start))) return;
+      const off = (S.ui.laterOff || []).filter((d) => d > start);
+      if (off.length + start >= 7) return toast('Mindestens ein Tag muss geplant werden', { icon: '📅', kind: 'warn' });
+      if (!(await replanWeek(plan, start, off))) return;
       S.ui.laterOpen = false;
       S.ui.openDays = {};
-      toast(start ? `Plan ab ${DAY_NAMES[start]} erstellt` : 'Plan für die ganze Woche erstellt', { icon: '📅', sub: 'Einkaufsliste nur für die restlichen Tage' });
+      const offTxt = off.length ? ` ohne ${off.map((d) => DAY_SHORT[d]).join(', ')}` : '';
+      toast(start ? `Plan ab ${DAY_NAMES[start]}${offTxt} erstellt` : `Plan für die Woche${offTxt} erstellt`, { icon: '📅', sub: 'Einkaufsliste nur für die geplanten Tage' });
       return render();
     }
     case 'replan-studi': {
@@ -2595,26 +2630,25 @@ async function onClick(ev) {
     case 'rfilter-cooked':
       S.ui.rCooked = !S.ui.rCooked;
       return render();
+    case 'new-open':
+      S.ui.newOpen = true;
+      rerenderRecipeList();
+      document.querySelector('[data-new-title="main"]')?.focus();
+      return;
+    case 'rsearch-clear': {
+      S.ui.rQuery = '';
+      const inp = document.querySelector('[data-rsearch]');
+      if (inp) {
+        inp.value = '';
+        inp.focus();
+      }
+      el.hidden = true;
+      rerenderRecipeList();
+      return;
+    }
     case 'rfilters-toggle':
       S.ui.rFiltersOpen = !S.ui.rFiltersOpen;
       return render();
-    case 'cook-all-ings':
-      S.ui.cookAllIngs = !S.ui.cookAllIngs;
-      return render();
-    case 'mark-cooked': {
-      const id = el.dataset.id;
-      const today = berlinNow().iso;
-      if (S.cooked.some((c) => c.id === id && c.at === today)) {
-        S.cooked = S.cooked.filter((c) => !(c.id === id && c.at === today));
-        store.set('cooked', S.cooked);
-        toast('Heute doch nicht gekocht', { icon: '↩️' });
-      } else {
-        markCooked(id);
-        haptic();
-        toast('Als gekocht gespeichert', { icon: '✓', sub: 'Nur auf diesem Gerät' });
-      }
-      return render();
-    }
     case 'rfilter-time':
       // nochmal antippen hebt den Zeitfilter wieder auf
       S.ui.rTime = S.ui.rTime === el.dataset.val ? 'all' : el.dataset.val;
@@ -3114,6 +3148,54 @@ async function onClick(ev) {
   }
 }
 
+/**
+ * Läden per Ziehen sortieren (Einstellungen): ≡ gedrückt halten und verschieben. Funktioniert mit Finger und Maus.
+ * Oben = Hauptladen; beim Loslassen wird die Reihenfolge gespeichert und der Wochenplan neu berechnet.
+ */
+function onSortStart(ev) {
+  const handle = ev.target.closest('.drag-handle');
+  const list = handle?.closest('[data-sortable]');
+  if (!handle || !list) return;
+  ev.preventDefault();
+  const item = handle.closest('li');
+  item.classList.add('dragging');
+  haptic();
+  const move = (e2) => {
+    const others = [...list.children].filter((x) => x !== item);
+    const after = others.find((x) => {
+      const r = x.getBoundingClientRect();
+      return e2.clientY < r.top + r.height / 2;
+    });
+    if (after) {
+      if (item.nextElementSibling !== after) {
+        list.insertBefore(item, after);
+        haptic();
+      }
+    } else if (list.lastElementChild !== item) {
+      list.appendChild(item);
+      haptic();
+    }
+  };
+  const up = () => {
+    document.removeEventListener('pointermove', move);
+    document.removeEventListener('pointerup', up);
+    document.removeEventListener('pointercancel', up);
+    item.classList.remove('dragging');
+    const order = [...list.children].map((x) => x.dataset.store);
+    if (order.join() === storeOrder(S.settings).join()) return;
+    S.settings.storeOrder = order;
+    S.settings.mainStore = order.find((id) => S.settings.stores[id]) || order[0];
+    S.settings.stores[S.settings.mainStore] = true;
+    saveSettings();
+    refitCurrent();
+    toast(`Hauptladen: ${STORES[S.settings.mainStore].short}`, { icon: '🛒', sub: 'Reihenfolge gespeichert, Einkauf angepasst' });
+    render();
+  };
+  document.addEventListener('pointermove', move);
+  document.addEventListener('pointerup', up);
+  document.addEventListener('pointercancel', up);
+}
+
 function onChange(ev) {
   const el = ev.target;
   if (S.ui.edit && el.dataset.editIng !== undefined && el.dataset.f === 'name') {
@@ -3148,13 +3230,19 @@ function onChange(ev) {
   }
   if (S.ui.edit && (el.dataset.edit || el.dataset.editIng !== undefined || el.dataset.editStep !== undefined)) return editField(el);
   if (el.dataset.set) {
+    // Läden-Reihenfolge festhalten, bevor sich der Hauptladen ändert
+    if (!S.settings.storeOrder?.length) S.settings.storeOrder = storeOrder(S.settings);
     let v = el.type === 'checkbox' ? el.checked : el.value;
     if (el.type === 'number') v = Number(v);
     setPath(S.settings, el.dataset.set, v);
     if (!STORE_IDS.some((id) => S.settings.stores[id])) S.settings.stores.lidl = true;
     // Hauptladen ist immer auch ausgewählt
-    if (el.dataset.set === 'mainStore') S.settings.stores[S.settings.mainStore] = true;
-    if (!S.settings.stores[S.settings.mainStore]) S.settings.mainStore = STORE_IDS.find((id) => S.settings.stores[id]);
+    if (el.dataset.set === 'mainStore') {
+      S.settings.stores[S.settings.mainStore] = true;
+      S.settings.storeOrder = [S.settings.mainStore, ...storeOrder(S.settings).filter((x) => x !== S.settings.mainStore)];
+    }
+    // Hauptladen = oberster eingeschalteter Laden
+    S.settings.mainStore = storeOrder(S.settings).find((id) => S.settings.stores[id]) || 'lidl';
     saveSettings();
     if (/^(goals\.|stores\.|mainStore$|shopTwice$)/.test(el.dataset.set)) refitCurrent();
     if (el.dataset.set === 'theme') applyTheme();
@@ -3223,6 +3311,8 @@ function onInput(ev) {
   if (el.dataset.rsearch !== undefined) {
     // nur die Liste neu zeichnen – das Suchfeld behält Fokus und Tastatur
     S.ui.rQuery = el.value;
+    const x = el.parentElement.querySelector('.rsearch-x');
+    if (x) x.hidden = !el.value;
     rerenderRecipeList();
     return;
   }

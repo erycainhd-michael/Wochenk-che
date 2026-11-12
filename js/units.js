@@ -138,11 +138,6 @@ export function kitchenAmount(id, g, note = '') {
     const n = Math.max(1, Math.round(g / 18));
     return { n: String(n), unit: '×' };
   }
-  // Tomatenmark: kleine Mengen in EL, ab gut einer halben Dose als Dose (70 g)
-  if (id === 'tomatenmark' && g >= 60) {
-    const n = Math.round((g / 70) * 2) / 2;
-    return { n: fracText(n), unit: n > 1 ? 'Dosen' : 'Dose' };
-  }
   if (id === 'eier' && /eiweiß|eiweiss/i.test(note)) {
     const n = Math.max(1, Math.round(g / 33));
     return { n: String(n), unit: '×' };
