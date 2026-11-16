@@ -807,8 +807,9 @@ function greeting() {
   const sport = isCurrent ? plan.structure?.sport?.[wd] : null;
   // Was gibt es heute bzw. morgen? (Kurzname, damit der Spruch kurz bleibt)
   const dish = (day, slot) => {
-    const d = isCurrent && plan.days.find((x) => x.day === day && !x.away);
-    const m = d?.meals.find((x) => x.slot === slot && x.kind === 'recipe');
+    // ohne Plan für diese Woche (z. B. Montag vor der Planung) gibt es kein Gericht zu nennen
+    const d = isCurrent ? plan.days.find((x) => x.day === day && !x.away) : null;
+    const m = d?.meals?.find((x) => x.slot === slot && x.kind === 'recipe');
     return m && recipe(m.recipeId) ? e(shortName(recipe(m.recipeId))) : '';
   };
   const breakfast = dish(wd, 'fruehstueck');
