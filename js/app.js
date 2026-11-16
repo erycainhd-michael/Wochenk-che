@@ -2,6 +2,7 @@
 import { DAY_NAMES, DAY_SHORT, SLOT_LABEL, addDays, clone, berlinNow, escapeHtml as e, euro, formatDate, isoWeek, mondayOf, num, shortName } from './util.js';
 import { buildIndex, plausibility } from './nutrition.js';
 import { cakesOf, generatePlan, readyKind, refitPlan, setEatOut, swapMeal } from './planner.js';
+import { ALLERGENS, DIETS, recipeBlocked, restrictions } from './diet.js';
 import { mergeOffers, storeOpen, storeOrder, STORES, STORE_IDS } from './prices.js';
 import { packText } from './shopping.js';
 import { kitchenText } from './units.js';
@@ -1011,7 +1012,7 @@ function viewStart(stepArg) {
       <div class="grid2">${field('goals.kcal', 'Kalorien (kcal)')}${field('goals.carbs', 'Kohlenhydrate (g)')}${field('goals.protein', 'Protein (g)')}${field('goals.fat', 'Fett (g)')}</div>
       ${edit ? `<div class="grid2 ob-nav"><button class="btn" data-action="ob-step" data-step="2">Zurück</button><button class="btn primary" data-action="ob-done">Übernehmen</button></div>` : nav('Weiter', 4)}</section>`;
   } else {
-    body = `<section class="card accent"><h2>Einkauf & Alltag</h2>
+    body = `${dietCard(st, true)}<section class="card accent"><h2>Einkauf & Alltag</h2>
       <label class="field">Wochenbudget<span class="unit-input"><input type="number" inputmode="numeric" step="1" data-set="budget" value="${st.budget}"><i>€</i></span></label>
       <label class="field">Wo kaufst du meistens ein?<select data-set="mainStore">${STORE_IDS.map((id) => `<option value="${id}" ${st.mainStore === id ? 'selected' : ''}>${e(STORES[id].short)}</option>`).join('')}</select></label>
       <div class="field">An welchen Abenden isst du meistens auswärts?${dayPills(eatOutDays(st.eatOut), 'eatout-day')}</div>
@@ -1579,7 +1580,7 @@ function viewChoose(key) {
   const type = isCake(meal) ? 'snack' : meal.slot === 'snack' ? 'addon' : meal.slot === 'fruehstueck' ? 'breakfast' : 'main';
   const q = S.ui.search.toLowerCase().trim();
   const list = S.recipes
-    .filter((r) => r.type === type && r.id !== meal.recipeId)
+    .filter((r) => r.type === type && r.id !== meal.recipeId && !recipeBlocked(r, S.settings, S.idx))
     .filter((r) => !q || r.name.toLowerCase().includes(q) || r.ingredients.some((l) => ing(l.id)?.name.toLowerCase().includes(q)));
   return `<header class="top col"><a class="back" href="#/woche">‹ Woche</a><h1>Rezept wählen</h1>
     <div class="sub">${DAY_NAMES[key.split('-')[0]]} · ${SLOT_LABEL[meal.slot]} · statt „${e(recipe(meal.recipeId)?.name || '')}“</div></header>
@@ -1840,6 +1841,7 @@ function recipeHtml(r, items, macros, subtitle, back, info, cookKey, withServing
       <div class="card-head"><div class="sub">${e(subtitle)}</div><a class="btn small pill" href="#/bearbeiten/${r.id}">✏️ Ändern</a></div>
       <h1 class="rtitle">${e(r.name)}</h1>
       <div class="chips"><span class="chip on">⏱️ ${r.time} Min.</span><span class="chip">🧽 ${dishesText(allTools.length || r.dishes)}</span><span class="chip">${isFancy(r) ? `✨ ${fancyLabel(r)}` : ['', 'einfach', 'normal', 'aufwendig'][r.effort]}</span>${r.protein ? `<span class="chip">${e(r.protein)}</span>` : ''}</div>
+      ${allergenLine(r)}
       <div class="mtiles">
         <div class="mt-k"><b>${num(macros.kcal)}</b><span>kcal</span></div>
         <div><b>${g_(macros.c)}</b><span>Kohlenhydrate</span></div>
@@ -2460,8 +2462,62 @@ function checkGoal(before, now) {
   }
 }
 
+/** Ernährungsform, Allergien, Schwangerschaft – in der Einführung (vor dem ersten Plan) und in den Einstellungen */
+function dietCard(st, onboarding = false) {
+  const rx = restrictions(st);
+  const showPregnancy = (st.profile?.sex || S.ui.prof?.sex) !== 'm';
+  const n = S.recipes.filter((r) => r.type === 'main' && !(r.tags || []).includes('fertiggericht') && !recipeBlocked(r, st, S.idx, rx)).length;
+  return `<section class="card ${onboarding ? 'accent' : ''}"><h2>${onboarding ? 'Was isst du nicht?' : 'Ernährung & Allergien'}</h2>
+    <div class="field">Ernährungsform<div class="seg diet-seg">${DIETS.map(([v, l]) => `<button class="pill ${(st.diet || 'alles') === v ? 'on' : ''}" data-action="set-diet" data-val="${v}">${l}</button>`).join('')}</div></div>
+    <div class="field">Allergien & Unverträglichkeiten<div class="chips allergy-chips">${ALLERGENS.map(([v, l]) => `<button class="chip ${(st.allergies || []).includes(v) ? 'on' : ''}" data-action="toggle-allergy" data-val="${v}" aria-pressed="${(st.allergies || []).includes(v)}">${l}</button>`).join('')}</div></div>
+    ${showPregnancy ? `<label class="toggle-row"><span><b>Schwanger</b><small>+250 kcal pro Tag, ohne Räucherlachs, Rohschinken, Leber und rohe Eier</small></span><span class="switch"><input type="checkbox" data-action="toggle-pregnant" ${st.profile?.pregnant ? 'checked' : ''}><i></i></span></label>` : ''}
+    <p class="hint">${n} Hauptgerichte passen dazu. Mise kennt die 14 Hauptallergene der Zutaten, aber keine Spuren – prüfe bei schweren Allergien immer die Packung.</p>
+  </section>`;
+}
+
+const shiftForPregnancy = (goals, on) => ({ ...goals, kcal: Math.max(0, goals.kcal + (on ? 250 : -250)), carbs: Math.max(0, goals.carbs + (on ? 60 : -60)) });
+
+/**
+ * Nach Änderungen an Ernährungsform, Allergien, Schwangerschaft oder Abneigungen: Gerichte der laufenden Woche,
+ * die nicht mehr passen, sofort tauschen (Snacks werden beim Neuberechnen ohnehin neu gewählt).
+ */
+function applyRestrictions() {
+  let plan = S.plans[currentWeek()];
+  if (!plan?.structure) return;
+  const input = plannerInput({ weekStart: plan.weekStart });
+  const rx = restrictions(S.settings);
+  const bad = (id) => {
+    const r = recipe(id);
+    return r && recipeBlocked(r, S.settings, S.idx, rx);
+  };
+  const done = plan.done || {};
+  const stock = Object.fromEntries(Object.entries(plan.structure.stock || {}).filter(([id]) => !S.recipes.some((r) => r.ingredients[0]?.id === id && bad(r.id))));
+  plan = refitPlan({ ...plan, structure: { ...plan.structure, stock } }, input);
+  const keys = plan.days.flatMap((d) => d.meals.filter((m) => m.kind === 'recipe' && bad(m.recipeId)).map((m) => m.key));
+  for (const k of keys) {
+    const m = findMeal(plan, k);
+    if (m && bad(m.recipeId)) plan = swapMeal(plan, k, input);
+  }
+  const left = plan.days.flatMap((d) => d.meals.filter((m) => m.kind === 'recipe' && bad(m.recipeId)));
+  plan.done = done;
+  S.plans[plan.weekStart] = plan;
+  savePlans();
+  if (left.length) toast('Nicht alles ließ sich ersetzen', { icon: '⚠️', sub: `${left.length} Mahlzeit${left.length === 1 ? '' : 'en'} ohne passende Alternative – tausche sie in der Woche von Hand.`, kind: 'warn' });
+  else if (keys.length) toast('Plan angepasst', { icon: '🥗', sub: `${keys.length} Mahlzeit${keys.length === 1 ? '' : 'en'} getauscht – Einkaufsliste aktualisiert` });
+}
+
+/** Allergene eines Rezepts (EU-14) – mit Warnung, wenn es nicht zu deinen Einstellungen passt */
+function allergenLine(r) {
+  const set = new Set(r.ingredients.flatMap((l) => ing(l.id)?.allergens || []));
+  const names = ALLERGENS.filter(([k]) => set.has(k)).map(([, l]) => l);
+  const why = recipeBlocked(r, S.settings, S.idx);
+  if (why) return `<p class="allergen-line conflict">⚠️ Passt nicht zu deinen Einstellungen (${e(why)}).${names.length ? ` Enthält: ${e(names.join(', '))}.` : ''}</p>`;
+  return names.length ? `<p class="allergen-line">Enthält: ${e(names.join(', '))}</p>` : '';
+}
+
 /** Warum Abnehmen gerade nicht geht – in einfachen Worten */
 function blockedText(reason) {
+  if (reason === 'pregnant') return 'In der Schwangerschaft plant Mise kein Kaloriendefizit – dein Körper braucht jetzt etwas mehr Energie.';
   return reason === 'minor'
     ? 'Unter 18 wächst dein Körper noch und braucht genug Energie. Mise plant deshalb kein Kaloriendefizit – sprich bei Bedarf mit deiner Ärztin oder deinem Arzt.'
     : `Dein BMI liegt unter ${String(UNDERWEIGHT_BMI).replace('.', ',')} (Untergewicht). Mise plant deshalb kein Kaloriendefizit. Wenn Essen gerade schwierig ist: Die BZgA-Beratung zu Essstörungen hilft anonym (0221 892031).`;
@@ -2642,6 +2698,8 @@ function viewSettings() {
     </div>
     ${S.plans[currentWeek()] && (S.plans[currentWeek()].studi ?? false) !== !!st.studi ? `<button class="btn small pill" data-action="replan-studi">Diese Woche ${st.studi ? 'im Studi-Modus ' : ''}neu planen</button>` : ''}
   </section>
+
+  ${dietCard(st)}
 
   <section class="card"><h2>Gerichte</h2>
     ${field('complexPerWeek', 'Aufwendige Gerichte pro Woche', 'min="0" max="3"')}
@@ -3358,12 +3416,42 @@ async function onClick(ev) {
       const v = document.getElementById('dislike-new').value.trim();
       if (v) S.settings.dislikes.push(v);
       saveSettings();
+      applyRestrictions();
       return render();
     }
     case 'del-dislike':
       S.settings.dislikes.splice(Number(el.dataset.i), 1);
       saveSettings();
       return render();
+    case 'set-diet':
+      S.settings.diet = el.dataset.val;
+      saveSettings();
+      haptic();
+      applyRestrictions();
+      return render();
+    case 'toggle-allergy': {
+      const set = new Set(S.settings.allergies || []);
+      if (set.has(el.dataset.val)) set.delete(el.dataset.val);
+      else set.add(el.dataset.val);
+      S.settings.allergies = [...set];
+      saveSettings();
+      haptic();
+      applyRestrictions();
+      return render();
+    }
+    case 'toggle-pregnant': {
+      const p = S.settings.profile || {};
+      const on = !p.pregnant;
+      // kein Abnehmen in der Schwangerschaft; +250 kcal – eigene Anpassungen an den Zielen bleiben
+      if (on && p.goal === 'abnehmen' && p.height) Object.assign(S.settings, switchGoal(S.settings, 'halten'));
+      S.settings.profile = { ...(S.settings.profile || {}), pregnant: on };
+      if (S.settings.goals) S.settings.goals = shiftForPregnancy(S.settings.goals, on);
+      if (S.ui.prof) S.ui.prof.pregnant = on;
+      saveSettings();
+      haptic();
+      applyRestrictions();
+      return render();
+    }
     case 'export':
       return doExport();
     case 'reset-settings':

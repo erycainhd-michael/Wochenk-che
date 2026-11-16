@@ -419,7 +419,7 @@ test('Fertiggerichte (Frosta): Sorten-Angebot gilt für alle, nur bei Angebot/Vo
   const p = generatePlan({ recipes, idx, settings: s, weekStart: '2026-10-05', seed: 3, candidates: 10, offers: mapped.map((o) => ({ ...o, source: 'auto' })) });
   const ready = p.days.flatMap((d) => d.meals).filter((m) => isReady(m.recipeId));
   assert.ok(ready.length >= 1, 'kein Fertiggericht trotz Angebot');
-  for (const m of ready) assert.equal(m.items[0].g, 500);
+  for (const m of ready) assert.equal(m.items[0].g, idx.get(m.items[0].id).pack, 'ganzer Beutel');
   const stock = Object.entries(p.structure.stock || {});
   assert.ok(stock.length >= 1, 'kein Vorrat angelegt');
   for (const [id, g] of stock) assert.ok(p.shopping.leftovers[id] >= g, `${id} fehlt in den Resten`);
