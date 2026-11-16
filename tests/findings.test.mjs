@@ -56,21 +56,21 @@ test('F03 Gewicht zieht die Ziele mit, Zielgewicht erreicht → Rückfrage, Unte
   assert.equal(c.reached, false);
 });
 
-test('F04 Allergie „Nüsse“ schließt Mandeln, Walnüsse und Erdnuss aus', { todo: 'Befund F04' }, () => {
+test('F04 Allergie „Nüsse“ schließt Mandeln, Walnüsse und Erdnuss aus', () => {
   const p = generatePlan({ recipes, idx, settings: base({ dislikes: ['Nüsse'] }), weekStart: '2026-11-16', seed: 6, candidates: 6 });
   const hits = mealsOf(p).filter((m) => /mandel|walnu|erdnu|haselnu|cashew|pinienkern|pesto/.test(namesOf(m)));
   assert.equal(hits.length, 0, hits.map((m) => m.recipeId).join(', '));
 });
 
-test('F05 Abneigung „Ei“ trifft nur Eier, nicht Reis/Weißwein', { todo: 'Befund F05' }, () => {
+test('F05 Abneigung „Ei“ trifft nur Eier, nicht Reis/Weißwein', () => {
   const all = prepareContext({ recipes, idx, settings: base(), weekStart: '2026-11-16' }).mains.length;
   const noEgg = prepareContext({ recipes, idx, settings: base({ dislikes: ['Ei'] }), weekStart: '2026-11-16' }).mains.length;
   assert.ok(noEgg >= all * 0.7, `nur noch ${noEgg} von ${all} Hauptgerichten`);
 });
 
-test('F07 Schwangerschaft: kein Räucherlachs, Rohschinken, Leber', { todo: 'Befund F07 – Einstellung fehlt' }, () => {
+test('F07 Schwangerschaft: kein Räucherlachs, Rohschinken, Leber', () => {
   // alles, was der Planer überhaupt einplanen darf (Hauptgerichte, Frühstück, Snacks)
-  const ctx = prepareContext({ recipes, idx, settings: base({ pregnant: true }), weekStart: '2026-11-16' });
+  const ctx = prepareContext({ recipes, idx, settings: base({ profile: { pregnant: true } }), weekStart: '2026-11-16' });
   const pool = [...ctx.mains, ...ctx.breakfasts, ...ctx.addons, ...ctx.snacks];
   const risky = pool.filter((r) => r.ingredients.some((l) => /räucherlachs|rohschinken|serrano|parma|leber/i.test(idx.get(l.id)?.name || '')));
   assert.equal(risky.length, 0, risky.map((r) => r.id).join(', '));
@@ -98,4 +98,24 @@ test('F13 Auswärts-Abend passt zum Tagesziel (nicht pauschal 1.000 kcal)', { to
   const p = generatePlan({ recipes, idx, settings: s, weekStart: '2026-11-16', seed: 4, candidates: 6 });
   const d = p.days[2];
   assert.ok(d.totals.kcal <= d.goalKcal * 1.08, `${Math.round(d.totals.kcal)} kcal bei Ziel ${d.goalKcal}`);
+});
+
+test('F04/F05 Ernährungsformen und Allergien über Zutatendaten', async () => {
+  const { recipeBlocked, restrictions } = await import('../js/diet.js');
+  const pool = (extra) => prepareContext({ recipes, idx, settings: base(extra), weekStart: '2026-11-16' });
+  // vegan: nichts Tierisches in Hauptgerichten, Frühstück und Snacks – und es bleibt genug zum Planen
+  const v = pool({ diet: 'vegan' });
+  for (const r of [...v.mains, ...v.breakfasts, ...v.addons]) for (const l of r.ingredients) assert.ok(!(idx.get(l.id).animal || []).length, `${r.id}: ${l.id}`);
+  assert.ok(v.mains.length >= 5 && v.breakfasts.length >= 2, `vegan: ${v.mains.length} Haupt, ${v.breakfasts.length} Frühstück`);
+  // glutenfrei: Haferflocken, Nudeln, Brot, Sojasauce raus
+  const g = pool({ allergies: ['gluten'] });
+  for (const r of [...g.mains, ...g.breakfasts]) for (const l of r.ingredients) assert.ok(!(idx.get(l.id).allergens || []).includes('gluten'), `${r.id}: ${l.id}`);
+  assert.ok(g.breakfasts.length >= 3, `glutenfrei: ${g.breakfasts.length} Frühstücke`);
+  // Freitext „Gluten“ wirkt wie die Allergie
+  const rx = restrictions(base({ dislikes: ['Gluten'] }));
+  assert.ok(recipeBlocked(recipes.find((r) => r.id === 'carbonara'), base({ dislikes: ['Gluten'] }), idx, rx));
+  // „Pilze“ trifft Champignons nicht über Teilstrings, „Käse“ trifft Hüttenkäse (Wortende)
+  const k = restrictions(base({ dislikes: ['Käse'] }));
+  assert.ok(recipeBlocked({ name: 'Brot', ingredients: [{ id: 'huettenkaese', g: 50 }] }, base({ dislikes: ['Käse'] }), idx, k));
+  assert.equal(recipeBlocked({ name: 'Reispfanne', ingredients: [{ id: 'reis', g: 50 }] }, base({ dislikes: ['Ei'] }), idx), null);
 });

@@ -13,6 +13,7 @@ import { itemsCost, makePriceFn } from './prices.js';
 import { buildShopping } from './shopping.js';
 import { fiberTargetFor } from './settings.js';
 import { daySportKcal } from './sport.js';
+import { recipeBlocked, restrictions } from './diet.js';
 
 const MAIN_SLOTS = ['mittag', 'abend'];
 
@@ -23,17 +24,15 @@ const MAIN_SLOTS = ['mittag', 'abend'];
 export function prepareContext(input) {
   const { recipes, idx, settings, weekStart } = input;
   const month = Number(weekStart.slice(5, 7));
-  const dislikes = (settings.dislikes || []).map((d) => d.toLowerCase().trim()).filter(Boolean);
   const priceOf = input.priceOf || makePriceFn({ idx, settings, offers: input.offers || [], weekStart });
   const fbw = input.feedbackWeights || {};
   const exclude = new Set(input.exclude || []);
   // Tage, an denen man noch unterwegs ist (z. B. Urlaub bis Dienstag): kein Plan, kein Einkauf
   const away = [...new Set(input.away || [])].filter((d) => d >= 0 && d < 7).sort();
 
-  const isDisliked = (r) => {
-    const texts = [r.name, ...(r.contains || []), ...r.ingredients.map((l) => idx.get(l.id)?.name || '')].map((t) => t.toLowerCase());
-    return dislikes.some((d) => texts.some((t) => t.includes(d)));
-  };
+  // Ernährungsform, Allergien, Schwangerschaft und Abneigungen (siehe diet.js)
+  const rx = restrictions(settings);
+  const isDisliked = (r) => !!recipeBlocked(r, settings, idx, rx);
   const inSeason = (r) => {
     if (r.season && !r.season.includes(month)) return false;
     return r.ingredients.every((l) => !idx.get(l.id)?.season || idx.get(l.id).season.includes(month));

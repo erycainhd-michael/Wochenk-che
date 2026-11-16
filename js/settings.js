@@ -22,6 +22,9 @@ export const DEFAULT_SETTINGS = {
   eatOutProtein: 35,
   complexPerWeek: 1,
   dislikes: [],
+  // Ernährungsform (alles | pescetarisch | vegetarisch | vegan) und Allergien (EU-14, siehe diet.js)
+  diet: 'alles',
+  allergies: [],
   // Ballaststoffe: ausgewogenes Tagesziel in g
   fiber: { target: 32 },
   psyllium: false,
@@ -85,6 +88,7 @@ export const UNDERWEIGHT_BMI = 18.5;
  */
 export function goalBlocked(p, goal = p?.goal) {
   if (goal !== 'abnehmen' || !p) return null;
+  if (p.pregnant) return 'pregnant';
   if (Number(p.age) > 0 && Number(p.age) < 18) return 'minor';
   if (Number(p.weight) > 0 && Number(p.height) > 0 && bmiOf(p.weight, p.height) < UNDERWEIGHT_BMI) return 'underweight';
   return null;
@@ -101,7 +105,9 @@ export function calcGoals(p) {
   const [, , adj, perKg] = GOALS.find((x) => x[0] === goal) || GOALS[1];
   // Jugendliche wachsen noch: Mifflin-St Jeor unterschätzt ihren Bedarf (DGE-Richtwerte liegen ca. 10 % höher)
   const growth = a > 0 && a < 18 ? 1.1 : 1;
-  const kcal = Math.round((Math.max(bmr * 1.1, bmr * pal + adj) * growth) / 50) * 50;
+  // Schwangerschaft: ca. +250 kcal (DGE, ab dem 2. Trimester; im 1. Trimester reicht weniger) – kein Defizit
+  const extra = p.pregnant ? 250 : 0;
+  const kcal = Math.round((Math.max(bmr * 1.1, bmr * pal + adj) * growth + extra) / 50) * 50;
   const refW = Math.min(w, 27 * (h / 100) ** 2);
   const protein = Math.round((refW * perKg) / 5) * 5;
   const fat = Math.round((kcal * 0.3) / 9 / 5) * 5;
