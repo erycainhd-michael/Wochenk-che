@@ -1,9 +1,9 @@
 {
-  "updated": "2026-11-16T11:09:38.895Z",
+  "updated": "2026-11-16T13:17:38.450Z",
   "sources": {
     "edeka": {
       "ok": true,
-      "count": 354,
+      "count": 358,
       "matched": 26
     },
     "rewe": {
@@ -185,6 +185,16 @@
       "validTo": "2026-11-21",
       "ingredientId": null,
       "packPrice": null
+    },
+    {
+      "store": "edeka",
+      "title": "Spanien GUT&GÜNSTIG Clementinen",
+      "price": 3.99,
+      "unit": "Kl. I, 2,3kg Kartonkiste, 1kg = 1,73",
+      "validFrom": "2026-11-16",
+      "validTo": "2026-11-21",
+      "ingredientId": "mandarinen",
+      "packPrice": 1.33
     },
     {
       "store": "edeka",
