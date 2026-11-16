@@ -175,7 +175,10 @@ test('Mehrere Personen: Einkauf wächst mit, deine Makros bleiben gleich', () =>
   const before = refitPlan(plan, input);
   const meal = (p) => p.days[Number(key.split('-')[0])].meals.find((m) => m.key === key);
   assert.equal(meal(next).people, 3);
-  assert.equal(Math.round(meal(next).macros.kcal), Math.round(meal(before).macros.kcal));
+  // dein Tag bleibt gleich (die Eiweiß-Ergänzung darf sich innerhalb des Tages anders verteilen)
+  const day = (p) => p.days[Number(key.split('-')[0])].totals.kcal;
+  assert.ok(Math.abs(day(next) - day(before)) / day(before) < 0.01, `${day(before)} → ${day(next)}`);
+  assert.ok(Math.abs(meal(next).macros.kcal - meal(before).macros.kcal) / meal(before).macros.kcal < 0.05);
   const main = meal(before).items.reduce((a, b) => (b.g > a.g ? b : a));
   const need = (p) => p.shopping.items.find((i) => i.id === main.id)?.need || p.shopping.staples.find((i) => i.id === main.id)?.g;
   assert.ok(need(next) >= need(before) + main.g * 2 - 2, `${main.id}: ${need(before)} → ${need(next)}`);
@@ -388,4 +391,51 @@ test('Läden: Reihenfolge bestimmt den Hauptladen, Rewe hat Richtpreise', async 
   const raw = normalizeRewe({ data: { categories: [{ offers: [{ title: 'Hähnchenbrustfilet', subtitle: 'je 400-g-Packung', priceData: { price: '4,44 €' } }] }] } });
   assert.equal(raw.length, 1);
   assert.equal(raw[0].price, 4.44);
+});
+
+test('Kaufland: erst ab 30.11. (Eröffnung im Schloss-Straßen-Center), Richtpreis ≈ Lidl +3 %', () => {
+  const s = settings();
+  s.stores = { kaufland: true };
+  s.storeOrder = ['kaufland'];
+  const before = makePriceFn({ idx, settings: s, offers: [], weekStart: '2026-11-23' });
+  assert.notEqual(before('spaghetti').store, 'kaufland');
+  const after = makePriceFn({ idx, settings: s, offers: [], weekStart: '2026-11-30' });
+  assert.equal(after('spaghetti').store, 'kaufland');
+  assert.equal(after('spaghetti').price, Math.round(idx.get('spaghetti').price * 1.03 * 100) / 100);
+});
+
+test('Fertiggerichte (Frosta): Sorten-Angebot gilt für alle, nur bei Angebot/Vorrat im Plan, Vorrat wird angelegt', () => {
+  const ings = ingData.items;
+  const mapped = mapOffers([{ title: 'Frosta High Protein-Hähnchen- oder à la Carte Fertiggerichte', price: 4.29, unitText: 'versch. Sorten, 450/500g Beutel', validFrom: '2026-10-05', validTo: '2026-10-11' }], 'edeka', ings);
+  const ids = mapped.map((o) => o.ingredientId);
+  assert.ok(ids.includes('frosta_paella') && ids.includes('frosta_bami_goreng') && ids.length >= 4, ids.join(','));
+  assert.equal(mapOffers([{ title: 'Frosta Fischgerichte, Pfannen- oder Backofenfisch', price: 2.99, unitText: '450g' }], 'edeka', ings)[0].ingredientId, null);
+  assert.equal(matchIngredient('Maggi Fertiggerichte', ings), null, 'andere Marke ≠ Frosta');
+  const isReady = (id) => (recipes.find((r) => r.id === id)?.tags || []).includes('fertiggericht');
+  // ohne Angebot und Vorrat: nie
+  assert.ok(!plan.cooks.some((c) => isReady(c.recipeId)));
+  // im Angebot (großzügiges Budget): eingeplant als ganzer Beutel + Vorrat
+  const s = { ...settings(), budget: 120 };
+  const p = generatePlan({ recipes, idx, settings: s, weekStart: '2026-10-05', seed: 3, candidates: 10, offers: mapped.map((o) => ({ ...o, source: 'auto' })) });
+  const ready = p.days.flatMap((d) => d.meals).filter((m) => isReady(m.recipeId));
+  assert.ok(ready.length >= 1, 'kein Fertiggericht trotz Angebot');
+  for (const m of ready) assert.equal(m.items[0].g, 500);
+  const stock = Object.entries(p.structure.stock || {});
+  assert.ok(stock.length >= 1, 'kein Vorrat angelegt');
+  for (const [id, g] of stock) assert.ok(p.shopping.leftovers[id] >= g, `${id} fehlt in den Resten`);
+  // nächste Woche ohne Angebot: Vorrat wird gegessen, nichts nachgekauft
+  const pantry = Object.fromEntries(stock);
+  const q = generatePlan({ recipes, idx, settings: s, weekStart: '2026-10-12', seed: 4, candidates: 10, pantry });
+  assert.ok(q.cooks.some((c) => isReady(c.recipeId)), 'Vorrat nicht eingeplant');
+  assert.ok(!q.shopping.items.some((i) => idx.get(i.id).ready && i.packs > 0));
+});
+
+test('Budget: Kassenbon knapp unter dem Budget, großzügiges Budget wird nicht ausgeschöpft', async () => {
+  const { budgetTarget } = await import('../js/planner.js');
+  assert.equal(budgetTarget({ budget: 60 }), 60);
+  assert.equal(budgetTarget({ budget: 100 }), 85);
+  for (const seed of [1, 2]) {
+    const p = generatePlan({ recipes, idx, settings: { ...settings(), budget: 60 }, weekStart: '2026-10-05', seed, candidates: 20 });
+    assert.ok(p.cost <= 60 && p.cost >= 50, `Seed ${seed}: ${p.cost.toFixed(2)} €`);
+  }
 });

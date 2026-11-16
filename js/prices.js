@@ -5,6 +5,7 @@ export const STORES = {
   aldi: { id: 'aldi', name: 'Aldi Nord', short: 'Aldi' },
   edeka: { id: 'edeka', name: 'Edeka No1 Center Schloßstraße', short: 'Edeka' },
   rewe: { id: 'rewe', name: 'Rewe', short: 'Rewe' },
+  kaufland: { id: 'kaufland', name: 'Kaufland Schloss-Straßen-Center', short: 'Kaufland', opens: '2026-11-30' },
   dm: { id: 'dm', name: 'dm', short: 'dm' },
   rossmann: { id: 'rossmann', name: 'Rossmann', short: 'Rossmann' },
 };
@@ -27,12 +28,19 @@ export function sells(store, ing) {
   return true;
 }
 
-/** Richtpreis je Laden (Lidl = Basis; Aldi ≈ Lidl; Edeka ≈ +15 %; Rewe ≈ 3 % unter Edeka; Drogerie ≈ +10 % bzw. günstiger bei Spezialartikeln) */
+/** Hat der Laden in dieser Woche schon geöffnet? (Kaufland zieht am 30.11.2026 ins Schloss-Straßen-Center) */
+export function storeOpen(store, weekStart) {
+  const opens = STORES[store]?.opens;
+  return !opens || (weekStart || new Date().toISOString().slice(0, 10)) >= opens;
+}
+
+/** Richtpreis je Laden (Lidl = Basis; Aldi ≈ Lidl; Kaufland ≈ +3 %; Edeka ≈ +15 %; Rewe ≈ 3 % unter Edeka; Drogerie ≈ +10 % bzw. günstiger bei Spezialartikeln) */
 export function regularPrice(ing, store) {
   const r = (x) => Math.round(x * 100) / 100;
   if (store === 'edeka') return ing.priceEdeka ?? r(ing.price * 1.15);
   if (store === 'rewe') return ing.priceRewe ?? r((ing.priceEdeka ?? ing.price * 1.15) * 0.97);
   if (store === 'aldi') return ing.priceAldi ?? ing.price;
+  if (store === 'kaufland') return ing.priceKaufland ?? r(ing.price * 1.03);
   if (store === 'dm' || store === 'rossmann') return r(ing.price * (DRUGSTORE_CHEAPER.has(ing.id) ? 0.9 : 1.1));
   return ing.price;
 }
@@ -72,7 +80,7 @@ export function storeOrder(settings) {
 }
 
 export function makePriceFn({ idx, settings, offers = [], weekStart }) {
-  const subscribed = storeOrder(settings).filter((s) => settings.stores?.[s]);
+  const subscribed = storeOrder(settings).filter((s) => settings.stores?.[s] && storeOpen(s, weekStart));
   const stores = subscribed.length ? subscribed : ['lidl'];
   const mainStore = stores[0];
   const valid = offers.filter((o) => offerValidFor(o, weekStart) && stores.includes(o.store));
@@ -132,7 +140,15 @@ const norm = (s) =>
     .trim();
 
 // Wörter, die auf verarbeitete Produkte statt der Grundzutat hindeuten
-const EXCLUDE = ['ketchup', 'mayonnaise', 'sauce', 'sosse', 'bagel', 'sandwich', 'brotchen', 'krustchen', 'salat mit', 'aufstrich', 'chips', 'saft', 'smoothie', 'pizza', 'konzentrat', 'gebraten', 'paniert', 'eingelegt', 'gewurzgurken', 'rauchfleisch', 'kuchen', 'riegel', 'drink', 'eis'];
+/** „versch. Sorten“ bei einer Marke: das Angebot gilt für alle Produkte derselben Gruppe (z. B. alle Frosta-Gerichte) */
+export function offerGroupMembers(ing, title, ingredients) {
+  if (!ing?.offerGroup) return [ing];
+  const t = norm(title);
+  const all = / versch| sorten|fertiggerichte| oder /.test(' ' + t);
+  return all ? ingredients.filter((i) => i.offerGroup === ing.offerGroup) : [ing];
+}
+
+const EXCLUDE = ['ketchup', 'mayonnaise', 'sauce', 'sosse', 'bagel', 'sandwich', 'brotchen', 'krustchen', 'salat mit', 'aufstrich', 'chips', 'saft', 'smoothie', 'pizza', 'konzentrat', 'gebraten', 'paniert', 'eingelegt', 'gewurzgurken', 'rauchfleisch', 'kuchen', 'riegel', 'drink', 'eis', 'spekulatius', 'stollen', 'kasseler', 'leberwurst', 'blutwurst', 'kekse', 'geback'];
 
 export function matchIngredient(title, ingredients) {
   const t = ' ' + norm(title) + ' ';
@@ -141,6 +157,8 @@ export function matchIngredient(title, ingredients) {
   let bestLen = 0;
   for (const ing of ingredients) {
     if ((ing.kwNot || []).some((w) => t.includes(norm(w)))) continue;
+    // Markenprodukte (z. B. Frosta-Fertiggerichte) nur, wenn die Marke im Titel steht
+    if (ing.brand && !t.includes(' ' + norm(ing.brand) + ' ')) continue;
     for (const kw of ing.kw || []) {
       const k = norm(kw);
       // ganzes Wort (Plural-Endungen erlaubt), nicht nur Wortanfang: „Tomaten“ ≠ „Tomatenketchup“

@@ -47,6 +47,19 @@ export function buildShopping({ plan, idx, pantry = {}, priceOf, recipesById, tw
     }
   }
 
+  // Vorrat anlegen (z. B. Frosta im Angebot): wird diese Woche gekauft, aber erst später gegessen
+  for (const [id, g] of Object.entries(plan.structure?.stock || {})) {
+    if (!g || !idx.get(id)) continue;
+    const e = need.get(id) || { g: 0, g2: 0, uses: new Set(), useIds: new Map(), useIds1: new Map(), useIds2: new Map() };
+    e.g += g;
+    const rid = [...(recipesById?.values() || [])].find((r) => (r.tags || []).includes('fertiggericht') && r.ingredients[0]?.id === id)?.id || id;
+    e.uses.add('den Vorrat (Angebot)');
+    e.useIds.set(rid + '#vorrat', 'den Vorrat (Angebot)');
+    e.useIds1.set(rid + '#vorrat', 'den Vorrat (Angebot)');
+    e.stock = (e.stock || 0) + g;
+    need.set(id, e);
+  }
+
   const items = [];
   const staples = [];
   const leftovers = {};
@@ -110,7 +123,8 @@ export function buildShopping({ plan, idx, pantry = {}, priceOf, recipesById, tw
       rows.push(row(e.g2, left1, 2, refs2));
     } else rows.push(row(e.g, have, 1, useRefs));
     const bought = rows.reduce((a, r) => a + r.packs * ing.pack, 0);
-    const left = Math.max(0, have + bought - e.g);
+    // Vorratskäufe werden diese Woche nicht gegessen – sie bleiben als Rest für die nächsten Wochen
+    const left = Math.max(0, have + bought - (e.g - (e.stock || 0)));
     if (left >= 1) leftovers[id] = Math.round(left);
     if (left > 0 && ing.shelf <= 10) wasteEuro += (left / ing.pack) * pr.price;
     else if (left > 0) stockEuro += (Math.min(left, bought) / ing.pack) * pr.price;
