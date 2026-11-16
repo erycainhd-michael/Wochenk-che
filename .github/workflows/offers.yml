@@ -39,8 +39,8 @@ jobs:
           # EDEKA Center No. 1, Schloßstr. 1, 12163 Berlin (per Suchlauf ermittelt)
           EDEKA_MARKET_ID: ${{ vars.EDEKA_MARKET_ID || '10001290' }}
           FIND_REWE: ${{ github.event.inputs.find_rewe }}
-          # Rewe-Markt: Repository-Variable REWE_MARKET_ID (ohne ID gelten für Rewe Richtpreise)
-          REWE_MARKET_ID: ${{ vars.REWE_MARKET_ID }}
+          # REWE im Schloss-Straßen-Center, Walther-Schreiber-Platz 1, 12161 Berlin (per Suchlauf ermittelt)
+          REWE_MARKET_ID: ${{ vars.REWE_MARKET_ID || '4040229' }}
         run: node scripts/fetch-offers.mjs
       - name: offers.json speichern
         run: |

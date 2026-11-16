@@ -1014,3 +1014,13 @@ body { min-height: calc(100vh + 1px); min-height: calc(100lvh + 1px); }
 .switch input:checked + i { background: var(--accent); }
 .switch input:checked + i::after { transform: translateX(18px); }
 .store-sort { user-select: none; -webkit-user-select: none; }
+.later .pill.circle { touch-action: manipulation; }
+/* Zwei Einkäufe: Wischansicht */
+.trip-tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin: 14px 0 10px; padding: 4px; border-radius: 16px; background: var(--field); }
+.trip-tab { display: flex; flex-direction: column; align-items: center; gap: 2px; border: 0; border-radius: 12px; padding: 8px 6px; background: transparent; color: var(--muted); font: inherit; font-size: 0.85rem; cursor: pointer; transition: background 0.2s, color 0.2s; }
+.trip-tab b { font-size: 1rem; }
+.trip-tab.on { background: var(--card, #fff); color: var(--text, inherit); box-shadow: var(--shadow); }
+.trips { display: flex; overflow-x: auto; overflow-y: hidden; scroll-snap-type: x mandatory; scrollbar-width: none; -webkit-overflow-scrolling: touch; overscroll-behavior-x: contain; align-items: flex-start; transition: height 0.25s ease; margin: 0 -16px; padding: 0 16px; scroll-padding: 0 16px; gap: 32px; }
+.trips::-webkit-scrollbar { display: none; }
+.trip-panel { flex: 0 0 100%; scroll-snap-align: start; scroll-snap-stop: always; min-width: 0; }
+.trip-panel .trip-sub { margin: 0 4px 10px; }
