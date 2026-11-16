@@ -293,7 +293,8 @@ export function buildStructure(ctx, rng, mode = {}) {
     if (ago && inf.weight < 1.3) w *= 1 - variety * (ago === 1 ? 0.7 : 0.35);
     const costRatio = ctx.avgMainCost / Math.max(0.5, inf.cost);
     w *= Math.pow(costRatio, mode.cheap ? 1.5 + mode.cheap : 0.6);
-    w *= Math.pow(macroFit(inf.macros, settings.goals), mode.cheap ? 0.6 : 1.6);
+    // gesenktes Protein-Ziel: eiweißärmere Gerichte deutlich bevorzugen
+    w *= Math.pow(macroFit(inf.macros, settings.goals), lowProtein(settings.goals) ? 5 : mode.cheap ? 0.6 : 1.6);
     return Math.max(0.001, w);
   };
 
@@ -338,7 +339,7 @@ export function buildStructure(ctx, rng, mode = {}) {
     const weights = pool.map((r) => {
       const inf = info.get(r.id);
       const ev = stock.evaluate(baseItems(r, settings, 7 / k));
-      return Math.pow(inf.weight * (1 + 1.5 * ev.coverage) * (1 + offersW * inf.offerShare) * (mode.cheap ? 1 / Math.max(0.5, inf.cost) : 1) * macroFit(inf.macros, settings.goals), 1.5);
+      return Math.pow(inf.weight * (1 + 1.5 * ev.coverage) * (1 + offersW * inf.offerShare) * (mode.cheap ? 1 / Math.max(0.5, inf.cost) : 1) * Math.pow(macroFit(inf.macros, settings.goals), lowProtein(settings.goals) ? 4 : 1), 1.5);
     });
     const r = pickWeighted(pool, weights, rng);
     chosen.push(r.id);
@@ -378,8 +379,11 @@ export function buildStructure(ctx, rng, mode = {}) {
 // ---------------------------------------------------------------------------
 
 function eatOutMacros(settings) {
-  const kcal = settings.eatOutKcal || 1000;
-  const p = settings.eatOutProtein || 35;
+  // Auswärts-Abend passend zum Tagesziel: höchstens der eingestellte Wert (Standard 1.000 kcal), aber nicht mehr
+  // als ca. 40 % des Tagesziels – bei 1.400 kcal wird also mit einem leichteren Essen (ca. 550 kcal) gerechnet
+  const base = settings.eatOutKcal || 1000;
+  const kcal = Math.max(450, Math.min(base, Math.round((settings.goals.kcal * 0.4) / 50) * 50));
+  const p = ((settings.eatOutProtein || 35) * kcal) / base;
   const rest = kcal - p * 4;
   return { kcal, p, c: (rest * 0.55) / 4, f: (rest * 0.45) / 9, fib: 6, veg: 100 };
 }
@@ -407,6 +411,10 @@ function dayGoals(goals, extra) {
 // Ein Gericht bleibt das Gericht: Beilage und Proteinquelle weichen höchstens ±20–25 % vom Rezept ab
 // (eine Carbonara bleibt eine Carbonara). Was dann zum Tagesziel fehlt, kommt über einen Snack.
 const S_STEPS = [0.85, 1, 1.15, 1.25];
+/** Protein unter 14 % der Kalorien – ein bewusst gesenktes Ziel, das als Obergrenze gilt */
+export const lowProtein = (goals) => goals.protein * 4 < goals.kcal * 0.14;
+/** Ab wie viel Protein eine Mahlzeit als „eiweißreich“ zählt (bei gesenktem Ziel entsprechend weniger) */
+const mealProteinMin = (goals) => Math.min(25, goals.protein * 0.25);
 const Q_STEPS = [0.7, 0.8, 0.9, 1, 1.1, 1.2];
 // Portionsgröße: höchstens 30 % mehr als im Rezept, nach unten bis 60 % (für kleinere Tagesziele)
 const FM_MIN = 0.6, FM_MAX = 1.3, FB_MIN = 0.65, FB_MAX = 1.3;
@@ -418,6 +426,13 @@ const FM_MIN = 0.6, FM_MAX = 1.3, FB_MIN = 0.65, FB_MAX = 1.3;
  */
 function fitDay({ ctx, fixed, breakfast, mains, combos, extra = 0, usage = {} }) {
   const g = dayGoals(ctx.settings.goals, extra);
+  // Niedriges Protein-Ziel (z. B. ärztlich bei Nierenerkrankung): Proteinquelle darf deutlich kleiner werden
+  const low = lowProtein(ctx.settings.goals);
+  const qSteps = low ? [0.45, 0.55, 0.65, 0.75, 0.85, 1] : Q_STEPS;
+  // dann lieber mehr Beilage (Reis, Kartoffeln, Brot) als Eiweiß-Snacks, und kleinere Grundportionen erlauben
+  const sSteps = low ? [1, 1.25, 1.5, 1.75] : S_STEPS;
+  const fmMin = low ? 0.45 : FM_MIN;
+  const fbMin = low ? 0.5 : FB_MIN;
   const BP = breakfast ? ctx.info.get(breakfast).parts : null;
   const MPs = mains.map((id) => ctx.info.get(id).parts);
   // Makros eines Gerichts bei Portionsfaktor f: Beilage wächst nur bis zur Obergrenze pro Portion
@@ -440,8 +455,8 @@ function fitDay({ ctx, fixed, breakfast, mains, combos, extra = 0, usage = {} })
       pref += 0.04 + 0.03 * inf.cost * (ctx.settings.studi ? 3 : 1);
     }
     const R = g.kcal - fixed.kcal - S.kcal;
-    for (const s of S_STEPS)
-      for (const q of Q_STEPS) {
+    for (const s of sSteps)
+      for (const q of qSteps) {
         let fb = 1;
         let fm = 1;
         let B = null;
@@ -452,12 +467,12 @@ function fitDay({ ctx, fixed, breakfast, mains, combos, extra = 0, usage = {} })
           M = mixMains(s, q, fm);
           if (B && M.kcal > 0) {
             const f0 = R / (B.kcal + M.kcal);
-            fb = round(clamp(f0, FB_MIN, FB_MAX), 0.05);
-            fm = round(clamp((R - B.kcal * fb) / M.kcal, FM_MIN, FM_MAX), 0.05);
+            fb = round(clamp(f0, fbMin, FB_MAX), 0.05);
+            fm = round(clamp((R - B.kcal * fb) / M.kcal, fmMin, FM_MAX), 0.05);
           } else if (M.kcal > 0) {
-            fm = round(clamp(R / M.kcal, FM_MIN, FM_MAX), 0.05);
+            fm = round(clamp(R / M.kcal, fmMin, FM_MAX), 0.05);
           } else if (B) {
-            fb = round(clamp(R / B.kcal, FB_MIN, FB_MAX), 0.05);
+            fb = round(clamp(R / B.kcal, fbMin, FB_MAX), 0.05);
           }
         }
         B = BP ? mix(BP, s, q, fb) : null;
@@ -596,7 +611,13 @@ export function finalizePlan(structure, ctx) {
     }
 
     // Mitesser: weitere Personen bekommen dieselbe Menge (zählt für den Einkauf, nicht für deine Makros)
-    for (const m of meals) if (m.kind === 'recipe' && people[m.key] > 1) m.people = people[m.key];
+    // Haushalt: abends essen standardmäßig so viele Personen mit wie eingestellt (pro Mahlzeit änderbar)
+    const hh = Math.max(1, Math.round(Number(settings.household) || 1));
+    for (const m of meals) {
+      if (m.kind !== 'recipe') continue;
+      const n = people[m.key] ?? (m.slot === 'abend' ? hh : 1);
+      if (n > 1) m.people = n;
+    }
     const totals = meals.reduce((a, m) => addMacros(a, m.macros), emptyMacros());
     days.push({
       day: d,
@@ -672,8 +693,10 @@ export function scorePlan(plan, ctx) {
   // 2. Protein inkl. Verteilung (20)
   const pRatio = avg(days, (d) => Math.min(1, d.totals.p / g.protein));
   const mainMeals = days.flatMap((d) => d.meals.filter((m) => m.kind === 'recipe' && m.slot !== 'snack'));
-  const distr = mainMeals.length ? mainMeals.filter((m) => m.macros.p >= 25).length / mainMeals.length : 0;
+  const distr = mainMeals.length ? mainMeals.filter((m) => m.macros.p >= mealProteinMin(g)).length / mainMeals.length : 0;
   s.protein = 20 * (0.7 * clamp((pRatio - 0.85) / 0.15, 0, 1) + 0.3 * distr);
+  // gesenktes Protein-Ziel ist eine Obergrenze: deutlich mehr kostet Punkte
+  if (lowProtein(g)) s.proteinOver = -60 * Math.max(0, avg(days, (d) => d.totals.p) / g.protein - 1.1);
 
   // 3. Gemüse/Obst & Ballaststoffe (20)
   const veg = avg(days, (d) => d.totals.veg);
@@ -839,7 +862,9 @@ function repairBudget(plan, ctx, budget, ok) {
  */
 export function budgetTarget(settings) {
   const b = Number(settings.budget) || 60;
-  const t = b <= 70 ? b : 70 + (b - 70) * 0.5;
+  // Ab hier gilt ein Budget als großzügig – mit Mitessern am Abend entsprechend höher
+  const generous = 70 * (1 + 0.5 * (Math.max(1, Number(settings.household) || 1) - 1));
+  const t = b <= generous ? b : generous + (b - generous) * 0.5;
   return t * (settings.studi ? 0.85 : 1);
 }
 
@@ -954,6 +979,7 @@ export function setEatOut(plan, mealKey, on, input) {
   structure.eatOut = [...eat];
   const next = finalizePlan(structure, ctx);
   Object.assign(next, { seed: plan.seed, weekNo: plan.weekNo, pantryUsed: plan.pantryUsed, createdAt: plan.createdAt, done: plan.done || {}, studi: plan.studi, pv: plan.pv });
+  next.budgetInfo ??= budgetCheck(next, ctx.settings);
   next.evaluation = evaluatePlan(next, ctx);
   return next;
 }
@@ -962,10 +988,16 @@ export function setEatOut(plan, mealKey, on, input) {
  * Gleiche Gerichte, neu berechnet – z. B. nach geänderten Tageszielen oder Läden:
  * Portionsgrößen, Makros und Einkaufsliste passen sich an, die Rezeptauswahl bleibt.
  */
+/** Nach jeder Änderung (Mitesser, Tausch, auswärts): Budget neu bewerten */
+function budgetCheck(plan, settings) {
+  return plan.cost > settings.budget ? { cheapest: plan.cost, missing: plan.cost - settings.budget, after: true } : null;
+}
+
 export function refitPlan(plan, input) {
   const ctx = prepareContext({ ...input, pantry: plan.pantryUsed || input.pantry, weekNo: plan.weekNo });
   const next = finalizePlan(clone(plan.structure), ctx);
   Object.assign(next, { seed: plan.seed, weekNo: plan.weekNo, pantryUsed: plan.pantryUsed, createdAt: plan.createdAt, done: plan.done || {}, studi: plan.studi, pv: plan.pv });
+  next.budgetInfo = budgetCheck(next, ctx.settings);
   next.evaluation = evaluatePlan(next, ctx);
   return next;
 }
@@ -1016,6 +1048,7 @@ export function swapMeal(plan, mealKey, input, chosenId = null) {
   next.createdAt = plan.createdAt;
   next.studi = plan.studi;
   next.pv = plan.pv;
+  next.budgetInfo ??= budgetCheck(next, ctx.settings);
   next.evaluation = evaluatePlan(next, ctx);
   return next;
 }
@@ -1046,6 +1079,17 @@ export function evaluatePlan(plan, ctx) {
   });
 
   // 2. Protein
+  if (lowProtein(g)) {
+    const over = avgP / g.protein - 1;
+    out.push({
+      level: over > 0.15 ? 'warn' : 'ok',
+      title: `Protein: Ø ${num(avgP)}g/Tag (Obergrenze ${g.protein}g)`,
+      text:
+        over > 0.15
+          ? `Dein Protein-Ziel ist bewusst niedrig. Mit den Rezepten von Mise liegt dein Plan trotz kleinerer Fleisch-, Fisch- und Quarkportionen ca. ${Math.round(over * 100)} % darüber. Wenn das Ziel ärztlich vorgegeben ist (z. B. bei einer Nierenerkrankung), sprich die Pläne bitte mit deiner Ernährungsberatung ab.`
+          : `Dein Plan bleibt nah an deiner Obergrenze von ${g.protein}g.`,
+    });
+  } else {
   const lowMeals = plan.days.flatMap((d) => d.meals.filter((m) => m.kind === 'recipe' && m.slot !== 'snack' && m.macros.p < 25).map((m) => `${d.short} ${ctx.recipesById.get(m.recipeId).name}`));
   out.push({
     level: st.pRatio >= 0.97 ? 'ok' : 'hint',
@@ -1054,6 +1098,7 @@ export function evaluatePlan(plan, ctx) {
       (st.pRatio >= 0.97 ? `Ziel ${g.protein}g erreicht. ` : `Etwas unter dem Ziel von ${g.protein}g – ein Proteinshake oder Skyr zum Frühstück gleicht das leicht aus. `) +
       (lowMeals.length ? `Mahlzeiten mit weniger als 25g: ${lowMeals.slice(0, 3).join(', ')}${lowMeals.length > 3 ? ' …' : ''}.` : 'Jede Hauptmahlzeit hat mindestens 25g – gut über den Tag verteilt.'),
   });
+  }
 
   // 3. Gemüse, Obst, Ballaststoffe
   out.push({
