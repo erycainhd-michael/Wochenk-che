@@ -1014,6 +1014,7 @@ function viewStart(stepArg) {
   } else {
     body = `${dietCard(st, true)}<section class="card accent"><h2>Einkauf & Alltag</h2>
       <label class="field">Wochenbudget<span class="unit-input"><input type="number" inputmode="numeric" step="1" data-set="budget" value="${st.budget}"><i>€</i></span></label>
+      ${householdField(st)}
       <label class="field">Wo kaufst du meistens ein?<select data-set="mainStore">${STORE_IDS.map((id) => `<option value="${id}" ${st.mainStore === id ? 'selected' : ''}>${e(STORES[id].short)}</option>`).join('')}</select></label>
       <div class="field">An welchen Abenden isst du meistens auswärts?${dayPills(eatOutDays(st.eatOut), 'eatout-day')}</div>
       <button class="btn primary block" data-action="first-plan">🍽️ Wochenplan erstellen</button>
@@ -1066,7 +1067,7 @@ function viewWeek() {
     <section class="card hero">
       <div class="hero-top">
         <div><span class="hero-label">Ø pro Tag</span><b class="hero-big">${cnt('w-k', avgK, 'int')}<small> kcal</small></b><span class="hero-sub">Ziel ${cnt('w-gk', avgGoal, 'int')} kcal${sportWeek ? ' inkl. Sport' : ''}</span></div>
-        <div class="hero-right"><span class="hero-label">Einkauf</span><b class="hero-mid">${cnt('w-cost', plan.cost, 'euro')}</b><span class="hero-sub">Budget ${euro(S.settings.budget)}</span></div>
+        <div class="hero-right"><span class="hero-label">Einkauf</span><b class="hero-mid">${cnt('w-cost', plan.cost, 'euro')}</b><span class="hero-sub ${plan.cost > S.settings.budget + 0.5 ? 'over' : ''}">${plan.cost > S.settings.budget + 0.5 ? `${euro(plan.cost - S.settings.budget)} über Budget` : `Budget ${euro(S.settings.budget)}`}</span></div>
       </div>
       <div class="macro-bars">
         ${[
@@ -2462,6 +2463,12 @@ function checkGoal(before, now) {
   }
 }
 
+/** Wie viele essen abends mit? (inkl. dir) – gilt für jedes Abendessen, pro Mahlzeit weiterhin änderbar */
+function householdField(st) {
+  const cur = Math.max(1, Number(st.household) || 1);
+  return `<div class="field">Wie viele essen abends mit? <span class="sub">(inkl. dir)</span><div class="seg">${[1, 2, 3, 4, 5, 6].map((n) => `<button class="pill circle ${cur === n ? 'on' : ''}" data-action="set-household" data-val="${n}" aria-label="${n} ${n === 1 ? 'Person' : 'Personen'}">${n}</button>`).join('')}</div><p class="hint">Mise kauft abends für alle ein – deine Portion und deine Nährwerte bleiben gleich.</p></div>`;
+}
+
 /** Ernährungsform, Allergien, Schwangerschaft – in der Einführung (vor dem ersten Plan) und in den Einstellungen */
 function dietCard(st, onboarding = false) {
   const rx = restrictions(st);
@@ -2692,6 +2699,7 @@ function viewSettings() {
       )
       .join('')}</ul>
     <p class="sub">Gekauft wird im obersten eingeschalteten Laden. Nur wenn ein anderer eingeschalteter Laden mindestens 10 % günstiger ist (z. B. durch ein Angebot) oder der Hauptladen den Artikel nicht führt, landet er dort – z. B. Spezielles wie grüne Tagliatelle bei Edeka. dm und Rossmann führen nur Trockenware, Nüsse & Co.</p>
+    ${householdField(st)}
     <div class="grid2 budget-row">
       <label class="field">Wochenbudget<span class="unit-input"><input type="number" inputmode="numeric" step="1" data-set="budget" value="${st.budget}"><i>€</i></span></label>
       <label class="studi-toggle"><input type="checkbox" class="big-check" data-set="studi" ${st.studi ? 'checked' : ''}><span>Studi-Modus</span></label>
@@ -3344,8 +3352,8 @@ async function onClick(ev) {
       const n = Number(el.dataset.n);
       if (!plan?.structure || peopleOf(findMeal(plan, key)) === n) return;
       const people = { ...(plan.structure.people || {}) };
-      if (n > 1) people[key] = n;
-      else delete people[key];
+      // 1 wird ausdrücklich gespeichert – sonst gilt abends wieder die Haushaltsgröße aus den Einstellungen
+      people[key] = n;
       S.plans[plan.weekStart] = refitPlan({ ...plan, structure: { ...plan.structure, people } }, plannerInput({ weekStart: plan.weekStart }));
       savePlans();
       haptic();
@@ -3423,6 +3431,17 @@ async function onClick(ev) {
       S.settings.dislikes.splice(Number(el.dataset.i), 1);
       saveSettings();
       return render();
+    case 'set-household': {
+      S.settings.household = Number(el.dataset.val);
+      saveSettings();
+      haptic();
+      if (S.plans[currentWeek()]?.structure) {
+        refitCurrent();
+        const c = S.plans[currentWeek()].cost;
+        toast(`Abends für ${S.settings.household} ${S.settings.household === 1 ? 'Person' : 'Personen'}`, { icon: '🍽️', sub: `Einkauf diese Woche ${euro(c)}${c > S.settings.budget ? ' – über Budget, ab nächster Woche plant Mise passend' : ''}` });
+      }
+      return render();
+    }
     case 'set-diet':
       S.settings.diet = el.dataset.val;
       saveSettings();

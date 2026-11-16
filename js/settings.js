@@ -19,6 +19,8 @@ export const DEFAULT_SETTINGS = {
   // day: 0 = Montag … 6 = Sonntag; slot: fruehstueck | mittag | abend
   eatOut: [],
   eatOutKcal: 1000,
+  // Wie viele Personen essen abends mit (inkl. dir)? Gilt für jedes Abendessen, pro Mahlzeit änderbar
+  household: 1,
   eatOutProtein: 35,
   complexPerWeek: 1,
   dislikes: [],
