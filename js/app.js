@@ -7,7 +7,7 @@ import { packText } from './shopping.js';
 import { kitchenText } from './units.js';
 import { searchScore } from './search.js';
 import { recipeWeights, weekHints } from './feedback.js';
-import { ACTIVITY, DEFAULT_SETTINGS, GOALS, calcGoals, mergeSettings } from './settings.js';
+import { ACTIVITY, DEFAULT_SETTINGS, GOALS, applyWeighIn, bmiOf, calcGoals, goalBlocked, mergeSettings, switchGoal, UNDERWEIGHT_BMI } from './settings.js';
 import { exportAll, importAll, prunePlans, requestPersistence, store } from './storage.js';
 import { TimerManager, fmtTime, keepAwake, unlockAudio } from './timers.js';
 import { cleanRecipe, inventRecipe } from './ai.js';
@@ -182,6 +182,7 @@ async function init() {
     savePlans();
   }
   fixEatOutSlots();
+  enforceGoalSafety();
   render();
   hideSplash();
   // Automatische Sicherung: täglich eine Kopie auf dem Gerät, beim Verlassen der App aktualisiert
@@ -1000,7 +1001,7 @@ function viewStart(stepArg) {
   } else if (step === 2) {
     body = `<section class="card accent"><h2>Alltag & Ziel</h2>
       <div class="field">Wie aktiv ist dein Alltag (ohne Sport)?${pills('activity', ACTIVITY.map(([v, l]) => [v, l]))}<p class="hint">${e(ACTIVITY.find((x) => x[0] === p.activity)?.[2] || '')}. Sport trägst du später pro Tag ein – dann gibt es an dem Tag mehr.</p></div>
-      <div class="field">Was ist dein Ziel? <span class="sub">(Aufbauen = Muskeln aufbauen)</span>${pills('goal', GOALS.map(([v, l]) => [v, l]))}</div>
+      <div class="field">Was ist dein Ziel? <span class="sub">(Aufbauen = Muskeln aufbauen)</span>${pills('goal', GOALS.map(([v, l]) => [v, l])).replace('data-val="abnehmen"', goalBlocked(p, 'abnehmen') ? 'data-val="abnehmen" aria-disabled="true"' : 'data-val="abnehmen"')}${goalBlocked(p, 'abnehmen') ? `<p class="hint warn-hint">${e(blockedText(goalBlocked(p, 'abnehmen')))}</p>` : ''}</div>
       ${p.goal !== 'halten' ? inp('goalWeight', 'Zielgewicht (optional)', 'kg', 'decimal') : ''}
       ${nav('Berechnen', 3)}</section>`;
   } else if (step === 3) {
@@ -1550,13 +1551,13 @@ function recipeListHtml(list, grid, fbw = recipeWeights(S.feedback)) {
 }
 
 /** Bestätigen ohne System-Dialog (die werden in iPhone-Web-Apps teils nicht angezeigt) */
-function confirmBox(title, text, okLabel = 'Löschen') {
+function confirmBox(title, text, okLabel = 'Löschen', cancelLabel = 'Abbrechen') {
   return new Promise((resolve) => {
     const ov = document.createElement('div');
     ov.className = 'confirm-box';
     // iOS-Alert: Titel + Nachricht mittig, Buttons nebeneinander mit Haarlinien; Rot nur bei zerstörenden Aktionen
     const destructive = /lösch|entfern|zurücksetz|verwerf/i.test(okLabel);
-    ov.innerHTML = `<div class="cb-card" role="alertdialog" aria-modal="true" aria-labelledby="cb-t" aria-describedby="cb-x"><div class="cb-body"><h2 id="cb-t">${e(title)}</h2><p id="cb-x">${e(text)}</p></div><div class="cb-actions"><button data-cb="0">Abbrechen</button><button data-cb="1" class="${destructive ? 'destructive' : 'default'}">${e(okLabel)}</button></div></div>`;
+    ov.innerHTML = `<div class="cb-card" role="alertdialog" aria-modal="true" aria-labelledby="cb-t" aria-describedby="cb-x"><div class="cb-body"><h2 id="cb-t">${e(title)}</h2><p id="cb-x">${e(text)}</p></div><div class="cb-actions"><button data-cb="0">${e(cancelLabel)}</button><button data-cb="1" class="${destructive ? 'destructive' : 'default'}">${e(okLabel)}</button></div></div>`;
     document.body.appendChild(ov);
     haptic();
     ov.querySelector('[data-cb="0"]').focus({ preventScroll: true });
@@ -2459,6 +2460,62 @@ function checkGoal(before, now) {
   }
 }
 
+/** Warum Abnehmen gerade nicht geht – in einfachen Worten */
+function blockedText(reason) {
+  return reason === 'minor'
+    ? 'Unter 18 wächst dein Körper noch und braucht genug Energie. Mise plant deshalb kein Kaloriendefizit – sprich bei Bedarf mit deiner Ärztin oder deinem Arzt.'
+    : `Dein BMI liegt unter ${String(UNDERWEIGHT_BMI).replace('.', ',')} (Untergewicht). Mise plant deshalb kein Kaloriendefizit. Wenn Essen gerade schwierig ist: Die BZgA-Beratung zu Essstörungen hilft anonym (0221 892031).`;
+}
+
+/** Zielgewicht im Untergewicht oder (beim Abnehmen) über dem aktuellen Gewicht? */
+function goalWeightProblem(p, gw) {
+  if (!gw || !p || !(Number(p.height) > 0)) return null;
+  if (bmiOf(gw, p.height) < UNDERWEIGHT_BMI) return `${fmtKg(gw)} kg wäre bei deiner Größe Untergewicht (BMI ${fmtKg(bmiOf(gw, p.height))}). Ein gesundes Ziel liegt bei mindestens ${fmtKg(Math.ceil(UNDERWEIGHT_BMI * (p.height / 100) ** 2))} kg.`;
+  return null;
+}
+
+/**
+ * Neues Gewicht eingetragen: Tagesziele mitziehen, bei Untergewicht Abnehmen beenden,
+ * beim Erreichen des Zielgewichts einmal fragen, ob auf „Halten“ umgestellt werden soll.
+ */
+async function weighIn(kg) {
+  const r = applyWeighIn(S.settings, kg);
+  if (!r) return;
+  const before = S.settings.goals.kcal;
+  Object.assign(S.settings, { profile: r.profile, goals: r.goals, bodyWeight: kg, bodyWeightAt: new Date().toISOString() });
+  saveSettings();
+  refitCurrent();
+  if (r.switched) {
+    toast('Abnehmen beendet – jetzt Gewicht halten', { icon: '💚', sub: blockedText(r.switched), kind: 'warn' });
+  } else if (r.reached && S.settings.goalReachedAsked !== S.settings.goalWeight) {
+    S.settings.goalReachedAsked = S.settings.goalWeight;
+    saveSettings();
+    sound.progress();
+    if (await confirmBox('Zielgewicht erreicht! 🎉', `Du hast ${fmtKg(S.settings.goalWeight)} kg erreicht. Soll Mise ab jetzt auf „Gewicht halten“ planen?`, 'Auf Halten umstellen', S.settings.profile.goal === 'aufbauen' ? 'Weiter aufbauen' : 'Weiter abnehmen')) {
+      const g = switchGoal(S.settings, 'halten');
+      Object.assign(S.settings, { profile: g.profile, goals: g.goals });
+      saveSettings();
+      refitCurrent();
+      toast('Ziel: Gewicht halten', { icon: '🎯', sub: `${num(S.settings.goals.kcal)} kcal pro Tag – Wochenplan angepasst` });
+    }
+  } else if (Math.abs(S.settings.goals.kcal - before) >= 50) {
+    toast('Tagesziel angepasst', { icon: '🎯', sub: `Neues Gewicht → ${num(S.settings.goals.kcal)} kcal pro Tag` });
+  }
+  render();
+}
+
+/** Beim Start: Ältere Einstellungen mit Abnehmen trotz Untergewicht/unter 18 auf Halten umstellen */
+function enforceGoalSafety() {
+  const p = S.settings.profile;
+  const reason = goalBlocked(p ? { ...p, weight: currentKg() } : null);
+  if (!reason) return;
+  const g = switchGoal({ ...S.settings, profile: { ...p, weight: currentKg() } }, 'halten');
+  Object.assign(S.settings, { profile: g.profile, goals: g.goals });
+  saveSettings();
+  refitCurrent();
+  setTimeout(() => toast('Abnehmen beendet – jetzt Gewicht halten', { icon: '💚', sub: blockedText(reason), kind: 'warn' }), 1500);
+}
+
 /** Letztes eingetragenes Gewicht vor der Woche ws */
 function lastWeightBefore(ws) {
   return S.feedback
@@ -2519,7 +2576,8 @@ const GOAL_HINT = {
 /** Ziel direkt in den Einstellungen wechseln: rechnet die Tagesziele aus deinen Angaben neu */
 function goalSeg() {
   const cur = S.settings.profile?.goal || 'halten';
-  return `<div class="seg">${GOALS.map(([v, l]) => `<button class="pill ${cur === v ? 'on' : ''}" data-action="set-goal" data-val="${v}">${l}</button>`).join('')}</div>`;
+  const blocked = goalBlocked(S.settings.profile ? { ...S.settings.profile, weight: currentKg() } : null, 'abnehmen');
+  return `<div class="seg">${GOALS.map(([v, l]) => `<button class="pill ${cur === v ? 'on' : ''}" data-action="set-goal" data-val="${v}"${blocked && v === 'abnehmen' ? ' aria-disabled="true"' : ''}>${l}</button>`).join('')}</div>${blocked ? `<p class="hint warn-hint">${e(blockedText(blocked))}</p>` : ''}`;
 }
 
 function viewSettings() {
@@ -2910,9 +2968,16 @@ async function onClick(ev) {
       toast('Rezept übernommen', { icon: '🔄', sub: 'Einkaufsliste ist aktualisiert' });
       return;
     }
-    case 'ob-set':
-      profDraft()[el.dataset.field] = el.dataset.val;
+    case 'ob-set': {
+      const p = profDraft();
+      if (el.dataset.field === 'goal' && goalBlocked(p, el.dataset.val)) {
+        p.goal = 'halten';
+        toast('Abnehmen ist hier nicht möglich', { icon: '💚', sub: blockedText(goalBlocked(p, el.dataset.val)), kind: 'warn' });
+        return render();
+      }
+      p[el.dataset.field] = el.dataset.val;
       return render();
+    }
     case 'ob-step': {
       const p = profDraft();
       const to = Number(el.dataset.step);
@@ -2923,7 +2988,10 @@ async function onClick(ev) {
         const ok = (v, lo, hi) => Number(v) >= lo && Number(v) <= hi;
         if (!ok(p.age, 14, 100) || !ok(p.height, 120, 230) || !ok(p.weight, 35, 250)) return toast('Bitte Alter, Größe und Gewicht eintragen', { icon: '✏️', kind: 'warn' });
       }
+      if (cur === 1 && to === 2 && goalBlocked(p)) p.goal = 'halten';
       if (cur === 2 && to === 3) {
+        const gwBad = goalWeightProblem(p, parseKg(p.goalWeight));
+        if (gwBad) return toast('Zielgewicht bitte prüfen', { icon: '💚', sub: gwBad, kind: 'warn' });
         S.settings.goals = calcGoals(p);
         S.settings.profile = { ...p };
         S.settings.bodyWeight = Number(p.weight);
@@ -2951,6 +3019,7 @@ async function onClick(ev) {
         location.hash = '#/start/1';
         return;
       }
+      if (goalBlocked(p)) return toast('Abnehmen ist hier nicht möglich', { icon: '💚', sub: blockedText(goalBlocked(p)), kind: 'warn' });
       S.settings.profile = p;
       S.settings.goals = calcGoals(p);
       S.ui.prof = null;
@@ -3444,9 +3513,17 @@ function onChange(ev) {
     });
     render();
     if (v !== before) checkGoal(before, v);
+    // nur das neueste Gewicht bewegt die Tagesziele (alte Wochen nachtragen ändert nichts)
+    const latest = !S.feedback.some((f) => f.weekStart > ws && f.week?.weight != null);
+    if (v > 0 && latest) weighIn(v);
     return;
   }
   if (el.dataset.goalWeight !== undefined) {
+    const bad = goalWeightProblem(S.settings.profile, parseKg(el.value));
+    if (bad) {
+      toast('Zielgewicht bitte prüfen', { icon: '💚', sub: bad, kind: 'warn' });
+      return render();
+    }
     S.settings.goalWeight = parseKg(el.value);
     saveSettings();
     return render();
