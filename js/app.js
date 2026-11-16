@@ -468,10 +468,12 @@ async function createPlanFromDraft() {
 }
 
 /** Laufende Woche ab Tag `start` neu planen (Auswärtstage und Vorrat bleiben). false = abgebrochen */
-async function replanWeek(plan, start, off = []) {
+async function replanWeek(plan, state = planDayState(plan)) {
   if (Object.values(S.checks[plan.weekStart] || {}).some(Boolean) && !(await confirmBox('Woche neu planen?', 'Haken auf der Einkaufsliste werden zurückgesetzt.', 'Neu planen'))) return false;
-  const eatOut = (plan.structure?.eatOut || []).map((k) => ({ day: Number(k.split('-')[0]), slot: k.split('-')[1] })).filter((x) => x.day >= start && !(plan.structure.away || []).includes(x.day));
-  createPlan({ pantry: plan.pantryUsed || {}, eatOut: eatOut.filter((x) => !off.includes(x.day)), start, off });
+  const { off = [], eat = [] } = state;
+  // andere Auswärts-Mahlzeiten (z. B. mittags) bleiben, abends gilt die Auswahl mit 🍴
+  const keep = (plan.structure?.eatOut || []).map((k) => ({ day: Number(k.split('-')[0]), slot: k.split('-')[1] })).filter((x) => x.slot !== 'abend' && !off.includes(x.day));
+  createPlan({ pantry: plan.pantryUsed || {}, eatOut: [...keep, ...eat.filter((d) => !off.includes(d)).map((day) => ({ day, slot: 'abend' }))], off });
   return true;
 }
 
@@ -1007,7 +1009,7 @@ function viewWeek() {
       <button class="link hero-link" data-action="toggle-eval">${S.ui.evalOpen ? '▾' : '▸'} Bewertung des Plans</button>
       ${S.ui.evalOpen ? `<div class="hero-eval">${evaluationHtml(plan)}</div>` : ''}
     </section>
-    ${isCurrent ? laterStart(plan, todayIdx, firstDay) : ''}
+    ${isCurrent ? laterStart(plan) : ''}
     ${daysHtml(plan, firstDay, todayIdx)}`;
 }
 
@@ -1020,22 +1022,41 @@ function daysHtml(plan, firstDay, todayIdx) {
     .join('');
 }
 
-/** „Woche später starten“ bzw. Tage abwählen: Plan neu erstellen – ab einem Tag (einmal tippen), ohne rote Tage (zweimal tippen) */
-function laterStart(plan, todayIdx, firstDay) {
-  const offNow = plan.days.filter((d) => d.away && d.day > firstDay).map((d) => d.day);
+/** Tage-Status eines Plans: off = nicht da (gar nichts geplant), eat = abends auswärts */
+function planDayState(plan) {
+  const off = plan.days.filter((d) => d.away).map((d) => d.day);
+  const eat = [...new Set((plan.structure?.eatOut || []).filter((k) => k.endsWith('-abend')).map((k) => Number(k.split('-')[0])))].filter((d) => !off.includes(d));
+  return { off, eat };
+}
+const dayList = (days) => days.map((d) => DAY_SHORT[d]).join(', ');
+function dayStateText({ off, eat }) {
+  return [off.length ? `ohne ${dayList(off)}` : '', eat.length ? `🍴 ${dayList(eat)} abends auswärts` : ''].filter(Boolean).join(' · ');
+}
+
+/** „Wann bist du da?“: jeder Tag wechselt beim Antippen geplant → 🍴 abends auswärts → nicht da → geplant */
+function laterStart(plan) {
   if (!S.ui.laterOpen) {
-    const parts = [firstDay ? `ab ${DAY_NAMES[firstDay]}` : '', offNow.length ? `ohne ${offNow.map((d) => DAY_SHORT[d]).join(', ')}` : ''].filter(Boolean);
-    return `<button class="link later-link" data-action="later-open">📅 ${parts.length ? `Plan ${parts.join(' · ')} – ändern` : 'Später starten oder Tage abwählen?'}</button>`;
+    const t = dayStateText(planDayState(plan));
+    return `<button class="link later-link" data-action="later-open">📅 ${t ? `${e(t)} – ändern` : 'Tage abwählen oder abends auswärts?'}</button>`;
   }
-  const sel = S.ui.laterDay ?? (firstDay || Math.max(0, todayIdx));
-  const off = (S.ui.laterOff || []).filter((d) => d > sel);
-  const cls = (i) => (off.includes(i) ? 'off' : i === sel ? 'on' : i < sel ? 'before' : '');
-  const label = [sel ? `Ab ${DAY_SHORT[sel]}` : 'Ganze Woche', off.length ? `ohne ${off.map((d) => DAY_SHORT[d]).join(', ')}` : ''].filter(Boolean).join(' · ');
+  const off = S.ui.laterOff || [];
+  const eat = S.ui.laterEat || [];
+  const planned = 7 - off.length;
+  const summary = [`${planned} ${planned === 1 ? 'Tag' : 'Tage'} geplant`, dayStateText({ off, eat })].filter(Boolean).join(' · ');
+  const pill = (d, i) => {
+    const st = off.includes(i) ? 'off' : eat.includes(i) ? 'eat' : '';
+    const label = st === 'eat' ? '🍴' : d;
+    const aria = `${DAY_NAMES[i]}: ${st === 'off' ? 'nicht da' : st === 'eat' ? 'abends auswärts' : 'geplant'}`;
+    return `<button class="pill circle ${st}" data-action="later-day" data-day="${i}" aria-label="${aria}">${label}</button>`;
+  };
   return `<section class="card later">
     <h2>Wann bist du da?</h2>
-    <p class="sub"><b>Einmal tippen:</b> ab diesem Tag planen. <b>Denselben Tag nochmal tippen:</b> der Tag wird rot – dort plant Mise gar nichts, auch kein Frühstück. Roten Tag antippen macht ihn wieder normal. Du kaufst nur für die geplanten Tage ein. Haken auf der Einkaufsliste werden zurückgesetzt.</p>
-    <div class="pills days">${DAY_SHORT.map((d, i) => `<button class="pill circle ${cls(i)}" data-action="later-day" data-day="${i}">${d}</button>`).join('')}</div>
-    <div class="grid2"><button class="btn" data-action="later-cancel">Abbrechen</button><button class="btn primary" data-action="later-go" data-day="${sel}">${label} planen</button></div>
+    <p class="sub">Tippe einen Tag an, nochmal tippen wechselt weiter:</p>
+    <div class="later-legend"><span><i class="dot"></i>geplant</span><span><i class="dot eat">🍴</i>abends auswärts</span><span><i class="dot off"></i>nicht da</span></div>
+    <div class="pills days">${DAY_SHORT.map(pill).join('')}</div>
+    <p class="later-summary">${e(summary)}</p>
+    <p class="sub small">Eingekauft wird nur für die geplanten Mahlzeiten. Haken auf der Einkaufsliste werden zurückgesetzt.</p>
+    <div class="grid2"><button class="btn" data-action="later-cancel">Abbrechen</button><button class="btn primary" data-action="later-go">Neu planen</button></div>
   </section>`;
 }
 
@@ -1835,7 +1856,10 @@ function stepHtml(r, n, items = []) {
     const it = items[h.idx];
     const a = kitchenText(it.id, it.g * h.frac, it.note || noteOf(r, it.id));
     if (a === 'etwas') continue;
-    if (h.kind === 'full') marks.push({ at: h.start, a, before: true });
+    // „Jedes Medaillon mit einer Scheibe Bacon umwickeln“: Gesamtmenge dahinter, nicht pro Stück davor
+    const sentence = text.slice(0, h.start).split(/[.;:!?]\s/).pop();
+    if (h.kind === 'full' && /\b(jede[snmr]?|je)\b/i.test(sentence)) marks.push({ at: h.end, a: `insgesamt ${a}`, before: false });
+    else if (h.kind === 'full') marks.push({ at: h.start, a, before: true });
     else marks.push({ at: h.end, a, before: false });
   }
   const slots = [];
@@ -2379,7 +2403,8 @@ function lastWeightBefore(ws) {
 
 function dayPills(days, action) {
   const set = new Set(days);
-  return `<div class="pills days">${DAY_SHORT.map((d, i) => `<button class="pill circle ${set.has(i) ? 'on' : ''}" data-action="${action}" data-day="${i}">${d}</button>`).join('')}</div>`;
+  // Abende auswärts: Besteck statt Tageskürzel
+  return `<div class="pills days">${DAY_SHORT.map((d, i) => `<button class="pill circle ${set.has(i) ? 'on eat' : ''}" data-action="${action}" data-day="${i}" aria-label="${DAY_NAMES[i]}${set.has(i) ? ': abends auswärts' : ''}">${set.has(i) ? '🍴' : d}</button>`).join('')}</div>`;
 }
 
 function updateFeedback(ws, fn) {
@@ -2607,57 +2632,44 @@ async function onClick(ev) {
     }
     case 'later-open': {
       S.ui.laterOpen = true;
-      S.ui.laterDay = null;
-      S.ui.laterPicked = null;
-      S.ui.laterPrev = null;
-      // abgewählte Tage des aktuellen Plans (nach dem Start) vorbelegen
-      const first = plan.days.find((d) => !d.away)?.day ?? 0;
-      S.ui.laterOff = plan.days.filter((d) => d.away && d.day > first).map((d) => d.day);
+      const st = planDayState(plan);
+      S.ui.laterOff = st.off;
+      S.ui.laterEat = st.eat;
       return render();
     }
     case 'later-cancel':
       S.ui.laterOpen = false;
       return render();
     case 'later-day': {
-      // Antippen: ab diesem Tag planen. Denselben Tag nochmal antippen: Tag wird rot (dort wird nichts geplant).
-      // Roten Tag antippen: wieder normal. Ohne Zeitlimit – funktioniert auch bei langsamem Tippen.
+      // geplant → 🍴 abends auswärts → nicht da (rot) → geplant
       const day = Number(el.dataset.day);
       const off = new Set(S.ui.laterOff || []);
-      const firstDay = plan.days.find((d) => !d.away)?.day ?? 0;
-      const sel = S.ui.laterDay ?? firstDay;
+      const eat = new Set(S.ui.laterEat || []);
       if (off.has(day)) off.delete(day);
-      else if (day === sel && S.ui.laterPicked === day) {
+      else if (eat.has(day)) {
+        if (off.size >= 6) return toast('Mindestens ein Tag muss geplant werden', { icon: '📅', kind: 'warn' });
+        eat.delete(day);
         off.add(day);
-        S.ui.laterDay = S.ui.laterPrev ?? 0;
-        S.ui.laterPicked = null;
-      } else if (day === sel) {
-        // aktuellen Starttag antippen: dieser Tag fällt weg, die Woche startet am nächsten freien Tag
-        const next = [...Array(7).keys()].find((d) => d > day && !off.has(d));
-        if (next === undefined) return toast('Mindestens ein Tag muss geplant werden', { icon: '📅', kind: 'warn' });
-        S.ui.laterDay = next;
-      } else {
-        S.ui.laterPrev = sel;
-        S.ui.laterDay = day;
-        S.ui.laterPicked = day;
-      }
+      } else eat.add(day);
       haptic();
       S.ui.laterOff = [...off].sort();
+      S.ui.laterEat = [...eat].sort();
       return render();
     }
     case 'later-go': {
-      const start = Number(el.dataset.day);
-      const off = (S.ui.laterOff || []).filter((d) => d > start);
-      if (off.length + start >= 7) return toast('Mindestens ein Tag muss geplant werden', { icon: '📅', kind: 'warn' });
-      if (!(await replanWeek(plan, start, off))) return;
+      const off = S.ui.laterOff || [];
+      const eat = S.ui.laterEat || [];
+      if (off.length >= 7) return toast('Mindestens ein Tag muss geplant werden', { icon: '📅', kind: 'warn' });
+      if (!(await replanWeek(plan, { off, eat }))) return;
       S.ui.laterOpen = false;
       S.ui.openDays = {};
-      const offTxt = off.length ? ` ohne ${off.map((d) => DAY_SHORT[d]).join(', ')}` : '';
-      toast(start ? `Plan ab ${DAY_NAMES[start]}${offTxt} erstellt` : `Plan für die Woche${offTxt} erstellt`, { icon: '📅', sub: 'Einkaufsliste nur für die geplanten Tage' });
+      const t = dayStateText({ off, eat });
+      toast('Woche neu geplant', { icon: '📅', sub: t || 'Alle Tage geplant' });
       return render();
     }
     case 'replan-studi': {
       const p = S.plans[currentWeek()];
-      if (!p || !(await replanWeek(p, p.days.find((d) => !d.away)?.day || 0))) return;
+      if (!p || !(await replanWeek(p))) return;
       toast(S.settings.studi ? 'Woche im Studi-Modus neu geplant' : 'Woche neu geplant', { icon: S.settings.studi ? '🎓' : '📅', sub: `Einkauf jetzt ${euro(S.plans[currentWeek()].cost)}` });
       return render();
     }
