@@ -93,8 +93,28 @@
       "unit": "versch. Sorten, z. B.: Salame 320g, Packung, 1kg = 5,53",
       "validFrom": "2026-11-16",
       "validTo": "2026-11-21",
-      "ingredientId": null,
-      "packPrice": null
+      "ingredientId": "pizza_ristorante_mozzarella",
+      "packPrice": 1.77
+    },
+    {
+      "store": "edeka",
+      "title": "Dr. Oetker Ristorante, Piccola oder Flammkuchen",
+      "price": 1.77,
+      "unit": "versch. Sorten, z. B.: Salame 320g, Packung, 1kg = 5,53",
+      "validFrom": "2026-11-16",
+      "validTo": "2026-11-21",
+      "ingredientId": "pizza_ristorante_tonno",
+      "packPrice": 1.77
+    },
+    {
+      "store": "edeka",
+      "title": "Dr. Oetker Ristorante, Piccola oder Flammkuchen",
+      "price": 1.77,
+      "unit": "versch. Sorten, z. B.: Salame 320g, Packung, 1kg = 5,53",
+      "validFrom": "2026-11-16",
+      "validTo": "2026-11-21",
+      "ingredientId": "pizza_ristorante_salame_pesto",
+      "packPrice": 1.77
     },
     {
       "store": "edeka",
@@ -185,16 +205,6 @@
       "validTo": "2026-11-21",
       "ingredientId": null,
       "packPrice": null
-    },
-    {
-      "store": "edeka",
-      "title": "Spanien GUT&GÜNSTIG Clementinen",
-      "price": 3.99,
-      "unit": "Kl. I, 2,3kg Kartonkiste, 1kg = 1,73",
-      "validFrom": "2026-11-16",
-      "validTo": "2026-11-21",
-      "ingredientId": "mandarinen",
-      "packPrice": 1.33
     },
     {
       "store": "edeka",
@@ -1023,6 +1033,16 @@
       "unit": "versch. Sorten, 450/500g Beutel, 1kg = 9,53/8,58",
       "validFrom": "2026-11-16",
       "validTo": "2026-11-21",
+      "ingredientId": "frosta_chicken_curry",
+      "packPrice": 4.29
+    },
+    {
+      "store": "edeka",
+      "title": "Frosta High Protein-Hähnchen- oder à la Carte Fertiggerichte",
+      "price": 4.29,
+      "unit": "versch. Sorten, 450/500g Beutel, 1kg = 9,53/8,58",
+      "validFrom": "2026-11-16",
+      "validTo": "2026-11-21",
       "ingredientId": "frosta_paella",
       "packPrice": 4.29
     },
@@ -1043,7 +1063,7 @@
       "unit": "versch. Sorten, 450/500g Beutel, 1kg = 9,53/8,58",
       "validFrom": "2026-11-16",
       "validTo": "2026-11-21",
-      "ingredientId": "frosta_chicken_curry",
+      "ingredientId": "frosta_nasi_goreng",
       "packPrice": 4.29
     },
     {
@@ -1063,7 +1083,37 @@
       "unit": "versch. Sorten, 450/500g Beutel, 1kg = 9,53/8,58",
       "validFrom": "2026-11-16",
       "validTo": "2026-11-21",
+      "ingredientId": "frosta_butter_chicken",
+      "packPrice": 4.29
+    },
+    {
+      "store": "edeka",
+      "title": "Frosta High Protein-Hähnchen- oder à la Carte Fertiggerichte",
+      "price": 4.29,
+      "unit": "versch. Sorten, 450/500g Beutel, 1kg = 9,53/8,58",
+      "validFrom": "2026-11-16",
+      "validTo": "2026-11-21",
+      "ingredientId": "frosta_bratkartoffel_haehnchen",
+      "packPrice": 4.29
+    },
+    {
+      "store": "edeka",
+      "title": "Frosta High Protein-Hähnchen- oder à la Carte Fertiggerichte",
+      "price": 4.29,
+      "unit": "versch. Sorten, 450/500g Beutel, 1kg = 9,53/8,58",
+      "validFrom": "2026-11-16",
+      "validTo": "2026-11-21",
       "ingredientId": "frosta_tagliatelle_lachs",
+      "packPrice": 4.29
+    },
+    {
+      "store": "edeka",
+      "title": "Frosta High Protein-Hähnchen- oder à la Carte Fertiggerichte",
+      "price": 4.29,
+      "unit": "versch. Sorten, 450/500g Beutel, 1kg = 9,53/8,58",
+      "validFrom": "2026-11-16",
+      "validTo": "2026-11-21",
+      "ingredientId": "frosta_hp_haehnchen_nudeln",
       "packPrice": 4.29
     },
     {
@@ -2783,8 +2833,18 @@
       "unit": "versch. Sorten, 800g Dose, 1kg = 3,74",
       "validFrom": "2026-11-16",
       "validTo": "2026-11-21",
-      "ingredientId": null,
-      "packPrice": null
+      "ingredientId": "eintopf_erbsen",
+      "packPrice": 2.99
+    },
+    {
+      "store": "edeka",
+      "title": "Sonnen Bassermann Eintöpfe",
+      "price": 2.99,
+      "unit": "versch. Sorten, 800g Dose, 1kg = 3,74",
+      "validFrom": "2026-11-16",
+      "validTo": "2026-11-21",
+      "ingredientId": "eintopf_linsen",
+      "packPrice": 2.99
     },
     {
       "store": "edeka",

@@ -14,6 +14,8 @@ export const DEFAULT_SETTINGS = {
   budget: 60,
   // Zwei Einkäufe pro Woche (Montag + Donnerstag): Frisches für die zweite Wochenhälfte erst donnerstags
   shopTwice: false,
+  // Fertiggerichte – nur bei Angebot oder aus dem Vorrat: meals = Frosta & Co., pizza = Cheat Meal (max. 1×/Woche), soup = Eintopf mit Brot
+  readyMeals: { meals: true, pizza: true, soup: true },
   // day: 0 = Montag … 6 = Sonntag; slot: fruehstueck | mittag | abend
   eatOut: [],
   eatOutKcal: 1000,

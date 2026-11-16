@@ -63,14 +63,16 @@ export function prepareContext(input) {
   const byType = (t) => usable.filter((r) => r.type === t);
   // „gruppe“ = nur für große Runden (z. B. Fondue) – wird nie automatisch eingeplant
   const mains = byType('main').filter((r) => !(r.tags || []).includes('gruppe') && !isReady(r));
-  // Fertiggerichte (z. B. Frosta): nur wenn im Angebot oder noch im Vorrat
+  // Fertiggerichte (Frosta, prepmymeal, Pizza, Eintopf): nur wenn in den Einstellungen erlaubt und
+  // im Angebot oder noch im Vorrat. Pizza zählt als Cheat Meal, Eintöpfe kommen mit Vollkornbrot & Hüttenkäse.
   const pantry = input.pantry || {};
+  const rm = { meals: true, pizza: true, soup: true, ...(settings.readyMeals || {}) };
   const ready = byType('main')
     .filter(isReady)
+    .filter((r) => rm[readyKind(r)])
     .map((r) => {
-      const id = r.ingredients[0].id;
-      const bag = r.ingredients[0].g;
-      return { r, id, bag, stock: Math.floor(((pantry[id] || 0) + 0.1 * bag) / bag), offer: !!priceOf(id).offer };
+      const line = r.ingredients.find((l) => idx.get(l.id)?.ready) || r.ingredients[0];
+      return { r, id: line.id, bag: line.g, kind: readyKind(r), stock: Math.floor(((pantry[line.id] || 0) + 0.1 * line.g) / line.g), offer: !!priceOf(line.id).offer };
     })
     .filter((x) => x.stock > 0 || x.offer);
   return {
@@ -122,6 +124,10 @@ export const isFancyBreakfast = (r) =>
   r.type === 'breakfast' && (r.time >= 15 || r.effort >= 2 || (r.tags || []).some((t) => /pfannkuchen|brunch|gourmet|pfanne/i.test(t)) || /pfannkuchen|wrap|frittata|hash|benedict|pochiert/i.test(r.name));
 /** Fertiggericht (Tiefkühl-Beutel o. ä.): wird nicht in den Rezepten gezeigt, nur bei Angebot/Vorrat eingeplant */
 export const isReady = (r) => (r?.tags || []).includes('fertiggericht');
+/** Art des Fertiggerichts: pizza (Cheat Meal), soup (Eintopf mit Brot) oder meals (Frosta & Co.) */
+export const readyKind = (r) => ((r.tags || []).includes('pizza') ? 'pizza' : (r.tags || []).includes('suppe') ? 'soup' : 'meals');
+/** Ganze Packung (Beutel, Pizza, Schale) – wird nicht portioniert; Eintöpfe dagegen schon (Rest bleibt im Vorrat) */
+export const isFixedReady = (r) => isReady(r) && readyKind(r) !== 'soup';
 export const isDessert = (r) => (r.tags || []).includes('dessert') || /tiramisu|crumble|mousse|pudding|panna cotta|parfait|\beis\b/i.test(r.name);
 export const cakesOf = (structure) => structure.cakes || (structure.sunday ? [structure.sunday] : []);
 
@@ -211,21 +217,49 @@ export function buildStructure(ctx, rng, mode = {}) {
   // Fertiggerichte: Vorrat zuerst aufbrauchen, im Angebot zwei einplanen – an zufälligen Werktagen mittags
   const readyCooks = [];
   if (ctx.ready?.length) {
-    const fromStock = ctx.ready.flatMap((x) => Array.from({ length: x.stock }, () => x));
-    const offered = ctx.ready.filter((x) => x.offer && !x.stock);
-    // Sparrunden (Budget knapp): weniger Angebots-Beutel – was im Vorrat liegt, wird immer gegessen
+    // passend zum Ziel: beim Abnehmen leichte, eiweißreiche Gerichte bevorzugen, beim Aufbauen auch kräftigere
+    const goal = settings.profile?.goal || 'halten';
+    const readyWeight = (x) => {
+      const m = info.get(x.r.id).macros;
+      let w = macroFit(m, settings.goals) * (1 + m.p / 40);
+      if (goal === 'abnehmen') w *= Math.exp(-Math.max(0, m.kcal - 550) / 250);
+      if (goal === 'aufbauen') w *= Math.exp(-Math.max(0, 500 - m.kcal) / 250);
+      return Math.max(0.01, w);
+    };
+    const takeWeighted = (pool) => pool.splice(pool.indexOf(pickWeighted(pool, pool.map(readyWeight), rng)), 1)[0];
+    const nonPizza = ctx.ready.filter((x) => x.kind !== 'pizza');
+    const fromStock = nonPizza.flatMap((x) => Array.from({ length: x.stock }, () => x));
+    const offered = nonPizza.filter((x) => x.offer && !x.stock);
+    // Sparrunden (Budget knapp): weniger Angebots-Packungen – was im Vorrat liegt, wird immer gegessen
     const offerN = mode.cheap >= 2 ? 0 : mode.cheap ? 1 : 2;
     const n = Math.min(3, fromStock.length + (offered.length ? Math.max(0, offerN - fromStock.length) : 0));
-    const picks = [...fromStock];
-    const offerPool = [...offered];
-    while (picks.length < n && offerPool.length) picks.push(offerPool.splice(Math.floor(rng() * offerPool.length), 1)[0]);
+    const picks = fromStock.slice(0, n);
+    // Arten abwechseln (z. B. ein Frosta-Gericht und ein Eintopf), Reihenfolge zufällig
+    const kinds = [...new Set(offered.map((x) => x.kind))].sort(() => rng() - 0.5);
+    const pools = Object.fromEntries(kinds.map((k) => [k, offered.filter((x) => x.kind === k)]));
+    for (let i = 0; picks.length < n && kinds.some((k) => pools[k].length); i++) {
+      const k = kinds[i % kinds.length];
+      if (pools[k].length) picks.push(takeWeighted(pools[k]));
+    }
     const days = [0, 1, 2, 3, 4].filter((d) => !eatOut.has(slotKey(d, 'mittag')) && !complex.has(slotKey(d, 'mittag')));
-    for (const x of picks.slice(0, n)) {
+    for (const x of picks) {
       if (!days.length) break;
       const d = days.splice(Math.floor(rng() * days.length), 1)[0];
       const key = slotKey(d, 'mittag');
       covered.set(key, 'ready');
       readyCooks.push({ recipeId: x.r.id, day: d, slot: 'mittag', portions: [key], ready: true });
+      stock.consume(baseItems(x.r, settings, 1));
+    }
+    // Pizza als Cheat Meal: höchstens eine pro Woche, am Wochenende abends (Freitag als Ausweichtag)
+    const pizzas = ctx.ready.filter((x) => x.kind === 'pizza');
+    const pizzaPool = pizzas.filter((x) => x.stock > 0).length ? pizzas.filter((x) => x.stock > 0) : mode.cheap >= 2 ? [] : pizzas;
+    // beim Abnehmen nur alle zwei Wochen (gerade Kalenderwochen), sonst höchstens einmal pro Woche
+    const pizzaWeek = goal !== 'abnehmen' || !ctx.weekStart || isoWeek(ctx.weekStart) % 2 === 0;
+    const pizzaKey = !pizzaWeek ? null : [5, 6, 4].map((d) => slotKey(d, 'abend')).find((k) => !eatOut.has(k) && !complex.has(k) && !covered.has(k));
+    if (pizzaPool.length && pizzaKey) {
+      const x = takeWeighted([...pizzaPool]);
+      covered.set(pizzaKey, 'ready');
+      readyCooks.push({ recipeId: x.r.id, day: Number(pizzaKey.split('-')[0]), slot: 'abend', portions: [pizzaKey], ready: true });
       stock.consume(baseItems(x.r, settings, 1));
     }
   }
@@ -520,9 +554,9 @@ export function finalizePlan(structure, ctx) {
     // Fertiggerichte: immer ein ganzer Beutel – zählen fest, die übrigen Mahlzeiten gleichen aus
     for (const s of MAIN_SLOTS) {
       const c = slotCook.get(slotKey(d, s));
-      if (c && !eatOut.has(slotKey(d, s)) && isReady(ctx.recipesById.get(c.recipeId))) fixed = addMacros(fixed, ctx.info.get(c.recipeId).macros);
+      if (c && !eatOut.has(slotKey(d, s)) && isFixedReady(ctx.recipesById.get(c.recipeId))) fixed = addMacros(fixed, ctx.info.get(c.recipeId).macros);
     }
-    const mains = [...MAIN_SLOTS.map((s) => slotCook.get(slotKey(d, s))?.recipeId).filter((id) => id && !isReady(ctx.recipesById.get(id))), sun?.recipeId].filter(Boolean);
+    const mains = [...MAIN_SLOTS.map((s) => slotCook.get(slotKey(d, s))?.recipeId).filter((id) => id && !isFixedReady(ctx.recipesById.get(id))), sun?.recipeId].filter(Boolean);
     const sportKcal = daySportKcal(structure, d);
     const fit = fitDay({ ctx, fixed, breakfast, mains, combos: addonCombosAll, extra: sportKcal, usage: addonUse });
     for (const a of fit.addons) addonUse[a] = (addonUse[a] || 0) + 1;
@@ -554,7 +588,7 @@ export function finalizePlan(structure, ctx) {
       if (eatOut.has(key)) meals.push(eatOutMeal(slot));
       else {
         const c = slotCook.get(key);
-        if (c && isReady(ctx.recipesById.get(c.recipeId))) {
+        if (c && isFixedReady(ctx.recipesById.get(c.recipeId))) {
           const items = recipeItems(ctx.recipesById.get(c.recipeId), 1, settings, idx);
           meals.push({ key, slot, kind: 'recipe', recipeId: c.recipeId, factor: 1, ready: true, items, macros: itemsMacros(items, idx), cost: itemsCost(items, idx, ctx.priceOf).cost, cookId: c.id, leftover: false });
         } else if (c) meals.push(mk(slot, c.recipeId, fit.fm, { cookId: c.id, leftover: c.portions[0] !== key }));
@@ -812,7 +846,7 @@ export function budgetTarget(settings) {
 
 const READY_STOCK_BAGS = 2;
 function readyStock(plan, ctx, budget) {
-  const offered = (ctx.ready || []).filter((x) => x.offer);
+  const offered = (ctx.ready || []).filter((x) => x.offer && x.kind !== 'pizza');
   if (!offered.length) return null;
   const inPlan = new Set(plan.structure.cooks.filter((c) => c.ready).map((c) => c.recipeId));
   // andere Sorten bevorzugen, damit der Vorrat abwechslungsreich ist
@@ -823,7 +857,7 @@ function readyStock(plan, ctx, budget) {
   const stock = {};
   for (let i = 0; i < bags; i++) {
     const x = pool[i % pool.length];
-    stock[x.id] = (stock[x.id] || 0) + x.bag;
+    stock[x.id] = (stock[x.id] || 0) + (ctx.idx.get(x.id)?.pack || x.bag);
   }
   return finalizePlan({ ...plan.structure, stock }, ctx);
 }

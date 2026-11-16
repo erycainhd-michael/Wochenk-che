@@ -1013,6 +1013,9 @@ body { min-height: calc(100vh + 1px); min-height: calc(100lvh + 1px); }
 .switch i::after { content: ''; position: absolute; top: 3px; left: 3px; width: 22px; height: 22px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25); transition: transform 0.2s; }
 .switch input:checked + i { background: var(--accent); }
 .switch input:checked + i::after { transform: translateX(18px); }
+.toggle-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 0; border-top: 1px solid var(--line); cursor: pointer; }
+.toggle-row span:first-child { display: flex; flex-direction: column; gap: 2px; }
+.toggle-row small { color: var(--muted); font-size: 13px; line-height: 1.3; }
 .store-sort { user-select: none; -webkit-user-select: none; }
 .later .pill.circle { touch-action: manipulation; }
 /* Zwei Einkäufe: Wischansicht */
