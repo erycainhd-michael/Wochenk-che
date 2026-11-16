@@ -59,7 +59,9 @@ export function prepareContext(input) {
     });
   }
 
-  const byType = (t) => usable.filter((r) => r.type === t);
+  // Eiweißarme Rezepte nur bei bewusst gesenktem Protein-Ziel – sonst gilt: jede Hauptmahlzeit ≥ 25 g Protein
+  const lowP = lowProtein(settings.goals);
+  const byType = (t) => usable.filter((r) => r.type === t && (lowP || !(r.tags || []).includes('eiweissarm')));
   // „gruppe“ = nur für große Runden (z. B. Fondue) – wird nie automatisch eingeplant
   const mains = byType('main').filter((r) => !(r.tags || []).includes('gruppe') && !isReady(r));
   // Fertiggerichte (Frosta, prepmymeal, Pizza, Eintopf): nur wenn in den Einstellungen erlaubt und
@@ -87,7 +89,7 @@ export function prepareContext(input) {
     // Studi-Modus: keine teure Großpackung (z. B. Proteinpulver) für eine Ergänzung anbrechen – nur aus dem Vorrat
     // Kaffee & Kuchen ersetzt eine Mahlzeit: nur Kuchen mit genug Protein, keine Desserts (Tiramisu, Crumble …).
     // Klassiker wie Waffeln oder Tiramisu bleiben in den Rezepten zum Selberwählen.
-    snacks: byType('snack').filter((r) => !isDessert(r) && info.get(r.id).macros.p >= 25),
+    snacks: byType('snack').filter((r) => !isDessert(r) && (lowP || info.get(r.id).macros.p >= 25)),
     // Keine teure Großpackung (z. B. Proteinpulver) für eine Ergänzung anbrechen – nur aus dem Vorrat (Grenze ~10 % des Budgets)
     addons: byType('addon').filter((r) => r.ingredients.every((l) => (idx.get(l.id)?.price || 0) < (settings.studi ? 6 : Math.max(6, (settings.budget || 60) * 0.1)) || (input.pantry || {})[l.id] > 0)),
     avgMainCost: avg(mains, (r) => info.get(r.id).cost) || 3,
@@ -295,6 +297,7 @@ export function buildStructure(ctx, rng, mode = {}) {
     w *= Math.pow(costRatio, mode.cheap ? 1.5 + mode.cheap : 0.6);
     // gesenktes Protein-Ziel: eiweißärmere Gerichte deutlich bevorzugen
     w *= Math.pow(macroFit(inf.macros, settings.goals), lowProtein(settings.goals) ? 5 : mode.cheap ? 0.6 : 1.6);
+    if (lowProtein(settings.goals) && (r.tags || []).includes('eiweissarm')) w *= 8;
     return Math.max(0.001, w);
   };
 
@@ -339,7 +342,7 @@ export function buildStructure(ctx, rng, mode = {}) {
     const weights = pool.map((r) => {
       const inf = info.get(r.id);
       const ev = stock.evaluate(baseItems(r, settings, 7 / k));
-      return Math.pow(inf.weight * (1 + 1.5 * ev.coverage) * (1 + offersW * inf.offerShare) * (mode.cheap ? 1 / Math.max(0.5, inf.cost) : 1) * Math.pow(macroFit(inf.macros, settings.goals), lowProtein(settings.goals) ? 4 : 1), 1.5);
+      return Math.pow(inf.weight * (1 + 1.5 * ev.coverage) * (1 + offersW * inf.offerShare) * (mode.cheap ? 1 / Math.max(0.5, inf.cost) : 1) * Math.pow(macroFit(inf.macros, settings.goals), lowProtein(settings.goals) ? 4 : 1) * (lowProtein(settings.goals) && (r.tags || []).includes('eiweissarm') ? 8 : 1), 1.5);
     });
     const r = pickWeighted(pool, weights, rng);
     chosen.push(r.id);
