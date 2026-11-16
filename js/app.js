@@ -105,8 +105,33 @@ function pinChrome() {
   root.setProperty('--screen-r', `${SCREEN_RADIUS[dims] ?? (sab > 0 ? 44 : 0)}px`);
 }
 
+/**
+ * Dynamic Type wie bei Apple: Die Schrift folgt der Textgröße aus den iOS-Einstellungen
+ * (Anzeige & Helligkeit → Textgröße, Bedienungshilfen → Größerer Text). Safari kennt dafür die Systemschrift
+ * „-apple-system-body“ (17 pt bei Standardgröße); alle Größen der App sind in rem und wachsen mit.
+ */
+function applyDynamicType() {
+  const probe = document.createElement('div');
+  probe.style.font = '-apple-system-body';
+  let scale = 1;
+  if (probe.style.font) {
+    probe.style.cssText += ';position:absolute;visibility:hidden';
+    document.body.appendChild(probe);
+    const px = parseFloat(getComputedStyle(probe).fontSize);
+    probe.remove();
+    // xS … AX-Größen; ganz große Bedienungshilfe-Größen begrenzen, damit Wochentage & Buttons nicht zerbrechen
+    if (px > 0) scale = Math.min(1.6, Math.max(0.82, px / 17));
+  }
+  document.documentElement.style.fontSize = scale === 1 ? '' : `${16 * scale}px`;
+  document.documentElement.dataset.textScale = scale.toFixed(2);
+  // sehr große Schrift: mehrspaltige Bereiche untereinander anordnen (wie iOS bei Bedienungshilfe-Größen)
+  document.documentElement.classList.toggle('large-text', scale >= 1.3);
+}
+
 async function init() {
   window.__miseStarted = true;
+  applyDynamicType();
+  document.addEventListener('visibilitychange', () => document.visibilityState === 'visible' && applyDynamicType());
   applyTheme();
   pinChrome();
   setVh();
@@ -727,6 +752,34 @@ function render() {
   setupKwStrip();
   setupTrips();
   if (changed && !sameView) window.scrollTo(0, 0);
+  setupNavbar(r.name);
+}
+
+/**
+ * iOS-Navigationsleiste: Die große Überschrift (Large Title) scrollt mit; sobald sie verschwindet,
+ * erscheint oben eine kompakte Leiste mit dem Titel (Material-Unschärfe, Haarlinie). Antippen → nach oben.
+ */
+let navObs = null;
+function setupNavbar(name) {
+  let bar = document.getElementById('navbar');
+  if (!bar) {
+    bar = document.createElement('div');
+    bar.id = 'navbar';
+    bar.setAttribute('aria-hidden', 'true');
+    bar.innerHTML = '<span></span>';
+    bar.addEventListener('click', () => window.scrollTo({ top: 0, behavior: reducedMotion() ? 'auto' : 'smooth' }));
+    document.body.appendChild(bar);
+  }
+  navObs?.disconnect();
+  const h1 = document.querySelector('#view h1');
+  if (!h1 || name === 'kochen') {
+    bar.classList.remove('show');
+    return;
+  }
+  bar.firstChild.textContent = h1.textContent.replace(/\s+/g, ' ').trim();
+  const top = bar.offsetHeight || 44;
+  navObs = new IntersectionObserver(([en]) => bar.classList.toggle('show', !en.isIntersecting && en.boundingClientRect.top < top), { rootMargin: `-${top}px 0px 0px 0px` });
+  navObs.observe(h1);
 }
 
 /** Rezept zu einem Kochmodus-Schlüssel („r:id“ oder Mahlzeit wie „2-abend“) */
@@ -1501,8 +1554,12 @@ function confirmBox(title, text, okLabel = 'Löschen') {
   return new Promise((resolve) => {
     const ov = document.createElement('div');
     ov.className = 'confirm-box';
-    ov.innerHTML = `<div class="cb-card"><h2>${e(title)}</h2><p class="sub">${e(text)}</p><div class="grid2"><button class="btn" data-cb="0">Abbrechen</button><button class="btn primary danger-fill" data-cb="1">${e(okLabel)}</button></div></div>`;
+    // iOS-Alert: Titel + Nachricht mittig, Buttons nebeneinander mit Haarlinien; Rot nur bei zerstörenden Aktionen
+    const destructive = /lösch|entfern|zurücksetz|verwerf/i.test(okLabel);
+    ov.innerHTML = `<div class="cb-card" role="alertdialog" aria-modal="true" aria-labelledby="cb-t" aria-describedby="cb-x"><div class="cb-body"><h2 id="cb-t">${e(title)}</h2><p id="cb-x">${e(text)}</p></div><div class="cb-actions"><button data-cb="0">Abbrechen</button><button data-cb="1" class="${destructive ? 'destructive' : 'default'}">${e(okLabel)}</button></div></div>`;
     document.body.appendChild(ov);
+    haptic();
+    ov.querySelector('[data-cb="0"]').focus({ preventScroll: true });
     ov.addEventListener('click', (ev) => {
       const b = ev.target.closest('[data-cb]');
       if (!b && ev.target !== ov) return;
