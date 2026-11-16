@@ -21,6 +21,12 @@ export const DEFAULT_SETTINGS = {
   eatOutKcal: 1000,
   // Wie viele Personen essen abends mit (inkl. dir)? Gilt für jedes Abendessen, pro Mahlzeit änderbar
   household: 1,
+  // Kohlenhydrate gleichmäßig verteilen (z. B. bei Diabetes): max. ca. 60 g KH pro Mahlzeit, kein Kuchen, kein Zucker
+  carbSpread: false,
+  // Fasten tagsüber (z. B. Ramadan): nur Suhur (Frühstück vor Sonnenaufgang) und Iftar (Abendessen)
+  fasting: false,
+  // Kalorien und Nährwerte ausblenden (z. B. wenn Zahlen belasten) – der Plan rechnet weiter wie gewohnt
+  hideNumbers: false,
   eatOutProtein: 35,
   complexPerWeek: 1,
   dislikes: [],
@@ -100,7 +106,8 @@ export function calcGoals(p) {
   const w = Number(p.weight);
   const h = Number(p.height);
   const a = Number(p.age);
-  const bmr = 10 * w + 6.25 * h - 5 * a + (p.sex === 'm' ? 5 : -161);
+  // Divers / keine Angabe: Mittelwert der beiden Formeln
+  const bmr = 10 * w + 6.25 * h - 5 * a + (p.sex === 'm' ? 5 : p.sex === 'w' ? -161 : -78);
   const pal = (ACTIVITY.find((x) => x[0] === p.activity) || ACTIVITY[0])[3];
   // Sicherheitsgurt: bei Untergewicht oder unter 18 gibt es kein Defizit – dann gilt „Halten“
   const goal = goalBlocked(p) ? 'halten' : p.goal;
