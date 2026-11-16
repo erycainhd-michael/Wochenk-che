@@ -3513,7 +3513,34 @@ function onSortStart(ev) {
   document.addEventListener('pointercancel', up);
 }
 
+/**
+ * Verlorene Tipps verhindern: Ein Eingabefeld meldet „change“ erst beim Verlassen – also genau dann, wenn
+ * der Finger schon auf dem nächsten Button liegt. Würde jetzt neu gezeichnet, verschwindet dieser Button unter
+ * dem Finger und der Tipp kommt nie an. Deshalb wird nach Eingaben erst gezeichnet, wenn der Tipp fertig ist.
+ */
+let pointerIsDown = false;
+let renderAfterTap = false;
+function releaseTap() {
+  pointerIsDown = false;
+  if (renderAfterTap) {
+    renderAfterTap = false;
+    setTimeout(render, 0);
+  }
+}
+document.addEventListener('pointerdown', () => (pointerIsDown = true), true);
+// erst nach dem click-Handler zeichnen (Capture-Phase + setTimeout = nach allen Klick-Handlern)
+document.addEventListener('click', () => setTimeout(releaseTap, 0), true);
+// Tipp ohne Klick (z. B. Scrollen): spätestens kurz nach dem Loslassen nachholen
+document.addEventListener('pointerup', () => setTimeout(() => pointerIsDown && releaseTap(), 400), true);
+document.addEventListener('pointercancel', () => setTimeout(releaseTap, 0), true);
+function renderSoon() {
+  if (pointerIsDown) renderAfterTap = true;
+  else setTimeout(render, 0);
+}
+
 function onChange(ev) {
+  // im Change-Handler nie sofort zeichnen (siehe renderSoon)
+  const render = renderSoon;
   const el = ev.target;
   if (S.ui.edit && el.dataset.editIng !== undefined && el.dataset.f === 'name') {
     const l = S.ui.edit.ingredients[Number(el.dataset.editIng)];

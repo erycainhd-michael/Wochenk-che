@@ -37,7 +37,7 @@ const SP = process.argv[2];
     if (step1Blocked) { results.push(R); await ctx.close(); continue; }
     // Schritt 2: Aktivität & Ziel
     await page.click(`[data-action=ob-set][data-field=activity][data-val=${P.activity}]`);
-    await page.click(`[data-action=ob-set][data-field=goal][data-val=${P.goal}]`);
+    await page.click(`[data-action=ob-set][data-field=goal][data-val=${P.goal}]`, { force: true });
     if (P.goalWeight) { await page.fill('[data-ob=goalWeight]', String(P.goalWeight)).catch(() => {}); await page.dispatchEvent('[data-ob=goalWeight]', 'change').catch(() => {}); }
     const txt2 = await page.evaluate(() => document.body.innerText);
     await page.click('.ob-nav .btn.primary'); await page.waitForTimeout(500);
