@@ -686,6 +686,7 @@ function render() {
   if (changed) view.querySelector('.charts')?.classList.add('play');
   renderTimerDock();
   setupKwStrip();
+  setupTrips();
   if (changed && !sameView) window.scrollTo(0, 0);
 }
 
@@ -1011,7 +1012,7 @@ function laterStart(plan, todayIdx, firstDay) {
   const label = [sel ? `Ab ${DAY_SHORT[sel]}` : 'Ganze Woche', off.length ? `ohne ${off.map((d) => DAY_SHORT[d]).join(', ')}` : ''].filter(Boolean).join(' · ');
   return `<section class="card later">
     <h2>Wann bist du da?</h2>
-    <p class="sub"><b>Einmal tippen:</b> ab diesem Tag planen. <b>Zweimal tippen:</b> der Tag wird rot – dort plant Mise gar nichts, auch kein Frühstück. Du kaufst nur für die geplanten Tage ein. Haken auf der Einkaufsliste werden zurückgesetzt.</p>
+    <p class="sub"><b>Einmal tippen:</b> ab diesem Tag planen. <b>Denselben Tag nochmal tippen:</b> der Tag wird rot – dort plant Mise gar nichts, auch kein Frühstück. Roten Tag antippen macht ihn wieder normal. Du kaufst nur für die geplanten Tage ein. Haken auf der Einkaufsliste werden zurückgesetzt.</p>
     <div class="pills days">${DAY_SHORT.map((d, i) => `<button class="pill circle ${cls(i)}" data-action="later-day" data-day="${i}">${d}</button>`).join('')}</div>
     <div class="grid2"><button class="btn" data-action="later-cancel">Abbrechen</button><button class="btn primary" data-action="later-go" data-day="${sel}">${label} planen</button></div>
   </section>`;
@@ -1880,31 +1881,33 @@ function viewShopping() {
   // Bei zwei Einkäufen: erst alles für Montag, dann das Frische für Donnerstag
   const trips = [...new Set(toBuy.map((i) => i.trip || 1))].sort();
   const twoTrips = trips.includes(1) && trips.includes(2);
-  const storeBlocks = trips
-    .map((trip) => {
-      const inTrip = toBuy.filter((i) => (i.trip || 1) === trip);
-      const head = twoTrips
-        ? `<h2 class="trip-head">${trip === 1 ? '🛒 Einkauf 1 · Montag' : '🥬 Einkauf 2 · Donnerstag'} <span class="sub">${euro(inTrip.reduce((a, i) => a + i.cost, 0))}</span></h2>${trip === 2 ? '<p class="sub trip-sub">Neue Zutaten und Frisches für Donnerstag bis Sonntag.</p>' : ''}`
-        : '';
-      return (
-        head +
-        stores
-          .map((st) => {
-            const list = inTrip.filter((i) => i.store === st);
-            if (!list.length) return '';
-            const total = list.reduce((a, i) => a + i.cost, 0);
-            return `<section class="card"><h2>${e(STORES[st]?.short || st)} ${euro(total)}</h2>
+  const blocksFor = (list) =>
+    stores
+      .map((st) => {
+        const inStore = list.filter((i) => i.store === st);
+        if (!inStore.length) return '';
+        const total = inStore.reduce((a, i) => a + i.cost, 0);
+        return `<section class="card"><h2>${e(STORES[st]?.short || st)} ${euro(total)}</h2>
         ${cats
           .map((c) => {
-            const rows = list.filter((i) => i.cat === c).map(itemRow).join('');
+            const rows = inStore.filter((i) => i.cat === c).map(itemRow).join('');
             return rows ? `<h3>${e(c)}</h3><ul class="shop">${rows}</ul>` : '';
           })
           .join('')}</section>`;
-          })
-          .join('')
-      );
-    })
-    .join('');
+      })
+      .join('');
+  // Zwei Einkäufe: nebeneinander, Einkauf 2 wird von rechts hereingewischt (oder oben antippen)
+  const tripOf = (t) => toBuy.filter((i) => (i.trip || 1) === t);
+  const cur = S.ui.tripIdx || 0;
+  const storeBlocks = twoTrips
+    ? `<div class="trip-tabs" role="tablist">${[1, 2]
+        .map((t, i) => `<button class="trip-tab ${cur === i ? 'on' : ''}" data-action="trip-go" data-i="${i}" role="tab"><span>${t === 1 ? '🛒 Einkauf 1 · Mo' : '🥬 Einkauf 2 · Do'}</span><b>${euro(tripOf(t).reduce((a, x) => a + x.cost, 0))}</b></button>`)
+        .join('')}</div>
+      <div class="trips" id="trips">
+        <div class="trip-panel">${blocksFor(tripOf(1))}</div>
+        <div class="trip-panel"><p class="sub trip-sub">Neue Zutaten und Frisches für Donnerstag bis Sonntag.</p>${blocksFor(tripOf(2))}</div>
+      </div>`
+    : blocksFor(toBuy);
   return `<header class="top col"><h1>Einkauf</h1><div class="sub">KW ${isoWeek(ws)} · ${e(offerInfo)}</div></header>
     <div class="shop-tools"><button class="btn pill hide-btn" data-action="toggle-hide">${S.ui.hideChecked ? 'Alle zeigen' : 'Erledigte ausblenden'}</button>
       <label class="twice-switch"><input type="checkbox" data-set="shopTwice" ${S.settings.shopTwice ? 'checked' : ''}><span>Zweimal einkaufen</span></label></div>
@@ -2130,6 +2133,35 @@ function weekPager(ws, maxWeek) {
 }
 
 /** KW-Leiste: aktuelle Woche mittig zeigen, beim Wischen einrasten (mit Tippen), danach die Woche öffnen */
+/** Einkauf 1/2 als Wischansicht: Position merken, Reiter mitführen, Höhe an den sichtbaren Einkauf anpassen */
+function setupTrips() {
+  const box = document.getElementById('trips');
+  if (!box) return;
+  const panels = [...box.children];
+  const fit = (i) => {
+    box.style.height = panels[i].offsetHeight + 'px';
+    document.querySelectorAll('.trip-tab').forEach((t, k) => t.classList.toggle('on', k === i));
+  };
+  const idx = Math.min(S.ui.tripIdx || 0, panels.length - 1);
+  box.scrollLeft = idx * box.clientWidth;
+  fit(idx);
+  let t;
+  box.addEventListener(
+    'scroll',
+    () => {
+      const i = Math.round(box.scrollLeft / box.clientWidth);
+      if (i !== S.ui.tripIdx) {
+        S.ui.tripIdx = i;
+        haptic();
+      }
+      document.querySelectorAll('.trip-tab').forEach((x, k) => x.classList.toggle('on', k === i));
+      clearTimeout(t);
+      t = setTimeout(() => fit(i), 120);
+    },
+    { passive: true }
+  );
+}
+
 function setupKwStrip() {
   const strip = document.querySelector('[data-kw-strip]');
   if (!strip) return;
@@ -2542,6 +2574,8 @@ async function onClick(ev) {
     case 'later-open': {
       S.ui.laterOpen = true;
       S.ui.laterDay = null;
+      S.ui.laterPicked = null;
+      S.ui.laterPrev = null;
       // abgewählte Tage des aktuellen Plans (nach dem Start) vorbelegen
       const first = plan.days.find((d) => !d.away)?.day ?? 0;
       S.ui.laterOff = plan.days.filter((d) => d.away && d.day > first).map((d) => d.day);
@@ -2551,21 +2585,28 @@ async function onClick(ev) {
       S.ui.laterOpen = false;
       return render();
     case 'later-day': {
-      // einmal tippen: ab diesem Tag planen · zweimal tippen: Tag rot – dort wird gar nichts geplant
+      // Antippen: ab diesem Tag planen. Denselben Tag nochmal antippen: Tag wird rot (dort wird nichts geplant).
+      // Roten Tag antippen: wieder normal. Ohne Zeitlimit – funktioniert auch bei langsamem Tippen.
       const day = Number(el.dataset.day);
       const off = new Set(S.ui.laterOff || []);
-      const tap = S.ui.laterTap;
-      if (tap && tap.day === day && Date.now() - tap.at < 500) {
-        if (off.has(day)) off.delete(day);
-        else off.add(day);
-        S.ui.laterDay = tap.prev;
-        S.ui.laterTap = null;
-        haptic();
+      const firstDay = plan.days.find((d) => !d.away)?.day ?? 0;
+      const sel = S.ui.laterDay ?? firstDay;
+      if (off.has(day)) off.delete(day);
+      else if (day === sel && S.ui.laterPicked === day) {
+        off.add(day);
+        S.ui.laterDay = S.ui.laterPrev ?? 0;
+        S.ui.laterPicked = null;
+      } else if (day === sel) {
+        // aktuellen Starttag antippen: dieser Tag fällt weg, die Woche startet am nächsten freien Tag
+        const next = [...Array(7).keys()].find((d) => d > day && !off.has(d));
+        if (next === undefined) return toast('Mindestens ein Tag muss geplant werden', { icon: '📅', kind: 'warn' });
+        S.ui.laterDay = next;
       } else {
-        S.ui.laterTap = { day, at: Date.now(), prev: S.ui.laterDay };
-        if (off.has(day)) off.delete(day);
-        else S.ui.laterDay = day;
+        S.ui.laterPrev = sel;
+        S.ui.laterDay = day;
+        S.ui.laterPicked = day;
       }
+      haptic();
       S.ui.laterOff = [...off].sort();
       return render();
     }
@@ -2645,6 +2686,12 @@ async function onClick(ev) {
       }
       el.hidden = true;
       rerenderRecipeList();
+      return;
+    }
+    case 'trip-go': {
+      const box = document.getElementById('trips');
+      S.ui.tripIdx = Number(el.dataset.i);
+      box?.scrollTo({ left: S.ui.tripIdx * box.clientWidth, behavior: reducedMotion() ? 'auto' : 'smooth' });
       return;
     }
     case 'rfilters-toggle':
