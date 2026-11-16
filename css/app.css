@@ -1027,3 +1027,13 @@ body { min-height: calc(100vh + 1px); min-height: calc(100lvh + 1px); }
 .trips::-webkit-scrollbar { display: none; }
 .trip-panel { flex: 0 0 100%; scroll-snap-align: start; scroll-snap-stop: always; min-width: 0; }
 .trip-panel .trip-sub { margin: 0 4px 10px; }
+
+/* „Wann bist du da?“: geplant → 🍴 abends auswärts → nicht da */
+.later .pill.circle.eat { background: var(--sun-soft); border-color: #e8a25a; font-size: 1.15rem; }
+.later-legend { display: flex; flex-wrap: wrap; gap: 6px 14px; margin: 4px 0 2px; font-size: 0.8rem; color: var(--muted); }
+.later-legend span { display: inline-flex; align-items: center; gap: 6px; }
+.later-legend .dot { display: inline-grid; place-items: center; width: 18px; height: 18px; border-radius: 50%; border: 1.5px solid var(--line); font-style: normal; font-size: 0.65rem; }
+.later-legend .dot.eat { background: var(--sun-soft); border-color: #e8a25a; }
+.later-legend .dot.off { background: #d93c3c; border-color: #d93c3c; }
+.later-summary { margin: 0 0 4px; font-weight: 600; font-size: 0.92rem; }
+.card.later .sub.small { font-size: 0.78rem; margin-bottom: 12px; }
