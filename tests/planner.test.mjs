@@ -439,3 +439,28 @@ test('Budget: Kassenbon knapp unter dem Budget, großzügiges Budget wird nicht 
     assert.ok(p.cost <= 60 && p.cost >= 50, `Seed ${seed}: ${p.cost.toFixed(2)} €`);
   }
 });
+
+test('Fertiggerichte: Pizza höchstens 1× als Cheat Meal am Wochenende, Eintopf mit Brot, abschaltbar', () => {
+  const ings = ingData.items;
+  const raw = [
+    { title: 'Dr. Oetker Ristorante, Piccola oder Flammkuchen', price: 1.77, unitText: 'versch. Sorten, z. B.: Salame 320g' },
+    { title: 'Sonnen Bassermann Eintöpfe', price: 2.49, unitText: 'versch. Sorten, 800g Dose' },
+    { title: 'Frosta High Protein-Hähnchen- oder à la Carte Fertiggerichte', price: 3.99, unitText: 'versch. Sorten, 450/500g Beutel' },
+  ];
+  const offers = mapOffers(raw, 'edeka', ings).filter((o) => o.ingredientId).map((o) => ({ ...o, validFrom: '2026-10-12', validTo: '2026-10-18', source: 'auto' }));
+  const kindOf = (id) => {
+    const r = recipes.find((x) => x.id === id);
+    return !(r?.tags || []).includes('fertiggericht') ? null : r.tags.includes('pizza') ? 'pizza' : r.tags.includes('suppe') ? 'soup' : 'meals';
+  };
+  for (const seed of [1, 2, 3]) {
+    const p = generatePlan({ recipes, idx, settings: { ...settings(), budget: 120 }, weekStart: '2026-10-12', seed, candidates: 8, offers });
+    const meals = p.days.flatMap((d) => d.meals.map((m) => ({ ...m, day: d.day })));
+    const pizzas = meals.filter((m) => kindOf(m.recipeId) === 'pizza');
+    assert.ok(pizzas.length <= 1, 'mehr als eine Pizza');
+    for (const m of pizzas) assert.ok(m.slot === 'abend' && m.day >= 4, `Pizza am ${m.key}`);
+    for (const m of meals.filter((x) => kindOf(x.recipeId) === 'soup')) assert.ok(m.items.some((i) => i.id === 'vk_brot'), 'Eintopf ohne Brot');
+  }
+  const off = { ...settings(), budget: 120, readyMeals: { meals: false, pizza: false, soup: false } };
+  const q = generatePlan({ recipes, idx, settings: off, weekStart: '2026-10-12', seed: 1, candidates: 5, offers });
+  assert.ok(!q.days.some((d) => d.meals.some((m) => kindOf(m.recipeId))), 'trotz Abwahl ein Fertiggericht');
+});

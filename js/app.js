@@ -1,7 +1,7 @@
 // Mise – App-Oberfläche (Vanilla JS, kein Build-Schritt). Design nach Figma-Vorlage.
 import { DAY_NAMES, DAY_SHORT, SLOT_LABEL, addDays, clone, berlinNow, escapeHtml as e, euro, formatDate, isoWeek, mondayOf, num, shortName } from './util.js';
 import { buildIndex, plausibility } from './nutrition.js';
-import { cakesOf, generatePlan, refitPlan, swapMeal } from './planner.js';
+import { cakesOf, generatePlan, readyKind, refitPlan, swapMeal } from './planner.js';
 import { mergeOffers, storeOpen, storeOrder, STORES, STORE_IDS } from './prices.js';
 import { packText } from './shopping.js';
 import { kitchenText } from './units.js';
@@ -481,6 +481,27 @@ function refitCurrent() {
   if (!plan?.structure) return;
   S.plans[plan.weekStart] = refitPlan(plan, plannerInput({ weekStart: plan.weekStart }));
   savePlans();
+}
+
+/** Fertiggerichte einer Art abgewählt: in dieser Woche gegen normale Gerichte tauschen, Vorratskauf streichen */
+function dropReady(kind) {
+  let plan = S.plans[currentWeek()];
+  if (!plan?.structure) return;
+  const input = plannerInput({ weekStart: plan.weekStart });
+  const isKind = (id) => {
+    const r = recipe(id);
+    return r && (r.tags || []).includes('fertiggericht') && readyKind(r) === kind;
+  };
+  const keys = plan.days.flatMap((d) => d.meals.filter((m) => isKind(m.recipeId)).map((m) => m.key));
+  const stock = Object.fromEntries(Object.entries(plan.structure.stock || {}).filter(([id]) => !S.recipes.some((r) => isKind(r.id) && r.ingredients[0]?.id === id)));
+  if (!keys.length && Object.keys(stock).length === Object.keys(plan.structure.stock || {}).length) return;
+  const done = plan.done || {};
+  if (plan.structure.stock) plan = refitPlan({ ...plan, structure: { ...plan.structure, stock } }, input);
+  for (const k of keys) plan = swapMeal(plan, k, input);
+  plan.done = done;
+  S.plans[plan.weekStart] = plan;
+  savePlans();
+  toast('Plan angepasst', { icon: '🔄', sub: `${keys.length} Fertiggericht${keys.length === 1 ? '' : 'e'} getauscht` });
 }
 
 function setPath(obj, path, value) {
@@ -2445,6 +2466,17 @@ function viewSettings() {
     ${dayPills(eatOutDays(st.eatOut), 'eatout-day')}
   </section>
 
+  <section class="card"><h2>Fertiggerichte</h2>
+    <p class="sub">Für schnelle, günstige Tage: Fertiggerichte kommen nur in den Plan, wenn sie im Angebot sind oder noch im Vorrat liegen – bei einem Angebot wird ein kleiner Vorrat angelegt. Ausgewählt wird, was zu deinem Ziel passt; der Rest des Tages gleicht die Nährwerte aus.</p>
+    ${[
+      ['meals', 'Tiefkühl- & Kühlgerichte', 'z. B. Frosta, prepmymeal – nur eiweißreiche Sorten'],
+      ['pizza', 'Pizza als Cheat Meal', 'höchstens einmal pro Woche am Wochenende abends – beim Abnehmen alle zwei Wochen'],
+      ['soup', 'Eintopf aus der Dose', 'wenn es mal was Warmes sein soll – immer mit Vollkornbrot & Hüttenkäse'],
+    ]
+      .map(([k, label, sub]) => `<label class="toggle-row"><span><b>${label}</b><small>${sub}</small></span><span class="switch"><input type="checkbox" data-set="readyMeals.${k}" ${st.readyMeals?.[k] !== false ? 'checked' : ''}><i></i></span></label>`)
+      .join('')}
+  </section>
+
   <section class="card"><h2>Einkauf</h2>
     <p class="sub">Halte ≡ gedrückt und zieh die Läden in deine Reihenfolge. Ganz oben steht dein Hauptladen.</p>
     <ul class="store-sort" data-sortable="stores">${storeOrder(st)
@@ -3295,6 +3327,7 @@ function onChange(ev) {
     S.settings.mainStore = storeOrder(S.settings).find((id) => S.settings.stores[id]) || 'lidl';
     saveSettings();
     if (/^(goals\.|stores\.|mainStore$|shopTwice$)/.test(el.dataset.set)) refitCurrent();
+    if (/^readyMeals\./.test(el.dataset.set) && !el.checked) dropReady(el.dataset.set.split('.')[1]);
     if (el.dataset.set === 'theme') applyTheme();
     if (el.dataset.set === 'shareToken') {
       S.settings.shareToken = String(S.settings.shareToken || '').trim();

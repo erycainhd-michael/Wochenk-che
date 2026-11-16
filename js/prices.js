@@ -152,13 +152,15 @@ const EXCLUDE = ['ketchup', 'mayonnaise', 'sauce', 'sosse', 'bagel', 'sandwich',
 
 export function matchIngredient(title, ingredients) {
   const t = ' ' + norm(title) + ' ';
-  if (EXCLUDE.some((w) => t.includes(' ' + w))) return null;
+  // Verarbeitetes (Pizza, Saucen …) nur bei Markenprodukten, die bewusst als Fertiggericht hinterlegt sind
+  const processed = EXCLUDE.some((w) => t.includes(' ' + w));
   let best = null;
   let bestLen = 0;
   for (const ing of ingredients) {
+    if (processed && !ing.brand) continue;
     if ((ing.kwNot || []).some((w) => t.includes(norm(w)))) continue;
     // Markenprodukte (z. B. Frosta-Fertiggerichte) nur, wenn die Marke im Titel steht
-    if (ing.brand && !t.includes(' ' + norm(ing.brand) + ' ')) continue;
+    if (ing.brand && ![].concat(ing.brand).some((b) => t.includes(' ' + norm(b) + ' '))) continue;
     for (const kw of ing.kw || []) {
       const k = norm(kw);
       // ganzes Wort (Plural-Endungen erlaubt), nicht nur Wortanfang: „Tomaten“ ≠ „Tomatenketchup“
@@ -169,7 +171,15 @@ export function matchIngredient(title, ingredients) {
       }
     }
   }
-  return best;
+  if (best) return best;
+  // Marken-Sortiment ohne konkrete Sorte (z. B. „Frosta à la Carte Fertiggerichte, versch. Sorten“): erstes Produkt der Gruppe
+  for (const ing of ingredients) {
+    if (!ing.brand || !ing.groupKw) continue;
+    if (![].concat(ing.brand).some((b) => t.includes(' ' + norm(b) + ' '))) continue;
+    if ((ing.kwNot || []).some((w) => t.includes(norm(w)))) continue;
+    if (ing.groupKw.some((k) => t.includes(' ' + norm(k)))) return ing;
+  }
+  return null;
 }
 
 /** Liest "500 g", "1 kg", "400-g-Packung", "1 l" … und liefert Gramm (Liter ≈ kg). */
