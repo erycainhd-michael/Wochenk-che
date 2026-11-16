@@ -454,11 +454,53 @@ function freshBoost() {
 }
 
 /** start = erster Tag mit Plan (0 = Montag). Davor ist man noch unterwegs: kein Plan, kein Einkauf. */
-function createPlan({ pantry, eatOut, boost, start = 0, off = [] } = {}) {
+/**
+ * Plan im Web Worker berechnen (App bleibt bedienbar). Fällt still auf den Hauptthread zurück,
+ * wenn Module-Worker nicht verfügbar sind oder der Worker scheitert.
+ */
+let planWorker = null;
+let planJob = 0;
+function planAsync(input) {
+  return new Promise((resolve) => {
+    try {
+      planWorker ||= new Worker('js/plan-worker.js', { type: 'module' });
+    } catch {
+      return resolve(generatePlan(input));
+    }
+    const id = ++planJob;
+    const fallback = () => {
+      planWorker?.terminate();
+      planWorker = null;
+      resolve(generatePlan(input));
+    };
+    const onMsg = (ev) => {
+      if (ev.data?.id !== id) return;
+      planWorker.removeEventListener('message', onMsg);
+      planWorker.removeEventListener('error', onErr);
+      if (ev.data.error) fallback();
+      else resolve(ev.data.plan);
+    };
+    const onErr = () => {
+      planWorker?.removeEventListener('message', onMsg);
+      fallback();
+    };
+    planWorker.addEventListener('message', onMsg);
+    planWorker.addEventListener('error', onErr, { once: true });
+    planWorker.postMessage({ id, input });
+  });
+}
+
+async function createPlan({ pantry, eatOut, boost, start = 0, off = [] } = {}) {
   const ws = currentWeek();
   // nicht geplant: Tage vor dem Start und abgewählte Tage (rot) – dort gibt es gar nichts, auch kein Frühstück
   const away = [...new Set([...Array.from({ length: start }, (_, i) => i), ...off])].sort();
-  const plan = generatePlan(plannerInput({ pantry: pantry || {}, boost, away, settings: { ...S.settings, eatOut: eatOut || S.settings.eatOut } }));
+  busy('Mise plant deine Woche …');
+  let plan;
+  try {
+    plan = await planAsync(plannerInput({ pantry: pantry || {}, boost, away, settings: { ...S.settings, eatOut: eatOut || S.settings.eatOut } }));
+  } finally {
+    busy(null);
+  }
   plan.done = {};
   plan.studi = !!S.settings.studi;
   plan.pv = PLANNER_VERSION;
@@ -489,7 +531,7 @@ async function createPlanFromDraft() {
       busy(null);
     }
   }
-  const plan = createPlan({ pantry, boost, eatOut: d ? daysToEatOut(d.days) : S.settings.eatOut, start: d?.start || 0 });
+  const plan = await createPlan({ pantry, boost, eatOut: d ? daysToEatOut(d.days) : S.settings.eatOut, start: d?.start || 0 });
   S.next = null;
   saveNext();
   return plan;
@@ -500,7 +542,7 @@ async function replanWeek(plan, state = planDayState(plan)) {
   if (Object.values(S.checks[plan.weekStart] || {}).some(Boolean) && !(await confirmBox('Woche neu planen?', 'Haken auf der Einkaufsliste werden zurückgesetzt.', 'Neu planen'))) return false;
   const { off = [], eat = [] } = state;
   // auswärts ist immer nur abends – Frühstück und Mittag plant Mise an diesen Tagen ganz normal
-  createPlan({ pantry: plan.pantryUsed || {}, eatOut: eat.filter((d) => !off.includes(d)).map((day) => ({ day, slot: 'abend' })), off });
+  await createPlan({ pantry: plan.pantryUsed || {}, eatOut: eat.filter((d) => !off.includes(d)).map((day) => ({ day, slot: 'abend' })), off });
   return true;
 }
 
@@ -721,6 +763,7 @@ function render() {
   const fancy = isFancy(shownRecipe) && ['rezept', 'mahlzeit', 'kochen'].includes(r.name);
   document.body.classList.toggle('fancy', fancy);
   document.body.classList.toggle('cook-on', r.name === 'kochen');
+  document.body.classList.toggle('no-numbers', !!S.settings.hideNumbers);
   document.body.classList.toggle('gourmet', fancy && isGourmet(shownRecipe));
   let frame = document.getElementById('magic-frame');
   if (fancy && r.name === 'kochen') {
@@ -996,7 +1039,7 @@ function viewStart(stepArg) {
         <p class="hint">Alles bleibt nur auf diesem Gerät.</p>${nav("Los geht's", 1)}</section>`;
   } else if (step === 1) {
     body = `<section class="card accent"><h2>Über dich</h2><p class="sub">Damit Mise deinen Bedarf berechnen kann.</p>
-      <div class="field">Geschlecht${pills('sex', [['m', 'Mann'], ['w', 'Frau']])}</div>
+      <div class="field">Geschlecht${pills('sex', [['m', 'Mann'], ['w', 'Frau'], ['d', 'Divers']])}</div>
       <div class="grid3">${inp('age', 'Alter', 'Jahre')}${inp('height', 'Größe', 'cm')}${inp('weight', 'Gewicht', 'kg', 'decimal')}</div>
       ${nav('Weiter', 2)}</section>`;
   } else if (step === 2) {
@@ -1100,7 +1143,8 @@ function planDayState(plan) {
   const eat = [...new Set((plan.structure?.eatOut || []).filter((k) => k.endsWith('-abend')).map((k) => Number(k.split('-')[0])))].filter((d) => !off.includes(d));
   return { off, eat };
 }
-const dayList = (days) => days.map((d) => DAY_SHORT[d]).join(', ');
+// Tagesnamen ausgeschrieben: „So“ liest sich sonst wie das Wort „so“
+const dayList = (days) => days.map((d) => DAY_NAMES[d]).join(', ');
 function dayStateText({ off, eat }) {
   return [off.length ? `ohne ${dayList(off)}` : '', eat.length ? `🍴 ${dayList(eat)} abends auswärts` : ''].filter(Boolean).join(' · ');
 }
@@ -1130,7 +1174,11 @@ function evaluationHtml(plan) {
 }
 
 /** Bezeichnung der Mahlzeit, Wochenend-Mittag heißt „Kaffee & Kuchen“ */
-const slotLabel = (m) => (isCake(m) ? 'Kaffee & Kuchen' : m.slot === 'snack' ? 'Snack' : SLOT_LABEL[m.slot]);
+const slotLabel = (m) => {
+  // Fasten (z. B. Ramadan): Frühstück = Suhur vor Sonnenaufgang, Abendessen = Iftar
+  if (displayedPlan()?.structure?.fasting) return m.slot === 'fruehstueck' ? 'Suhur' : m.slot === 'abend' ? 'Iftar' : m.slot === 'snack' ? 'Nach dem Iftar' : SLOT_LABEL[m.slot];
+  return isCake(m) ? 'Kaffee & Kuchen' : m.slot === 'snack' ? 'Snack' : SLOT_LABEL[m.slot];
+};
 
 function mealRow(plan, m) {
   if (m.kind === 'eatout') {
@@ -1149,7 +1197,7 @@ function mealRow(plan, m) {
   // Snacks: kleiner und ohne Tauschen – die Hauptmahlzeiten sind wichtiger
   if (m.slot === 'snack') {
     return `<li class="meal snack" data-key="${m.key}"><a class="mt" href="#/mahlzeit/${m.key}">
-      <div class="ml">Snack</div><div class="mn">${e(r.name)}</div><div class="mm">${num(m.macros.kcal)} kcal · ${g_(m.macros.p)} Protein</div></a></li>`;
+      <div class="ml">${slotLabel(m)}</div><div class="mn">${e(r.name)}</div><div class="mm">${num(m.macros.kcal)} kcal · ${g_(m.macros.p)} Protein</div></a></li>`;
   }
   return `<li class="meal ${themeCls(r)}" data-key="${m.key}">
     <a class="mt" href="#/mahlzeit/${m.key}">
@@ -2463,6 +2511,14 @@ function checkGoal(before, now) {
   }
 }
 
+/** Reicht das Budget für die eigenen Ziele? Zeigt, was der günstigste passende Plan diese Woche kostet */
+function minBudgetHint(st) {
+  const plan = S.plans[currentWeek()];
+  if (!plan || plan.cost <= st.budget + 0.5) return '';
+  const cheapest = Math.ceil(plan.budgetInfo?.cheapest || plan.cost);
+  return `<p class="hint warn-hint">Mit ${euro(st.budget)} lassen sich deine Ziele (${num(st.goals.kcal)} kcal, ${st.goals.protein}g Protein${st.household > 1 ? `, abends ${st.household} Personen` : ''}) diese Woche nicht ganz erreichen. Der günstigste passende Plan kostet ca. ${euro(cheapest)}. Mehr sparen: Studi-Modus, Angebote stärker berücksichtigen oder Reste eintragen.</p>`;
+}
+
 /** Wie viele essen abends mit? (inkl. dir) – gilt für jedes Abendessen, pro Mahlzeit weiterhin änderbar */
 function householdField(st) {
   const cur = Math.max(1, Number(st.household) || 1);
@@ -2478,6 +2534,9 @@ function dietCard(st, onboarding = false) {
     <div class="field">Ernährungsform<div class="seg diet-seg">${DIETS.map(([v, l]) => `<button class="pill ${(st.diet || 'alles') === v ? 'on' : ''}" data-action="set-diet" data-val="${v}">${l}</button>`).join('')}</div></div>
     <div class="field">Allergien & Unverträglichkeiten<div class="chips allergy-chips">${ALLERGENS.map(([v, l]) => `<button class="chip ${(st.allergies || []).includes(v) ? 'on' : ''}" data-action="toggle-allergy" data-val="${v}" aria-pressed="${(st.allergies || []).includes(v)}">${l}</button>`).join('')}</div></div>
     ${showPregnancy ? `<label class="toggle-row"><span><b>Schwanger</b><small>+250 kcal pro Tag, ohne Räucherlachs, Rohschinken, Leber und rohe Eier</small></span><span class="switch"><input type="checkbox" data-action="toggle-pregnant" ${st.profile?.pregnant ? 'checked' : ''}><i></i></span></label>` : ''}
+    <label class="toggle-row"><span><b>Kohlenhydrate verteilen</b><small>z. B. bei Diabetes: höchstens ca. 60 g pro Mahlzeit, kein Kuchen, keine gezuckerten Snacks</small></span><span class="switch"><input type="checkbox" data-set="carbSpread" ${st.carbSpread ? 'checked' : ''}><i></i></span></label>
+    <label class="toggle-row"><span><b>Fasten tagsüber</b><small>z. B. Ramadan: nur Suhur vor Sonnenaufgang und Iftar am Abend</small></span><span class="switch"><input type="checkbox" data-set="fasting" ${st.fasting ? 'checked' : ''}><i></i></span></label>
+    <label class="toggle-row"><span><b>Kalorien ausblenden</b><small>Plan und Einkauf bleiben gleich – nur die Zahlen zu Kalorien und Nährwerten sind nicht zu sehen</small></span><span class="switch"><input type="checkbox" data-set="hideNumbers" ${st.hideNumbers ? 'checked' : ''}><i></i></span></label>
     <p class="hint">${n} Hauptgerichte passen dazu. Mise kennt die 14 Hauptallergene der Zutaten, aber keine Spuren – prüfe bei schweren Allergien immer die Packung.</p>
   </section>`;
 }
@@ -2700,6 +2759,7 @@ function viewSettings() {
       .join('')}</ul>
     <p class="sub">Gekauft wird im obersten eingeschalteten Laden. Nur wenn ein anderer eingeschalteter Laden mindestens 10 % günstiger ist (z. B. durch ein Angebot) oder der Hauptladen den Artikel nicht führt, landet er dort – z. B. Spezielles wie grüne Tagliatelle bei Edeka. dm und Rossmann führen nur Trockenware, Nüsse & Co.</p>
     ${householdField(st)}
+    ${minBudgetHint(st)}
     <div class="grid2 budget-row">
       <label class="field">Wochenbudget<span class="unit-input"><input type="number" inputmode="numeric" step="1" data-set="budget" value="${st.budget}"><i>€</i></span></label>
       <label class="studi-toggle"><input type="checkbox" class="big-check" data-set="studi" ${st.studi ? 'checked' : ''}><span>Studi-Modus</span></label>
@@ -3609,6 +3669,10 @@ function onChange(ev) {
     saveSettings();
     if (/^(goals\.|stores\.|mainStore$|shopTwice$)/.test(el.dataset.set)) refitCurrent();
     if (/^readyMeals\./.test(el.dataset.set) && !el.checked) dropReady(el.dataset.set.split('.')[1]);
+    // Kohlenhydrate verteilen / Fasten ändern die Wochenstruktur (Kuchen, Mittagessen): Woche neu planen
+    if (['carbSpread', 'fasting'].includes(el.dataset.set) && S.plans[currentWeek()]) {
+      replanWeek(S.plans[currentWeek()]).then((ok) => ok && (toast(el.dataset.set === 'fasting' ? (el.checked ? 'Fasten: Suhur & Iftar' : 'Fasten beendet') : el.checked ? 'Kohlenhydrate verteilt' : 'Wieder mit Kaffee & Kuchen', { icon: '📅', sub: 'Woche neu geplant' }), render()));
+    }
     if (el.dataset.set === 'theme') applyTheme();
     if (el.dataset.set === 'shareToken') {
       S.settings.shareToken = String(S.settings.shareToken || '').trim();

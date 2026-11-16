@@ -1101,3 +1101,7 @@ body.cook-on #navbar { display: none; }
 .seg.diet-seg { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .seg.diet-seg .pill { margin: 0; }
 .hero-sub.over { opacity: 1; font-weight: 600; background: rgba(255, 255, 255, 0.18); border-radius: 999px; padding: 1px 8px; display: inline-block; }
+/* „Kalorien ausblenden“: Zahlen zu Kalorien und Nährwerten verbergen, Preise bleiben */
+body.no-numbers .meal .mm, body.no-numbers .day-head .sub, body.no-numbers .macro-bars, body.no-numbers .mtiles,
+body.no-numbers .hero-top > div:first-child, body.no-numbers .hero-link, body.no-numbers .hero-eval { display: none !important; }
+body.no-numbers .hero-top { justify-content: flex-end; }

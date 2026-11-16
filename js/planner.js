@@ -61,7 +61,8 @@ export function prepareContext(input) {
 
   // Eiweißarme Rezepte nur bei bewusst gesenktem Protein-Ziel – sonst gilt: jede Hauptmahlzeit ≥ 25 g Protein
   const lowP = lowProtein(settings.goals);
-  const byType = (t) => usable.filter((r) => r.type === t && (lowP || !(r.tags || []).includes('eiweissarm')));
+  const byType = (t) =>
+    usable.filter((r) => r.type === t && (lowP || !(r.tags || []).includes('eiweissarm')) && (!settings.carbSpread || sugarG(r) <= (t === 'addon' ? 0 : 10)));
   // „gruppe“ = nur für große Runden (z. B. Fondue) – wird nie automatisch eingeplant
   const mains = byType('main').filter((r) => !(r.tags || []).includes('gruppe') && !isReady(r));
   // Fertiggerichte (Frosta, prepmymeal, Pizza, Eintopf): nur wenn in den Einstellungen erlaubt und
@@ -89,7 +90,8 @@ export function prepareContext(input) {
     // Studi-Modus: keine teure Großpackung (z. B. Proteinpulver) für eine Ergänzung anbrechen – nur aus dem Vorrat
     // Kaffee & Kuchen ersetzt eine Mahlzeit: nur Kuchen mit genug Protein, keine Desserts (Tiramisu, Crumble …).
     // Klassiker wie Waffeln oder Tiramisu bleiben in den Rezepten zum Selberwählen.
-    snacks: byType('snack').filter((r) => !isDessert(r) && (lowP || info.get(r.id).macros.p >= 25)),
+    // Kaffee & Kuchen entfällt, wenn Kohlenhydrate verteilt werden sollen (dann normales Mittagessen)
+    snacks: settings.carbSpread ? [] : byType('snack').filter((r) => !isDessert(r) && (lowP || info.get(r.id).macros.p >= 25)),
     // Keine teure Großpackung (z. B. Proteinpulver) für eine Ergänzung anbrechen – nur aus dem Vorrat (Grenze ~10 % des Budgets)
     addons: byType('addon').filter((r) => r.ingredients.every((l) => (idx.get(l.id)?.price || 0) < (settings.studi ? 6 : Math.max(6, (settings.budget || 60) * 0.1)) || (input.pantry || {})[l.id] > 0)),
     avgMainCost: avg(mains, (r) => info.get(r.id).cost) || 3,
@@ -204,8 +206,10 @@ export function buildStructure(ctx, rng, mode = {}) {
   const eatOut = eatOutSet(settings);
   for (const d of ctx.away || []) for (const slot of ['fruehstueck', ...MAIN_SLOTS]) eatOut.add(slotKey(d, slot));
   // Am Wochenende kein Mittagessen, sondern „Kaffee & Kuchen“ (wenn es passende Rezepte gibt)
-  const cakeKeys = ctx.snacks?.length ? CAKE_DAYS.map((d) => slotKey(d, 'mittag')).filter((k) => !eatOut.has(k)) : [];
-  const complex = complexSlots(settings, new Set([...eatOut, ...cakeKeys]));
+  // Fasten (z. B. Ramadan): tagsüber nichts – Suhur (vor Sonnenaufgang) und Iftar (abends), kein Mittagessen
+  const fastKeys = settings.fasting ? [0, 1, 2, 3, 4, 5, 6].map((d) => slotKey(d, 'mittag')) : [];
+  const cakeKeys = ctx.snacks?.length && !settings.fasting ? CAKE_DAYS.map((d) => slotKey(d, 'mittag')).filter((k) => !eatOut.has(k)) : [];
+  const complex = complexSlots(settings, new Set([...eatOut, ...cakeKeys, ...fastKeys]));
   const stock = new Stock(ctx.pantry, idx, ctx.priceOf);
   const used = new Set();
   const usedColors = new Set();
@@ -214,6 +218,7 @@ export function buildStructure(ctx, rng, mode = {}) {
   const cooks = [];
   const covered = new Map();
   for (const k of cakeKeys) covered.set(k, 'cake');
+  for (const k of fastKeys) covered.set(k, 'fast');
 
   // Fertiggerichte: Vorrat zuerst aufbrauchen, im Angebot zwei einplanen – an zufälligen Werktagen mittags
   const readyCooks = [];
@@ -242,7 +247,7 @@ export function buildStructure(ctx, rng, mode = {}) {
       const k = kinds[i % kinds.length];
       if (pools[k].length) picks.push(takeWeighted(pools[k]));
     }
-    const days = [0, 1, 2, 3, 4].filter((d) => !eatOut.has(slotKey(d, 'mittag')) && !complex.has(slotKey(d, 'mittag')));
+    const days = [0, 1, 2, 3, 4].filter((d) => !eatOut.has(slotKey(d, 'mittag')) && !complex.has(slotKey(d, 'mittag')) && !covered.has(slotKey(d, 'mittag')));
     for (const x of picks) {
       if (!days.length) break;
       const d = days.splice(Math.floor(rng() * days.length), 1)[0];
@@ -286,18 +291,21 @@ export function buildStructure(ctx, rng, mode = {}) {
     const newColors = [...inf.colors].filter((c) => !usedColors.has(c)).length;
     w *= 1 + 0.12 * variety * newColors;
     const ev = stock.evaluate(baseItems(r, settings));
-    w *= 1 + (mode.cheap ? 4 : 2) * ev.coverage;
+    // Vorrat aufbrauchen: Gerichte, die vorhandene Reste nutzen, bevorzugen
+    w *= 1 + (mode.cheap ? 4 : 3) * ev.coverage;
     w *= 1 / (1 + 0.25 * ev.waste);
     // Ballaststoffe ausgewogen: sehr ballaststoffreiche Gerichte nicht gehäuft
     w *= Math.exp(-Math.max(0, inf.macros.fib - ctx.fiberTarget * 0.38) / 4);
     // Abwechslung über Wochen: kürzlich gekochte Gerichte seltener (außer mit „nochmal“-Feedback)
     const ago = ctx.recentRecipes[r.id];
-    if (ago && inf.weight < 1.3) w *= 1 - variety * (ago === 1 ? 0.7 : 0.35);
+    // Abwechslung über Wochen: Gerichte der letzten Woche deutlich seltener, der Vorwoche etwas seltener
+    if (ago && inf.weight < 1.3) w *= 1 - variety * (ago === 1 ? 0.92 : 0.5);
     const costRatio = ctx.avgMainCost / Math.max(0.5, inf.cost);
     w *= Math.pow(costRatio, mode.cheap ? 1.5 + mode.cheap : 0.6);
     // gesenktes Protein-Ziel: eiweißärmere Gerichte deutlich bevorzugen
     w *= Math.pow(macroFit(inf.macros, settings.goals), lowProtein(settings.goals) ? 5 : mode.cheap ? 0.6 : 1.6);
     if (lowProtein(settings.goals) && (r.tags || []).includes('eiweissarm')) w *= 8;
+    if (settings.carbSpread) w *= Math.exp(-Math.max(0, inf.macros.c - CARB_CAP) / 15);
     return Math.max(0.001, w);
   };
 
@@ -374,7 +382,7 @@ export function buildStructure(ctx, rng, mode = {}) {
   readyCooks.forEach((c, i) => cooks.push({ id: `f${i + 1}`, ...c }));
   const order = (c) => c.day * 2 + (c.slot === 'abend' ? 1 : 0);
   cooks.sort((a, b) => order(a) - order(b));
-  return { cooks, breakfasts, eatOut: [...eatOut], complex: [...complex], away: [...(ctx.away || [])], cakes };
+  return { cooks, breakfasts, eatOut: [...eatOut], complex: [...complex], away: [...(ctx.away || [])], cakes, fasting: !!settings.fasting };
 }
 
 // ---------------------------------------------------------------------------
@@ -414,6 +422,11 @@ function dayGoals(goals, extra) {
 // Ein Gericht bleibt das Gericht: Beilage und Proteinquelle weichen höchstens ±20–25 % vom Rezept ab
 // (eine Carbonara bleibt eine Carbonara). Was dann zum Tagesziel fehlt, kommt über einen Snack.
 const S_STEPS = [0.85, 1, 1.15, 1.25];
+/** Kohlenhydrate pro Mahlzeit bei „gleichmäßig verteilen“ (Orientierung bei Typ-2-Diabetes, ca. 45–60 g) */
+const CARB_CAP = 60;
+// Zucker-Zutaten: bei „Kohlenhydrate verteilen“ keine gezuckerten Snacks, Kuchen oder süßen Gerichte
+const SUGARS = new Set(['honig', 'zucker', 'brauner_zucker', 'puderzucker', 'vanillezucker', 'zartbitter', 'weisse_schokolade', 'mangosirup', 'cocktailkirschen', 'puddingpulver']);
+const sugarG = (r) => r.ingredients.reduce((a, l) => a + (SUGARS.has(l.id) ? l.g : 0), 0);
 /** Protein unter 14 % der Kalorien – ein bewusst gesenktes Ziel, das als Obergrenze gilt */
 export const lowProtein = (goals) => goals.protein * 4 < goals.kcal * 0.14;
 /** Ab wie viel Protein eine Mahlzeit als „eiweißreich“ zählt (bei gesenktem Ziel entsprechend weniger) */
@@ -436,6 +449,10 @@ function fitDay({ ctx, fixed, breakfast, mains, combos, extra = 0, usage = {} })
   const sSteps = low ? [1, 1.25, 1.5, 1.75] : S_STEPS;
   const fmMin = low ? 0.45 : FM_MIN;
   const fbMin = low ? 0.5 : FB_MIN;
+  // Sporttage: größere Portionen erlaubt, damit der Mehrbedarf auch an Kuchentagen ankommt
+  const fasting = !!ctx.settings.fasting;
+  const fmMax = fasting ? 1.9 : extra > 0 ? 1.55 : FM_MAX;
+  const fbMax = fasting ? 1.7 : extra > 0 ? 1.45 : FB_MAX;
   const BP = breakfast ? ctx.info.get(breakfast).parts : null;
   const MPs = mains.map((id) => ctx.info.get(id).parts);
   // Makros eines Gerichts bei Portionsfaktor f: Beilage wächst nur bis zur Obergrenze pro Portion
@@ -470,12 +487,12 @@ function fitDay({ ctx, fixed, breakfast, mains, combos, extra = 0, usage = {} })
           M = mixMains(s, q, fm);
           if (B && M.kcal > 0) {
             const f0 = R / (B.kcal + M.kcal);
-            fb = round(clamp(f0, fbMin, FB_MAX), 0.05);
-            fm = round(clamp((R - B.kcal * fb) / M.kcal, fmMin, FM_MAX), 0.05);
+            fb = round(clamp(f0, fbMin, fbMax), 0.05);
+            fm = round(clamp((R - B.kcal * fb) / M.kcal, fmMin, fmMax), 0.05);
           } else if (M.kcal > 0) {
-            fm = round(clamp(R / M.kcal, fmMin, FM_MAX), 0.05);
+            fm = round(clamp(R / M.kcal, fmMin, fmMax), 0.05);
           } else if (B) {
-            fb = round(clamp(R / B.kcal, fbMin, FB_MAX), 0.05);
+            fb = round(clamp(R / B.kcal, fbMin, fbMax), 0.05);
           }
         }
         B = BP ? mix(BP, s, q, fb) : null;
@@ -492,7 +509,13 @@ function fitDay({ ctx, fixed, breakfast, mains, combos, extra = 0, usage = {} })
         // Rezepte nicht unnötig verbiegen
         const bend = 0.08 * (Math.abs(Math.log(s)) + Math.abs(Math.log(q)));
         // Kalorien zuerst: über ±3 % Abweichung wird es teuer
-        const cost = 9 * Math.max(0, kErr - 0.03) + 1.5 * kErr + pCost + 1.6 * cErr + 1.6 * fErr + 3 * fibOver + 0.03 * combo.length + pref + bend;
+        // Kohlenhydrate verteilen (z. B. Diabetes): keine Mahlzeit über ca. 60 g KH
+        let carbPeak = 0;
+        if (ctx.settings.carbSpread) {
+          const over = (c) => Math.max(0, c - CARB_CAP);
+          carbPeak = (B ? over(B.c * fb) : 0) + MPs.reduce((a, P) => a + over(mix(P, s, q, fm).c * fm), 0);
+        }
+        const cost = 9 * Math.max(0, kErr - 0.03) + 1.5 * kErr + pCost + 1.6 * cErr + 1.6 * fErr + 3 * fibOver + 0.03 * combo.length + pref + bend + 0.04 * carbPeak;
         if (!best || cost < best.cost) best = { cost, kErr, fb, fm, s, q, addons: combo.map((x) => x.id) };
       }
   }
@@ -600,7 +623,8 @@ export function finalizePlan(structure, ctx) {
       return { key, slot: 'snack', kind: 'recipe', recipeId: a, factor: 1, items, macros: itemsMacros(items, idx), cost: itemsCost(items, idx, ctx.priceOf).cost };
     });
     for (const slot of MAIN_SLOTS) {
-      if (slot === 'abend') meals.push(...snacks);
+      // beim Fasten kommen Snacks nach dem Iftar (am Ende), sonst zwischen Mittag und Abend
+      if (slot === 'abend' && !structure.fasting) meals.push(...snacks);
       const key = slotKey(d, slot);
       if (eatOut.has(key)) meals.push(eatOutMeal(slot));
       else {
@@ -613,6 +637,7 @@ export function finalizePlan(structure, ctx) {
       }
     }
 
+    if (structure.fasting) meals.push(...snacks);
     // Mitesser: weitere Personen bekommen dieselbe Menge (zählt für den Einkauf, nicht für deine Makros)
     // Haushalt: abends essen standardmäßig so viele Personen mit wie eingestellt (pro Mahlzeit änderbar)
     const hh = Math.max(1, Math.round(Number(settings.household) || 1));
