@@ -1,7 +1,7 @@
 // Mise – App-Oberfläche (Vanilla JS, kein Build-Schritt). Design nach Figma-Vorlage.
 import { DAY_NAMES, DAY_SHORT, SLOT_LABEL, addDays, clone, berlinNow, escapeHtml as e, euro, formatDate, isoWeek, mondayOf, num, shortName } from './util.js';
 import { buildIndex, plausibility } from './nutrition.js';
-import { cakesOf, generatePlan, readyKind, refitPlan, swapMeal } from './planner.js';
+import { cakesOf, generatePlan, readyKind, refitPlan, setEatOut, swapMeal } from './planner.js';
 import { mergeOffers, storeOpen, storeOrder, STORES, STORE_IDS } from './prices.js';
 import { packText } from './shopping.js';
 import { kitchenText } from './units.js';
@@ -156,6 +156,7 @@ async function init() {
     S.plans[currentWeek()].pv = PLANNER_VERSION;
     savePlans();
   }
+  fixEatOutSlots();
   render();
   hideSplash();
   // Automatische Sicherung: täglich eine Kopie auf dem Gerät, beim Verlassen der App aktualisiert
@@ -471,10 +472,25 @@ async function createPlanFromDraft() {
 async function replanWeek(plan, state = planDayState(plan)) {
   if (Object.values(S.checks[plan.weekStart] || {}).some(Boolean) && !(await confirmBox('Woche neu planen?', 'Haken auf der Einkaufsliste werden zurückgesetzt.', 'Neu planen'))) return false;
   const { off = [], eat = [] } = state;
-  // andere Auswärts-Mahlzeiten (z. B. mittags) bleiben, abends gilt die Auswahl mit 🍴
-  const keep = (plan.structure?.eatOut || []).map((k) => ({ day: Number(k.split('-')[0]), slot: k.split('-')[1] })).filter((x) => x.slot !== 'abend' && !off.includes(x.day));
-  createPlan({ pantry: plan.pantryUsed || {}, eatOut: [...keep, ...eat.filter((d) => !off.includes(d)).map((day) => ({ day, slot: 'abend' }))], off });
+  // auswärts ist immer nur abends – Frühstück und Mittag plant Mise an diesen Tagen ganz normal
+  createPlan({ pantry: plan.pantryUsed || {}, eatOut: eat.filter((d) => !off.includes(d)).map((day) => ({ day, slot: 'abend' })), off });
   return true;
+}
+
+/**
+ * Auswärts ist immer nur abends. Ältere Versionen haben beim Neuplanen Frühstück/Mittag eines früher
+ * abgewählten Tages als „auswärts“ übernommen – diese Mahlzeiten wieder einplanen (Rest des Plans bleibt).
+ */
+function fixEatOutSlots() {
+  let plan = S.plans[currentWeek()];
+  if (!plan?.structure) return;
+  const away = new Set(plan.structure.away || []);
+  const bad = (plan.structure.eatOut || []).filter((k) => !k.endsWith('-abend') && !away.has(Number(k.split('-')[0])));
+  if (!bad.length) return;
+  const input = plannerInput({ weekStart: plan.weekStart });
+  for (const k of bad) plan = setEatOut(plan, k, false, input);
+  S.plans[plan.weekStart] = plan;
+  savePlans();
 }
 
 /** Laufenden Wochenplan an neue Ziele/Läden anpassen (gleiche Gerichte, neue Mengen) */
@@ -1041,21 +1057,14 @@ function laterStart(plan) {
   }
   const off = S.ui.laterOff || [];
   const eat = S.ui.laterEat || [];
-  const planned = 7 - off.length;
-  const summary = [`${planned} ${planned === 1 ? 'Tag' : 'Tage'} geplant`, dayStateText({ off, eat })].filter(Boolean).join(' · ');
   const pill = (d, i) => {
     const st = off.includes(i) ? 'off' : eat.includes(i) ? 'eat' : '';
-    const label = st === 'eat' ? '🍴' : d;
     const aria = `${DAY_NAMES[i]}: ${st === 'off' ? 'nicht da' : st === 'eat' ? 'abends auswärts' : 'geplant'}`;
-    return `<button class="pill circle ${st}" data-action="later-day" data-day="${i}" aria-label="${aria}">${label}</button>`;
+    return `<button class="pill circle ${st}" data-action="later-day" data-day="${i}" aria-label="${aria}">${st === 'eat' ? '🍴' : d}</button>`;
   };
   return `<section class="card later">
     <h2>Wann bist du da?</h2>
-    <p class="sub">Tippe einen Tag an, nochmal tippen wechselt weiter:</p>
-    <div class="later-legend"><span><i class="dot"></i>geplant</span><span><i class="dot eat">🍴</i>abends auswärts</span><span><i class="dot off"></i>nicht da</span></div>
     <div class="pills days">${DAY_SHORT.map(pill).join('')}</div>
-    <p class="later-summary">${e(summary)}</p>
-    <p class="sub small">Eingekauft wird nur für die geplanten Mahlzeiten. Haken auf der Einkaufsliste werden zurückgesetzt.</p>
     <div class="grid2"><button class="btn" data-action="later-cancel">Abbrechen</button><button class="btn primary" data-action="later-go">Neu planen</button></div>
   </section>`;
 }
