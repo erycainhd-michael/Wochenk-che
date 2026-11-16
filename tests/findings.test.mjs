@@ -6,7 +6,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import { buildIndex } from '../js/nutrition.js';
 import { generatePlan, prepareContext, refitPlan } from '../js/planner.js';
-import { DEFAULT_SETTINGS, calcGoals } from '../js/settings.js';
+import { DEFAULT_SETTINGS, applyWeighIn, calcGoals, goalBlocked, switchGoal } from '../js/settings.js';
 
 const idx = buildIndex(JSON.parse(fs.readFileSync('data/ingredients.json', 'utf8')));
 const recipes = JSON.parse(fs.readFileSync('data/recipes.json', 'utf8')).recipes;
@@ -14,16 +14,46 @@ const base = (extra = {}) => ({ ...structuredClone(DEFAULT_SETTINGS), ...extra }
 const mealsOf = (p) => p.days.flatMap((d) => d.meals.filter((m) => m.kind === 'recipe'));
 const namesOf = (m) => [recipes.find((r) => r.id === m.recipeId)?.name || '', ...(m.items || []).map((i) => idx.get(i.id)?.name || '')].join(' ').toLowerCase();
 
-test('F01 Kein Kaloriendefizit bei Untergewicht (BMI < 18,5)', { todo: 'Befund F01' }, () => {
+test('F01 Kein Kaloriendefizit bei Untergewicht (BMI < 18,5)', () => {
   const g = calcGoals({ sex: 'w', age: 24, height: 170, weight: 47, activity: 'wenig', goal: 'abnehmen' });
   const maintain = calcGoals({ sex: 'w', age: 24, height: 170, weight: 47, activity: 'wenig', goal: 'halten' });
   assert.ok(g.kcal >= maintain.kcal, `BMI 16,3 bekommt ${g.kcal} statt mindestens ${maintain.kcal} kcal`);
 });
 
-test('F02 Minderjährige: kein Diät-Defizit', { todo: 'Befund F02' }, () => {
+test('F02 Minderjährige: kein Diät-Defizit', () => {
   const g = calcGoals({ sex: 'w', age: 15, height: 162, weight: 52, activity: 'mittel', goal: 'abnehmen' });
   const maintain = calcGoals({ sex: 'w', age: 15, height: 162, weight: 52, activity: 'mittel', goal: 'halten' });
   assert.ok(g.kcal >= maintain.kcal, `15-Jährige bekommt ${g.kcal} kcal Defizit-Ziel`);
+});
+
+test('F02 Jugendliche: Bedarf liegt über der Erwachsenenformel (Wachstum)', () => {
+  const teen = calcGoals({ sex: 'w', age: 15, height: 162, weight: 52, activity: 'mittel', goal: 'halten' });
+  const adult = calcGoals({ sex: 'w', age: 18, height: 162, weight: 52, activity: 'mittel', goal: 'halten' });
+  assert.ok(teen.kcal > adult.kcal, `${teen.kcal} vs ${adult.kcal}`);
+  assert.equal(goalBlocked({ age: 15, height: 162, weight: 70 }, 'abnehmen'), 'minor');
+  assert.equal(goalBlocked({ age: 30, height: 170, weight: 50 }, 'abnehmen'), 'underweight');
+  assert.equal(goalBlocked({ age: 30, height: 170, weight: 80 }, 'abnehmen'), null);
+});
+
+test('F03 Gewicht zieht die Ziele mit, Zielgewicht erreicht → Rückfrage, Untergewicht → Halten', () => {
+  const p = { sex: 'm', age: 35, height: 180, weight: 82, activity: 'mittel', goal: 'abnehmen' };
+  // eigene Anpassung (2.800 statt berechneter 2.300 kcal) bleibt erhalten, die Gewichtsänderung wird übernommen
+  const s = { profile: p, goals: { kcal: 2800, protein: 140, carbs: 350, fat: 90 }, goalWeight: 76 };
+  const a = applyWeighIn(s, 79);
+  assert.equal(a.profile.weight, 79);
+  assert.ok(a.goals.kcal < 2800 && a.goals.kcal >= 2650, String(a.goals.kcal));
+  assert.equal(a.reached, false);
+  const b = applyWeighIn(s, 75.8);
+  assert.equal(b.reached, true);
+  const h = switchGoal({ ...s, profile: b.profile, goals: b.goals }, 'halten');
+  assert.equal(h.profile.goal, 'halten');
+  assert.ok(h.goals.kcal - b.goals.kcal >= 400, 'Halten = Defizit weg');
+  // Untergewicht während des Abnehmens: automatisch Halten, keine Rückfrage
+  const thin = { profile: { ...p, weight: 61 }, goals: calcGoals({ ...p, weight: 61 }), goalWeight: 55 };
+  const c = applyWeighIn(thin, 59);
+  assert.equal(c.switched, 'underweight');
+  assert.equal(c.profile.goal, 'halten');
+  assert.equal(c.reached, false);
 });
 
 test('F04 Allergie „Nüsse“ schließt Mandeln, Walnüsse und Erdnuss aus', { todo: 'Befund F04' }, () => {

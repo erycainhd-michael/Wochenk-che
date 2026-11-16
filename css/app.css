@@ -1091,3 +1091,6 @@ body.cook-on #navbar { display: none; }
 .large-text .macro-bars { grid-template-columns: 1fr; gap: 10px; }
 .large-text .grid2 { grid-template-columns: 1fr; }
 .large-text .grid3 { grid-template-columns: 1fr; }
+/* Sicherheitsgurt: gesperrtes Ziel und Hinweis */
+.pill[aria-disabled='true'] { opacity: 0.4; text-decoration: line-through; }
+.hint.warn-hint { color: var(--text); background: var(--warn-bg); border-radius: 12px; padding: 10px 12px; font-size: 0.85rem; }
