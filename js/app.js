@@ -2,7 +2,7 @@
 import { DAY_NAMES, DAY_SHORT, SLOT_LABEL, addDays, clone, berlinNow, escapeHtml as e, euro, formatDate, isoWeek, mondayOf, num, shortName } from './util.js';
 import { buildIndex, plausibility } from './nutrition.js';
 import { cakesOf, generatePlan, refitPlan, swapMeal } from './planner.js';
-import { mergeOffers, storeOrder, STORES, STORE_IDS } from './prices.js';
+import { mergeOffers, storeOpen, storeOrder, STORES, STORE_IDS } from './prices.js';
 import { packText } from './shopping.js';
 import { kitchenText } from './units.js';
 import { searchScore } from './search.js';
@@ -1328,7 +1328,8 @@ function viewRecipes() {
   groups.forEach((g, i) => {
     if (sel[i] && !g.includes(sel[i])) delete sel[i];
   });
-  const all = S.recipes.filter((r) => r.type !== 'addon');
+  // Fertiggerichte (Frosta & Co.) stehen nicht in der Rezeptübersicht – sie kommen nur über Angebot/Vorrat in den Plan
+  const all = S.recipes.filter((r) => r.type !== 'addon' && !hasTag(r, 'fertiggericht'));
   // skip = Gruppe, die für die Zählung ausgelassen wird (zeigt, wie viele Rezepte ein Chip ergeben würde)
   const cookedOnly = !!S.ui.rCooked;
   const match = (r, skip = null, time = tf) =>
@@ -1843,7 +1844,8 @@ const stepHits = (r, items) => recipeMatches(r.steps.map((s) => s.t), stepTerms(
 // --- Einkaufsliste -----------------------------------------------------------
 
 /** Kurze Rezeptnamen, damit die Einkaufsliste kompakt bleibt */
-const useLinks = (refs) => refs.map((u) => `<a href="#/rezept/${u.id}">${e(shortName(recipe(u.id) || u.name))}</a>`).join(' · ');
+// „rezept#vorrat“ = Vorrat (z. B. Frosta im Angebot): Link aufs Rezept, Text „den Vorrat (Angebot)“
+const useLinks = (refs) => refs.map((u) => `<a href="#/rezept/${u.id.split('#')[0]}">${e(u.id.includes('#') ? u.name : shortName(recipe(u.id) || u.name))}</a>`).join(' · ');
 
 function viewShopping() {
   const plan = displayedPlan();
@@ -2448,7 +2450,7 @@ function viewSettings() {
     <ul class="store-sort" data-sortable="stores">${storeOrder(st)
       .map(
         (id, i) => `<li class="store-row ${st.stores[id] ? '' : 'off'}" data-store="${id}"><span class="drag-handle" aria-label="Verschieben">≡</span>
-        <span class="store-name">${e(id === 'edeka' ? 'Edeka No1 Center Schloßstraße' : STORES[id].name)}${i === 0 ? ' <small class="badge">Hauptladen</small>' : ''}</span>
+        <span class="store-name">${e(id === 'edeka' ? 'Edeka No1 Center Schloßstraße' : STORES[id].name)}${i === 0 ? ' <small class="badge">Hauptladen</small>' : ''}${storeOpen(id, currentWeek()) ? '' : ` <small class="muted">ab ${STORES[id].opens.slice(8, 10)}.${STORES[id].opens.slice(5, 7)}.</small>`}</span>
         <label class="switch"><input type="checkbox" data-set="stores.${id}" ${st.stores[id] ? 'checked' : ''} aria-label="${e(STORES[id].short)} verwenden"><i></i></label></li>`
       )
       .join('')}</ul>

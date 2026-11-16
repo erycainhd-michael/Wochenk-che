@@ -62,7 +62,17 @@ export function prepareContext(input) {
 
   const byType = (t) => usable.filter((r) => r.type === t);
   // „gruppe“ = nur für große Runden (z. B. Fondue) – wird nie automatisch eingeplant
-  const mains = byType('main').filter((r) => !(r.tags || []).includes('gruppe'));
+  const mains = byType('main').filter((r) => !(r.tags || []).includes('gruppe') && !isReady(r));
+  // Fertiggerichte (z. B. Frosta): nur wenn im Angebot oder noch im Vorrat
+  const pantry = input.pantry || {};
+  const ready = byType('main')
+    .filter(isReady)
+    .map((r) => {
+      const id = r.ingredients[0].id;
+      const bag = r.ingredients[0].g;
+      return { r, id, bag, stock: Math.floor(((pantry[id] || 0) + 0.1 * bag) / bag), offer: !!priceOf(id).offer };
+    })
+    .filter((x) => x.stock > 0 || x.offer);
   return {
     ...input,
     away,
@@ -71,12 +81,14 @@ export function prepareContext(input) {
     info,
     recipesById: new Map(recipes.map((r) => [r.id, r])),
     mains,
+    ready,
     breakfasts: byType('breakfast'),
     // Studi-Modus: keine teure Großpackung (z. B. Proteinpulver) für eine Ergänzung anbrechen – nur aus dem Vorrat
     // Kaffee & Kuchen ersetzt eine Mahlzeit: nur Kuchen mit genug Protein, keine Desserts (Tiramisu, Crumble …).
     // Klassiker wie Waffeln oder Tiramisu bleiben in den Rezepten zum Selberwählen.
     snacks: byType('snack').filter((r) => !isDessert(r) && info.get(r.id).macros.p >= 25),
-    addons: byType('addon').filter((r) => !settings.studi || r.ingredients.every((l) => (idx.get(l.id)?.price || 0) < 6 || (input.pantry || {})[l.id] > 0)),
+    // Keine teure Großpackung (z. B. Proteinpulver) für eine Ergänzung anbrechen – nur aus dem Vorrat (Grenze ~10 % des Budgets)
+    addons: byType('addon').filter((r) => r.ingredients.every((l) => (idx.get(l.id)?.price || 0) < (settings.studi ? 6 : Math.max(6, (settings.budget || 60) * 0.1)) || (input.pantry || {})[l.id] > 0)),
     avgMainCost: avg(mains, (r) => info.get(r.id).cost) || 3,
     fiberTarget: fiberTargetFor(settings),
     pantry: input.pantry || {},
@@ -108,6 +120,8 @@ const CAKE_DAYS = [5, 6];
 /** Aufwendiges Frühstück (Pfannkuchen, Wraps, pochierte Eier, Frittata …): nur am Wochenende */
 export const isFancyBreakfast = (r) =>
   r.type === 'breakfast' && (r.time >= 15 || r.effort >= 2 || (r.tags || []).some((t) => /pfannkuchen|brunch|gourmet|pfanne/i.test(t)) || /pfannkuchen|wrap|frittata|hash|benedict|pochiert/i.test(r.name));
+/** Fertiggericht (Tiefkühl-Beutel o. ä.): wird nicht in den Rezepten gezeigt, nur bei Angebot/Vorrat eingeplant */
+export const isReady = (r) => (r?.tags || []).includes('fertiggericht');
 export const isDessert = (r) => (r.tags || []).includes('dessert') || /tiramisu|crumble|mousse|pudding|panna cotta|parfait|\beis\b/i.test(r.name);
 export const cakesOf = (structure) => structure.cakes || (structure.sunday ? [structure.sunday] : []);
 
@@ -194,6 +208,28 @@ export function buildStructure(ctx, rng, mode = {}) {
   const covered = new Map();
   for (const k of cakeKeys) covered.set(k, 'cake');
 
+  // Fertiggerichte: Vorrat zuerst aufbrauchen, im Angebot zwei einplanen – an zufälligen Werktagen mittags
+  const readyCooks = [];
+  if (ctx.ready?.length) {
+    const fromStock = ctx.ready.flatMap((x) => Array.from({ length: x.stock }, () => x));
+    const offered = ctx.ready.filter((x) => x.offer && !x.stock);
+    // Sparrunden (Budget knapp): weniger Angebots-Beutel – was im Vorrat liegt, wird immer gegessen
+    const offerN = mode.cheap >= 2 ? 0 : mode.cheap ? 1 : 2;
+    const n = Math.min(3, fromStock.length + (offered.length ? Math.max(0, offerN - fromStock.length) : 0));
+    const picks = [...fromStock];
+    const offerPool = [...offered];
+    while (picks.length < n && offerPool.length) picks.push(offerPool.splice(Math.floor(rng() * offerPool.length), 1)[0]);
+    const days = [0, 1, 2, 3, 4].filter((d) => !eatOut.has(slotKey(d, 'mittag')) && !complex.has(slotKey(d, 'mittag')));
+    for (const x of picks.slice(0, n)) {
+      if (!days.length) break;
+      const d = days.splice(Math.floor(rng() * days.length), 1)[0];
+      const key = slotKey(d, 'mittag');
+      covered.set(key, 'ready');
+      readyCooks.push({ recipeId: x.r.id, day: d, slot: 'mittag', portions: [key], ready: true });
+      stock.consume(baseItems(x.r, settings, 1));
+    }
+  }
+
   const weightOf = (r, { isLunch, isComplex }) => {
     const inf = info.get(r.id);
     let w = inf.weight;
@@ -208,7 +244,7 @@ export function buildStructure(ctx, rng, mode = {}) {
       w *= 1 - 0.5 * dishes * clamp((r.dishes - 2) / 2, 0, 1);
     }
     if (isLunch) w *= 1 - 0.5 * clamp((r.time - 20) / 15, 0, 1);
-    else if (r.mealPrep) w *= 1 + 2 * dishes + (mode.cheap ? 1.5 : 0);
+    else if (r.mealPrep) w *= 1 + 2 * dishes + (mode.cheap ? 1.5 * mode.cheap : 0);
     w *= 1 + 1.5 * offersW * inf.offerShare;
     if (recent.slice(-2).includes(inf.protein)) w *= 1 - 0.6 * variety;
     if (inf.pasta && pastaLast) w *= 1 - 0.5 * variety;
@@ -223,7 +259,7 @@ export function buildStructure(ctx, rng, mode = {}) {
     const ago = ctx.recentRecipes[r.id];
     if (ago && inf.weight < 1.3) w *= 1 - variety * (ago === 1 ? 0.7 : 0.35);
     const costRatio = ctx.avgMainCost / Math.max(0.5, inf.cost);
-    w *= Math.pow(costRatio, mode.cheap ? 2.5 : 0.3);
+    w *= Math.pow(costRatio, mode.cheap ? 1.5 + mode.cheap : 0.6);
     w *= Math.pow(macroFit(inf.macros, settings.goals), mode.cheap ? 0.6 : 1.6);
     return Math.max(0.001, w);
   };
@@ -297,6 +333,10 @@ export function buildStructure(ctx, rng, mode = {}) {
     cakes = cakeKeys.map((key) => ({ key, recipeId: id }));
   }
 
+  // Fertiggerichte zeitlich einsortieren (ids bleiben eindeutig)
+  readyCooks.forEach((c, i) => cooks.push({ id: `f${i + 1}`, ...c }));
+  const order = (c) => c.day * 2 + (c.slot === 'abend' ? 1 : 0);
+  cooks.sort((a, b) => order(a) - order(b));
   return { cooks, breakfasts, eatOut: [...eatOut], complex: [...complex], away: [...(ctx.away || [])], cakes };
 }
 
@@ -477,7 +517,12 @@ export function finalizePlan(structure, ctx) {
     for (const slot of ['fruehstueck', ...MAIN_SLOTS]) if (eatOut.has(slotKey(d, slot))) fixed = addMacros(fixed, eo);
     const breakfast = structure.breakfasts[d];
     const sun = cakesOf(structure).find((c) => Number(c.key.split('-')[0]) === d && !eatOut.has(c.key)) || null;
-    const mains = [...MAIN_SLOTS.map((s) => slotCook.get(slotKey(d, s))?.recipeId), sun?.recipeId].filter(Boolean);
+    // Fertiggerichte: immer ein ganzer Beutel – zählen fest, die übrigen Mahlzeiten gleichen aus
+    for (const s of MAIN_SLOTS) {
+      const c = slotCook.get(slotKey(d, s));
+      if (c && !eatOut.has(slotKey(d, s)) && isReady(ctx.recipesById.get(c.recipeId))) fixed = addMacros(fixed, ctx.info.get(c.recipeId).macros);
+    }
+    const mains = [...MAIN_SLOTS.map((s) => slotCook.get(slotKey(d, s))?.recipeId).filter((id) => id && !isReady(ctx.recipesById.get(id))), sun?.recipeId].filter(Boolean);
     const sportKcal = daySportKcal(structure, d);
     const fit = fitDay({ ctx, fixed, breakfast, mains, combos: addonCombosAll, extra: sportKcal, usage: addonUse });
     for (const a of fit.addons) addonUse[a] = (addonUse[a] || 0) + 1;
@@ -509,7 +554,10 @@ export function finalizePlan(structure, ctx) {
       if (eatOut.has(key)) meals.push(eatOutMeal(slot));
       else {
         const c = slotCook.get(key);
-        if (c) meals.push(mk(slot, c.recipeId, fit.fm, { cookId: c.id, leftover: c.portions[0] !== key }));
+        if (c && isReady(ctx.recipesById.get(c.recipeId))) {
+          const items = recipeItems(ctx.recipesById.get(c.recipeId), 1, settings, idx);
+          meals.push({ key, slot, kind: 'recipe', recipeId: c.recipeId, factor: 1, ready: true, items, macros: itemsMacros(items, idx), cost: itemsCost(items, idx, ctx.priceOf).cost, cookId: c.id, leftover: false });
+        } else if (c) meals.push(mk(slot, c.recipeId, fit.fm, { cookId: c.id, leftover: c.portions[0] !== key }));
         else if (sun?.key === key) meals.push(mk(slot, sun.recipeId, fit.fm, { cake: true }));
       }
     }
@@ -646,8 +694,11 @@ export function scorePlan(plan, ctx) {
 
   // Abzüge: Budget und verderbliche Reste
   // Haltbarer Vorrat (Reis, Nudeln …) zählt nur teilweise, er wird in den Folgewochen verbraucht
-  const over = Math.max(0, budgetCost(plan) - settings.budget);
-  s.budgetPenalty = -2.5 * over;
+  // Budget: der Kassenbon soll das Budget nicht überschreiten (deutlicher Abzug je Euro darüber).
+  // Darunter gilt: lieber günstiger einkaufen als das Budget auszuschöpfen – jeder gesparte Euro zählt etwas.
+  const over = Math.max(0, plan.cost - settings.budget);
+  s.budgetPenalty = -6 * over;
+  s.thrift = -0.5 * budgetCost(plan);
   s.wastePenalty = -0.6 * plan.shopping.wasteEuro;
 
   const total = Object.values(s).reduce((a, b) => a + b, 0);
@@ -665,6 +716,118 @@ export function scorePlan(plan, ctx) {
 /** Für die Budget-Bewertung zählt haltbarer Vorrat nur zu 25 % (er wird in den Folgewochen verbraucht). */
 export const budgetCost = (plan) => plan.cost - 0.5 * (plan.shopping?.stockEuro || 0);
 
+/**
+ * Budget-Reparatur: tauscht nacheinander das teuerste Gericht (bzw. Frühstück) gegen ein günstigeres, solange der
+ * Plan deine Ziele weiter erreicht. Stoppt, sobald der Kassenbon im Budget liegt oder nichts mehr spart.
+ */
+function repairBudget(plan, ctx, budget, ok) {
+  const { idx, settings } = ctx;
+  let best = plan;
+  // Kassenbon grob schätzen (ganze Packungen, Vorrat abgezogen) – schnell genug, um alle Tauschpaare zu bewerten
+  const receipt = (need) => {
+    let t = 0;
+    for (const [id, g] of need) {
+      const ing = idx.get(id);
+      if (!ing || ing.staple) continue;
+      const toBuy = g - (ctx.pantry[id] || 0);
+      if (toBuy > 0) t += Math.max(1, Math.ceil((toBuy - 0.05 * ing.pack) / ing.pack)) * ctx.priceOf(id).price;
+    }
+    return t;
+  };
+  // fehlende kcal/Protein füllt der Tagesausgleich mit Snacks auf – das kostet auch
+  const gapCost = (old, r) => {
+    const a = ctx.info.get(old.id).macros;
+    const b = ctx.info.get(r.id).macros;
+    return 0.004 * Math.max(0, a.kcal - b.kcal) + 0.04 * Math.max(0, a.p - b.p);
+  };
+  const addItems = (need, items, sign) => {
+    for (const { id, g } of items) need.set(id, (need.get(id) || 0) + sign * g);
+  };
+  for (let step = 0; step < 16 && best.cost > budget; step++) {
+    const st0 = best.structure;
+    const need = new Map();
+    for (const c of st0.cooks) addItems(need, baseItems(ctx.recipesById.get(c.recipeId), settings, c.portions.length), 1);
+    for (const id of st0.breakfasts.filter(Boolean)) addItems(need, baseItems(ctx.recipesById.get(id), settings), 1);
+    const base = receipt(need);
+    const used = new Set(st0.cooks.map((c) => c.recipeId));
+    const pairs = [];
+    st0.cooks.forEach((c, i) => {
+      // Fertiggerichte aus dem Vorrat bleiben; Angebots-Beutel dürfen weichen, wenn das Budget knapp ist
+      if (c.ready && (ctx.pantry[ctx.recipesById.get(c.recipeId).ingredients[0].id] || 0) > 0) return;
+      const old = ctx.recipesById.get(c.recipeId);
+      const k = c.portions.length;
+      const without = new Map(need);
+      addItems(without, baseItems(old, settings, k), -1);
+      for (const r of ctx.mains) {
+        if (used.has(r.id) || (old.effort === 3 ? r.effort !== 3 : r.effort >= 3) || (k > 1 && !r.mealPrep)) continue;
+        const n = new Map(without);
+        addItems(n, baseItems(r, settings, k), 1);
+        const est = receipt(n) - base + gapCost(old, r) * k;
+        if (est < -0.3)
+          pairs.push({
+            est,
+            apply: (st) => {
+              st.cooks[i].recipeId = r.id;
+              delete st.cooks[i].ready;
+            },
+          });
+      }
+    });
+    // Frühstück (nicht das aufwendige am Wochenende) gegen ein günstigeres schnelles tauschen
+    for (const bf of new Set(st0.breakfasts.filter((x) => x && !isFancyBreakfast(ctx.recipesById.get(x))))) {
+      const days = st0.breakfasts.filter((x) => x === bf).length;
+      const without = new Map(need);
+      addItems(without, baseItems(ctx.recipesById.get(bf), settings, days), -1);
+      for (const r of ctx.breakfasts) {
+        if (r.id === bf || isFancyBreakfast(r)) continue;
+        const n = new Map(without);
+        addItems(n, baseItems(r, settings, days), 1);
+        const est = receipt(n) - base + gapCost(ctx.recipesById.get(bf), r) * days;
+        if (est < -0.3) pairs.push({ est, apply: (st) => (st.breakfasts = st.breakfasts.map((x) => (x === bf ? r.id : x))) });
+      }
+    }
+    pairs.sort((a, b) => a.est - b.est);
+    let next = null;
+    for (const pr of pairs.slice(0, 10)) {
+      const st = clone(st0);
+      pr.apply(st);
+      const p = finalizePlan(st, ctx);
+      if (ok(p) && p.cost < (next?.cost ?? best.cost - 0.3)) next = p;
+    }
+    if (!next) break;
+    best = next;
+  }
+  return best;
+}
+
+/**
+ * Zielwert für den Kassenbon: Bis 70 € soll der Plan das Budget fast genau treffen. Bei großzügigem Budget
+ * wird es nicht ausgeschöpft – jeder Euro darüber zählt nur halb (100 € → ca. 85 €). Studi-Modus: 15 % darunter.
+ */
+export function budgetTarget(settings) {
+  const b = Number(settings.budget) || 60;
+  const t = b <= 70 ? b : 70 + (b - 70) * 0.5;
+  return t * (settings.studi ? 0.85 : 1);
+}
+
+const READY_STOCK_BAGS = 2;
+function readyStock(plan, ctx, budget) {
+  const offered = (ctx.ready || []).filter((x) => x.offer);
+  if (!offered.length) return null;
+  const inPlan = new Set(plan.structure.cooks.filter((c) => c.ready).map((c) => c.recipeId));
+  // andere Sorten bevorzugen, damit der Vorrat abwechslungsreich ist
+  const pool = [...offered].sort((a, b) => inPlan.has(a.r.id) - inPlan.has(b.r.id) || a.stock - b.stock);
+  const price = ctx.priceOf(pool[0].id).price;
+  const bags = Math.min(READY_STOCK_BAGS, Math.floor((budget - plan.cost + 0.5) / price));
+  if (bags <= 0) return null;
+  const stock = {};
+  for (let i = 0; i < bags; i++) {
+    const x = pool[i % pool.length];
+    stock[x.id] = (stock[x.id] || 0) + x.bag;
+  }
+  return finalizePlan({ ...plan.structure, stock }, ctx);
+}
+
 export function generatePlan(input) {
   const ctx = prepareContext(input);
   const seed = input.seed ?? (Date.now() & 0x7fffffff);
@@ -674,25 +837,43 @@ export function generatePlan(input) {
   const studi = !!input.settings.studi;
   for (let i = 0; i < n; i++) {
     const rng = mulberry32(seed + i * 7919);
-    all.push(finalizePlan(buildStructure(ctx, rng, { cheap: studi }), ctx));
+    all.push(finalizePlan(buildStructure(ctx, rng, { cheap: studi ? 1 : 0 }), ctx));
   }
   let best = all.reduce((a, b) => (b.score.total > a.score.total ? b : a));
   let budgetInfo = null;
 
-  if (budgetCost(best) > input.settings.budget) {
-    // Spar-Modus: günstigere Rezepte bevorzugen
+  // Über Budget: in Runden immer sparsamer planen, bis ein Plan mit Kassenbon ≤ Budget gefunden ist,
+  // der deine Ziele trotzdem erreicht. Sonst der günstigste Plan, der die Ziele erreicht.
+  const ok = (p) => p.score.stats.pRatio >= 0.93 && p.score.stats.kDev <= 0.06;
+  const budget = budgetTarget(input.settings);
+  for (let round = 1; round <= 2 && best.cost > budget; round++) {
     for (let i = 0; i < n; i++) {
-      const rng = mulberry32(seed + 104729 + i * 7919);
-      all.push(finalizePlan(buildStructure(ctx, rng, { cheap: true }), ctx));
+      const rng = mulberry32(seed + 104729 * round + i * 7919);
+      all.push(finalizePlan(buildStructure(ctx, rng, { cheap: round }), ctx));
     }
-    const within = all.filter((p) => budgetCost(p) <= input.settings.budget && p.score.stats.pRatio >= 0.93 && p.score.stats.kDev <= 0.06);
+    const within = all.filter((p) => p.cost <= budget && ok(p));
     if (within.length) best = within.reduce((a, b) => (b.score.total > a.score.total ? b : a));
-    else {
-      const cheapest = all.reduce((a, b) => (b.cost < a.cost ? b : a));
-      budgetInfo = { cheapest: cheapest.cost, missing: cheapest.cost - input.settings.budget };
-      best = all.reduce((a, b) => (b.score.total > a.score.total ? b : a));
-    }
   }
+  // Feinschliff: einzelne Gerichte/Frühstücke gegen günstigere tauschen, bis der Kassenbon passt –
+  // vom besten und vom günstigsten Plan aus, am Ende gewinnt der bessere Plan im Budget
+  if (best.cost > budget) {
+    const good = all.filter(ok);
+    const cheapest = good.length ? good.reduce((a, b) => (b.cost < a.cost ? b : a)) : null;
+    const starts = [best, cheapest].filter((p, i, arr) => p && arr.indexOf(p) === i);
+    const repaired = starts.map((p) => repairBudget(p, ctx, budget, ok));
+    all.push(...repaired);
+    const within = repaired.filter((p) => p.cost <= budget);
+    if (within.length) best = within.reduce((a, b) => (b.score.total > a.score.total ? b : a));
+  }
+  if (best.cost > budget) {
+    const good = all.filter(ok);
+    best = (good.length ? good : all).reduce((a, b) => (b.cost < a.cost ? b : a));
+    if (best.cost > input.settings.budget) budgetInfo = { cheapest: best.cost, missing: best.cost - input.settings.budget };
+  }
+
+  // Fertiggerichte im Angebot: einen kleinen Vorrat anlegen (zwei weitere Beutel), wenn das Budget es hergibt
+  const stockUp = readyStock(best, ctx, budget);
+  if (stockUp) best = stockUp;
 
   best.seed = seed;
   best.weekNo = input.weekNo || 0;
@@ -792,6 +973,8 @@ export function swapMeal(plan, mealKey, input, chosenId = null) {
     if (chosenId) cook.recipeId = chosenId;
     else if (!pool.length) return plan;
     else cook.recipeId = pickWeighted(pool, pool.map((r) => Math.pow(ctx.info.get(r.id).weight, 1.5)), rng).id;
+    if (isReady(ctx.recipesById.get(cook.recipeId))) cook.ready = true;
+    else delete cook.ready;
   }
   const next = finalizePlan(structure, ctx);
   next.seed = plan.seed;
@@ -880,17 +1063,17 @@ export function evaluatePlan(plan, ctx) {
     });
   }
 
+  // Fertiggerichte im Angebot: Vorrat
+  const stockBags = Object.entries(plan.structure.stock || {});
+  if (stockBags.length) {
+    const names = stockBags.map(([id, g]) => `${Math.round(g / (ctx.idx.get(id)?.pack || g))} × ${ctx.idx.get(id)?.name || id}`).join(', ');
+    out.push({ level: 'ok', title: 'Vorrat fürs Gefrierfach', text: `Fertiggerichte sind im Angebot – zusätzlich gekauft: ${names}. Sie kommen in den nächsten Wochen automatisch in den Plan.` });
+  }
+
   // Budget
   const b = ctx.settings.budget;
-  const stock = plan.shopping.stockEuro;
   if (plan.cost <= b) {
     out.push({ level: 'ok', title: `Einkauf: ca. ${euro(plan.cost)}`, text: `Budget ${euro(b)} eingehalten (Vorratsartikel wie Öl und Gewürze nicht eingerechnet).` });
-  } else if (budgetCost(plan) <= b) {
-    out.push({
-      level: 'hint',
-      title: `Einkauf: ca. ${euro(plan.cost)} – davon ${euro(stock)} Vorrat`,
-      text: `Der Kassenbon liegt diese Woche ${euro(plan.cost - b)} über ${euro(b)}, weil haltbare Packungen (z. B. Reis, Nudeln, Haferflocken, Nüsse) nicht ganz aufgebraucht werden. Diese Reste schlägt dir die App nächsten Montag vor – dann wird der Einkauf entsprechend günstiger. Was du diese Woche tatsächlich verbrauchst: ca. ${euro(plan.cost - stock)}.`,
-    });
   } else {
     const info = plan.budgetInfo;
     out.push({

@@ -198,16 +198,6 @@
     },
     {
       "store": "edeka",
-      "title": "Spanien GUT&GÜNSTIG Clementinen",
-      "price": 3.99,
-      "unit": "Kl. I, 2,3kg Kartonkiste, 1kg = 1,73",
-      "validFrom": "2026-11-16",
-      "validTo": "2026-11-21",
-      "ingredientId": "mandarinen",
-      "packPrice": 1.33
-    },
-    {
-      "store": "edeka",
       "title": "Spanien EDEKA Genussmomente Clementinen",
       "price": 1.99,
       "unit": "Sorte siehe Etikett Kl. I, 750g Netz, 1kg = 2,65",
@@ -853,8 +843,8 @@
       "unit": "Kochschinken, in Scheiben, versch. Sorten, 100g Packung, 1kg = 18,90",
       "validFrom": "2026-11-16",
       "validTo": "2026-11-21",
-      "ingredientId": "cordon_bleu",
-      "packPrice": 3.4
+      "ingredientId": null,
+      "packPrice": null
     },
     {
       "store": "edeka",
@@ -1023,8 +1013,48 @@
       "unit": "versch. Sorten, 450/500g Beutel, 1kg = 9,53/8,58",
       "validFrom": "2026-11-16",
       "validTo": "2026-11-21",
-      "ingredientId": null,
-      "packPrice": null
+      "ingredientId": "frosta_paella",
+      "packPrice": 4.29
+    },
+    {
+      "store": "edeka",
+      "title": "Frosta High Protein-Hähnchen- oder à la Carte Fertiggerichte",
+      "price": 4.29,
+      "unit": "versch. Sorten, 450/500g Beutel, 1kg = 9,53/8,58",
+      "validFrom": "2026-11-16",
+      "validTo": "2026-11-21",
+      "ingredientId": "frosta_bami_goreng",
+      "packPrice": 4.29
+    },
+    {
+      "store": "edeka",
+      "title": "Frosta High Protein-Hähnchen- oder à la Carte Fertiggerichte",
+      "price": 4.29,
+      "unit": "versch. Sorten, 450/500g Beutel, 1kg = 9,53/8,58",
+      "validFrom": "2026-11-16",
+      "validTo": "2026-11-21",
+      "ingredientId": "frosta_chicken_curry",
+      "packPrice": 4.29
+    },
+    {
+      "store": "edeka",
+      "title": "Frosta High Protein-Hähnchen- oder à la Carte Fertiggerichte",
+      "price": 4.29,
+      "unit": "versch. Sorten, 450/500g Beutel, 1kg = 9,53/8,58",
+      "validFrom": "2026-11-16",
+      "validTo": "2026-11-21",
+      "ingredientId": "frosta_huehnerfrikassee",
+      "packPrice": 4.29
+    },
+    {
+      "store": "edeka",
+      "title": "Frosta High Protein-Hähnchen- oder à la Carte Fertiggerichte",
+      "price": 4.29,
+      "unit": "versch. Sorten, 450/500g Beutel, 1kg = 9,53/8,58",
+      "validFrom": "2026-11-16",
+      "validTo": "2026-11-21",
+      "ingredientId": "frosta_tagliatelle_lachs",
+      "packPrice": 4.29
     },
     {
       "store": "edeka",
@@ -1433,8 +1463,8 @@
       "unit": "200g Packung, 1kg = 10,95",
       "validFrom": "2026-11-16",
       "validTo": "2026-11-21",
-      "ingredientId": "butter",
-      "packPrice": 2.74
+      "ingredientId": null,
+      "packPrice": null
     },
     {
       "store": "edeka",
@@ -2033,8 +2063,8 @@
       "unit": "goldgelb geräuchert, SB-verpackt, 1kg Packung",
       "validFrom": "2026-11-16",
       "validTo": "2026-11-21",
-      "ingredientId": "lachs_tk",
-      "packPrice": 3.89
+      "ingredientId": null,
+      "packPrice": null
     },
     {
       "store": "edeka",
@@ -2633,8 +2663,8 @@
       "unit": "300g Packung, 1kg = 8,30",
       "validFrom": "2026-11-16",
       "validTo": "2026-11-21",
-      "ingredientId": "kalbsleber",
-      "packPrice": 2.91
+      "ingredientId": null,
+      "packPrice": null
     },
     {
       "store": "edeka",
@@ -3053,8 +3083,8 @@
       "unit": "mit Rosinen, 200g Stück, 1kg = 8,95",
       "validFrom": "2026-11-16",
       "validTo": "2026-11-21",
-      "ingredientId": "butter",
-      "packPrice": 2.24
+      "ingredientId": null,
+      "packPrice": null
     },
     {
       "store": "edeka",

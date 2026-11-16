@@ -21,7 +21,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { matchIngredient, parseGrams, regularPrice } from '../js/prices.js';
+import { matchIngredient, offerGroupMembers, parseGrams, regularPrice } from '../js/prices.js';
 import { shouldRunNow } from './berlin-time.mjs';
 
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -83,7 +83,9 @@ export function mapOffers(raw, store, ingredients) {
       const regular = regularPrice(ing, store);
       if (packPrice > regular * 1.05 || packPrice < ing.price * 0.25) packPrice = null;
     }
-    out.push({ store, title: o.title, price: o.price, unit: o.unitText, validFrom: o.validFrom, validTo: o.validTo, ingredientId: packPrice ? ing.id : null, packPrice });
+    // Marken-Angebot für „versch. Sorten“: gilt für alle Produkte der Gruppe (z. B. alle Frosta-Gerichte)
+    const members = packPrice ? offerGroupMembers(ing, `${o.title} ${o.unitText || ''}`, ingredients) : [null];
+    for (const m of members) out.push({ store, title: o.title, price: o.price, unit: o.unitText, validFrom: o.validFrom, validTo: o.validTo, ingredientId: m ? m.id : null, packPrice });
   }
   return out;
 }
