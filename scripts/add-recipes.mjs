@@ -23,7 +23,7 @@ const slug = (s) =>
 const names = new Set(db.recipes.map((r) => r.name.toLowerCase().trim()));
 const ids = new Set(db.recipes.map((r) => r.id));
 const today = new Date().toISOString().slice(0, 10);
-const CUISINES = ['italienisch', 'franzoesisch', 'spanisch', 'deutsch', 'skandinavisch', 'orientalisch', 'indisch', 'asiatisch', 'amerikanisch'];
+const CUISINES = ['italienisch', 'franzoesisch', 'spanisch', 'griechisch', 'deutsch', 'skandinavisch', 'tuerkisch', 'orientalisch', 'afrikanisch', 'indisch', 'asiatisch', 'thailaendisch', 'vietnamesisch', 'japanisch', 'koreanisch', 'amerikanisch', 'mexikanisch'];
 // Aus der App eingereichte Rezepte (von dir, Familie …): keine Protein-/Zeit-Vorgaben, ID bleibt erhalten
 const USER = !!process.env.USER_RECIPES;
 const added = [];

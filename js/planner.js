@@ -13,7 +13,7 @@ import { itemsCost, makePriceFn } from './prices.js';
 import { buildShopping } from './shopping.js';
 import { fiberTargetFor } from './settings.js';
 import { daySportKcal } from './sport.js';
-import { recipeBlocked, restrictions } from './diet.js';
+import { DIET_FACTOR, recipeBlocked, recipeDietWeight, restrictions } from './diet.js';
 
 const MAIN_SLOTS = ['mittag', 'abend'];
 
@@ -55,6 +55,9 @@ export function prepareContext(input) {
       fish: hasFish(r, idx),
       pasta: r.ingredients.some((l) => idx.get(l.id)?.tags?.includes('pasta')),
       weight: fbw[r.id]?.weight ?? 1,
+      // Ernährungsweise (0–3: nie … oft) – nur für Hauptgerichte
+      dietW: r.type === 'main' ? recipeDietWeight(r, idx, rx.weights, settings) : 2,
+      dietF: r.type === 'main' ? DIET_FACTOR[recipeDietWeight(r, idx, rx.weights, settings)] || 0.01 : 1,
       tooComplex: fbw[r.id]?.tooComplex ?? 0,
     });
   }
@@ -272,7 +275,7 @@ export function buildStructure(ctx, rng, mode = {}) {
 
   const weightOf = (r, { isLunch, isComplex }) => {
     const inf = info.get(r.id);
-    let w = inf.weight;
+    let w = inf.weight * inf.dietF;
     if (inf.tooComplex) w *= 1 / (1 + inf.tooComplex * (0.5 + simple));
     if (!isComplex) {
       // Feineinstellungen gelten für den Großteil der Gerichte, nicht für die aufwendigen
@@ -304,7 +307,7 @@ export function buildStructure(ctx, rng, mode = {}) {
     w *= Math.pow(costRatio, mode.cheap ? 2 + mode.cheap : 0.6);
     // gesenktes Protein-Ziel: eiweißärmere Gerichte deutlich bevorzugen
     w *= Math.pow(macroFit(inf.macros, settings.goals), lowProtein(settings.goals) ? 5 : mode.cheap ? 0.6 : 1.6);
-    if (lowProtein(settings.goals) && (r.tags || []).includes('eiweissarm')) w *= 8;
+    if (lowProtein(settings.goals) && (r.tags || []).includes('eiweissarm')) w *= 20;
     if (settings.carbSpread) w *= Math.exp(-Math.max(0, inf.macros.c - CARB_CAP) / 15);
     return Math.max(0.001, w);
   };
@@ -776,6 +779,10 @@ export function scorePlan(plan, ctx) {
   // Studi-Modus: jeder Euro zählt (die Ziele bleiben über die Punkte oben gewahrt)
   if (settings.studi) s.studi = -3 * budgetCost(plan);
 
+  // Ernährungsweisen: „oft“ (3) zieht den Plan hin, „selten“ (1) weg – gleich gewichtet wie die Abwechslung
+  const mainCooks = plan.cooks.filter((c) => !c.ready && ctx.recipesById.get(c.recipeId)?.type === 'main');
+  if (mainCooks.length) s.diet = 12 * avg(mainCooks, (c) => (ctx.info.get(c.recipeId)?.dietW ?? 2) - 2);
+
   // Abzüge: Budget und verderbliche Reste
   // Haltbarer Vorrat (Reis, Nudeln …) zählt nur teilweise, er wird in den Folgewochen verbraucht
   // Budget: der Kassenbon soll das Budget nicht überschreiten (deutlicher Abzug je Euro darüber).
@@ -846,7 +853,8 @@ function repairBudget(plan, ctx, budget, ok) {
         if (used.has(r.id) || (old.effort === 3 ? r.effort !== 3 : r.effort >= 3) || (k > 1 && !r.mealPrep)) continue;
         const n = new Map(without);
         addItems(n, baseItems(r, settings, k), 1);
-        const est = receipt(n) - base + gapCost(old, r) * k;
+        // Ernährungsweisen: ein „oft“-Gericht nur gegen deutliche Ersparnis tauschen (1,50 € je Stufe und Portion)
+        const est = receipt(n) - base + gapCost(old, r) * k + 1.5 * k * ((ctx.info.get(old.id).dietW ?? 2) - (ctx.info.get(r.id).dietW ?? 2));
         if (est < -0.3)
           pairs.push({
             est,
@@ -999,7 +1007,7 @@ export function setEatOut(plan, mealKey, on, input) {
       const usedIds = new Set(structure.cooks.map((c) => c.recipeId));
       let pool = ctx.mains.filter((r) => r.effort < 3 && !usedIds.has(r.id));
       if (!pool.length) pool = ctx.mains.filter((r) => r.effort < 3);
-      const r = pickWeighted(pool, pool.map((x) => Math.pow(ctx.info.get(x.id).weight, 1.5) / Math.max(0.5, ctx.info.get(x.id).cost)), rng);
+      const r = pickWeighted(pool, pool.map((x) => Math.pow(ctx.info.get(x.id).weight, 1.5) * ctx.info.get(x.id).dietF / Math.max(0.5, ctx.info.get(x.id).cost)), rng);
       structure.cooks.push({ id: `c${Date.now().toString(36)}`, recipeId: r.id, day: d, slot, portions: [mealKey] });
       structure.cooks.sort((a, b) => a.day - b.day || (a.slot === 'mittag' ? -1 : 1));
     }
