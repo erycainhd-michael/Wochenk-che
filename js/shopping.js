@@ -13,8 +13,50 @@ export const FRESH_SHELF = 6;
  * @param priceOf    Preisfunktion aus prices.js
  * @param recipesById Map für Gerichtsnamen
  */
+
+// Gewürze: In den Rezepten steht nur „Gewürze“ mit einer Notiz („Salz, Pfeffer, Paprika edelsüß“). Für die
+// Einkaufsliste werden daraus die einzelnen Gewürze – vereinheitlicht und ohne Mengen- oder Hinweistexte.
+const SPICE_ALIAS = [
+  [/^(paprika|paprikapulver|paprikagewürz)( edelsüß)?$/, 'Paprikapulver edelsüß'],
+  [/^(paprika rosenscharf|paprikagewürz scharf|paprika scharf)$/, 'Paprikapulver scharf'],
+  [/^(curry|currypulver)$/, 'Currypulver'],
+  [/^(chili|chilipulver|chiliflocken|milde chili)$/, 'Chili'],
+  [/^(pfeffer|pfeffer geschrotet|pfefferkörner)$/, 'Pfeffer'],
+  [/^(lorbeer|lorbeerblatt|lorbeerblätter)$/, 'Lorbeerblätter'],
+  [/^(zimt|zimtstange)$/, 'Zimt'],
+  [/^gyros-?$/, 'Gyrosgewürz'],
+  [/^fondor$/, 'Fondor'],
+  [/^(italienische kräuter|kräuter der provence)$/, null], // bleibt wie geschrieben
+];
+const SPICE_SKIP = /essig|wasser|süßstoff/i;
+export function spiceNames(note) {
+  const out = [];
+  const clean = String(note || '')
+    .replace(/\([^)]*\)?/g, ' ') // Klammern („gemahlen“, „oder Zimt“)
+    .replace(/fondue-gewürz für alle:.*?fondor.*/i, 'Fondor')
+    .replace(/\bdazu\b/gi, ',');
+  for (let part of clean.split(/,|;|\/|&|\+|\bund\b/)) {
+    if (SPICE_SKIP.test(part)) continue;
+    part = part
+      .replace(/\b(je|ca\.?|evtl\.?|etwas|viel|knapp|frisch(er|e|es)?|getrocknet(e|er)?|gemahlen(er|e)?)\b/gi, ' ')
+      .replace(/[\d½¼¾]+(\s*[–-]\s*\d+)?\s*(prise|tl|el|g|döschen)?\b/gi, ' ')
+      .replace(/\bprise\b/gi, ' ')
+      .replace(/\b(für alle|nach geschmack|für die .*|fürs .*)$/i, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+    if (!part || part.length < 3) continue;
+    const low = part.toLowerCase();
+    const hit = SPICE_ALIAS.find(([re]) => re.test(low));
+    const name = hit?.[1] || part.charAt(0).toUpperCase() + part.slice(1);
+    if (!out.includes(name)) out.push(name);
+  }
+  return out;
+}
+const SPICE_ORDER = ['Salz', 'Pfeffer'];
+
 export function buildShopping({ plan, idx, pantry = {}, priceOf, recipesById, twice = false }) {
   const need = new Map();
+  const spices = new Map(); // Gewürzname → Gerichte
   const bakedCakes = new Set();
   for (const day of plan.days) {
     for (const meal of day.meals) {
@@ -43,6 +85,14 @@ export function buildShopping({ plan, idx, pantry = {}, priceOf, recipesById, tw
           e.useIds2.set(rid, rname);
         } else e.useIds1.set(rid, rname);
         need.set(it.id, e);
+        if (it.id === 'gewuerze') {
+          const note = recipesById?.get(rid)?.ingredients.find((l) => l.id === 'gewuerze')?.note;
+          for (const n of spiceNames(note)) {
+            const sp = spices.get(n) || new Map();
+            sp.set(rid, rname);
+            spices.set(n, sp);
+          }
+        }
       }
     }
   }
@@ -73,6 +123,14 @@ export function buildShopping({ plan, idx, pantry = {}, priceOf, recipesById, tw
     const uses = [...e.uses];
     const useRefs = [...e.useIds].map(([rid, name]) => ({ id: rid, name }));
     if (ing.staple) {
+      // statt „Gewürze“: jedes Gewürz einzeln mit den Gerichten, die es brauchen
+      if (id === 'gewuerze' && spices.size) {
+        const order = (n) => (SPICE_ORDER.includes(n) ? SPICE_ORDER.indexOf(n) : 9);
+        for (const [n, refs] of [...spices].sort((a, b) => order(a[0]) - order(b[0]) || a[0].localeCompare(b[0], 'de'))) {
+          staples.push({ id: 'gewuerz:' + n, name: n, spice: true, uses: [...refs.values()], useRefs: [...refs].map(([rid, name]) => ({ id: rid, name })) });
+        }
+        continue;
+      }
       staples.push({ id, name: ing.name, g: Math.round(e.g), uses, useRefs });
       continue;
     }
