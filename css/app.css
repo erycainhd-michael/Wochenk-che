@@ -367,7 +367,7 @@ input[type='checkbox']:checked::after { content: '✓'; color: var(--accent-text
 @keyframes ring { 50% { box-shadow: 0 0 0 4px rgba(220, 38, 38, 0.35); } }
 
 .toast {
-  position: fixed; left: 50%; top: calc(var(--sat) + 10px); z-index: 80;
+  position: fixed; left: 50%; top: calc(var(--sat) + 16px); z-index: 80;
   display: flex; align-items: center; gap: 12px; width: max-content; max-width: min(92vw, 440px);
   padding: 8px 18px 8px 8px; border-radius: 999px;
   background: var(--card); color: var(--text); border: 1px solid var(--line);
@@ -730,11 +730,11 @@ textarea { font: inherit; color: var(--text); background: var(--field); border: 
 .field .unit-input input { display: block; margin-top: 0; padding-right: 42px; }
 .unit-input i { position: absolute; right: 18px; top: 50%; transform: translateY(-50%); font-style: normal; color: var(--muted); pointer-events: none; }
 /* Weiter kochen */
-#cook-resume { position: fixed; z-index: 40; top: calc(var(--sat) + 8px); right: 12px; display: flex; align-items: center; gap: 4px;
+#cook-resume { position: fixed; z-index: 40; top: calc(var(--sat) + 14px); right: 12px; display: flex; align-items: center; gap: 4px;
   background: var(--accent); border-radius: 999px; padding: 4px 4px 4px 14px; box-shadow: var(--shadow); animation: unfold 0.3s ease-out; }
 #cook-resume a { color: var(--accent-text); font-weight: 600; font-size: 0.95rem; padding: 6px 4px; letter-spacing: -0.0162em; line-height: 1.329; }
 #cook-resume button { width: 32px; height: 32px; border-radius: 50%; border: 0; background: rgba(255, 255, 255, 0.2); color: var(--accent-text); font-size: 0.85rem; cursor: pointer; letter-spacing: -0.009em; }
-body.cooking .view { padding-top: calc(var(--sat) + 60px); }
+body.cooking .view { padding-top: calc(var(--sat) + 66px); }
 /* Sicherungs-Erinnerung */
 .banner.backup .banner-btns { display: flex; gap: 6px; }
 .snap-row { display: grid; gap: 8px; margin: 8px 0 4px; }
@@ -1184,28 +1184,35 @@ body.no-numbers .hero-top { justify-content: flex-end; }
   .btn:active, .pill:active, .chip.add:active, .tab:active img { transform: none; }
 }
 
-/* --- Seitenwechsel wie in iOS (View Transitions, Safari ab iOS 18) ----------------------------------------
-   Verglichen wird nur das sichtbare Bild (root). Leisten haben eigene Namen und bleiben stehen.
-   push: neue Seite schiebt sich von rechts über die alte, die alte weicht ein Stück nach links und dunkelt ab.
-   pop:  umgekehrt – die obere Seite gleitet nach rechts weg und gibt die vorige frei. */
-.tabbar { view-transition-name: tabbar; }
-#navbar { view-transition-name: navbar; }
-#cook-resume { view-transition-name: cookresume; }
-::view-transition-group(root) { animation: none; }
-html[data-nav]::view-transition-old(root),
-html[data-nav]::view-transition-new(root) {
-  mix-blend-mode: normal; animation-duration: 0.48s; animation-timing-function: cubic-bezier(0.32, 0.72, 0, 1); animation-fill-mode: both;
-}
-html[data-nav='push']::view-transition-old(root) { animation-name: vtBehindOut; }
-html[data-nav='push']::view-transition-new(root) { animation-name: vtSlideIn; box-shadow: -10px 0 30px rgba(0, 0, 0, 0.12); }
-html[data-nav='pop']::view-transition-old(root) { animation-name: vtSlideOut; z-index: 2; box-shadow: -10px 0 30px rgba(0, 0, 0, 0.12); }
-html[data-nav='pop']::view-transition-new(root) { animation-name: vtBehindIn; }
+/* --- Seitenwechsel wie in iOS (eigene Animation, ohne View Transitions – deren Ebene läge über #top-edge) ---
+   push: neue Seite schiebt sich von rechts über die alte (Abbild .view-ghost), die alte weicht nach links.
+   pop:  das Abbild der alten Seite gleitet nach rechts weg und gibt die vorige frei. */
+.view-ghost-wrap { position: fixed; inset: 0; overflow: hidden; pointer-events: none; z-index: 5; }
+.view-ghost-wrap.over { z-index: 19; }
+.view-ghost { position: absolute; left: 0; right: 0; margin: 0 auto; background: var(--bg); }
+.view-ghost-wrap.over .view-ghost { box-shadow: -10px 0 30px rgba(0, 0, 0, 0.12); min-height: 100vh; }
+.view.slide-in { position: relative; z-index: 6; background: var(--bg); min-height: 100vh; box-shadow: -10px 0 30px rgba(0, 0, 0, 0.12); animation: vtSlideIn 0.48s var(--ease-ios) both; }
+.view.slide-back { animation: vtBehindIn 0.48s var(--ease-ios) both; }
+.view-ghost-wrap.under .view-ghost { animation: vtBehindOut 0.48s var(--ease-ios) both; }
+.view-ghost-wrap.over .view-ghost { animation: vtSlideOut 0.48s var(--ease-ios) both; }
 @keyframes vtSlideIn { from { transform: translateX(100%); } }
 @keyframes vtSlideOut { to { transform: translateX(100%); } }
 @keyframes vtBehindOut { to { transform: translateX(-30%); filter: brightness(0.94); } }
 @keyframes vtBehindIn { from { transform: translateX(-30%); filter: brightness(0.94); } }
-html[data-nav]::view-transition-old(navbar), html[data-nav]::view-transition-new(navbar) { animation-duration: 0.3s; }
 
 .shop .shop-sub { list-style: none; margin: 14px 0 2px; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.02em; color: var(--muted); }
 /* Kopfzeile, in der nur der (jetzt in die Leiste gewanderte) Pfeil stand, fällt weg */
 .top.col:not(:has(> :not(.back.moved))) { display: none; }
+
+/* --- Oberer Rand gegen den iOS-26-Weichzeichner ------------------------------------------------------------
+   iOS sucht 4 px unter der Oberkante ein fest positioniertes Element (≥ 90 % breit, > 10 px hoch, deckende
+   Hintergrundfarbe) und färbt den Rand damit ein. Ändert sich dieses Element einmal, zeichnet iOS ab dann alles
+   oben weich – bis die App beendet wird. Deshalb liegt #top-edge immer zuoberst und ändert nur seine Farbe. */
+#top-edge {
+  position: fixed; top: 0; left: 0; right: 0; height: calc(var(--sat) + 12px);
+  z-index: 2147483647; /* bewusst ohne pointer-events: none – sonst übersieht ihn die Trefferprüfung, mit der iOS sucht */
+  background-color: var(--bg); transition: background-color 0.3s;
+}
+body:has(#splash) #top-edge { background-color: #0a3021; }
+body:has(#busy) #top-edge { background-color: color-mix(in srgb, var(--bg) 65%, #000); }
+body:has(.confirm-box) #top-edge { background-color: color-mix(in srgb, var(--bg) 70%, #000); }

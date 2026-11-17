@@ -165,7 +165,17 @@ async function init() {
   window.addEventListener('hashchange', onRouteChange);
   if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
   // Wischgeste „Zurück“ beginnt am linken Bildschirmrand
-  document.addEventListener('touchstart', (ev) => { if (ev.touches[0]?.clientX < 28) edgeTouchAt = Date.now(); }, { passive: true });
+  // Zählt nur, wenn der Finger am Rand beginnt UND deutlich nach rechts wischt – ein Tipp auf den Zurück-Pfeil nicht
+  let edgeStart = null;
+  document.addEventListener('touchstart', (ev) => { const t = ev.touches[0]; edgeStart = t && t.clientX < 24 ? { x: t.clientX, y: t.clientY } : null; }, { passive: true });
+  document.addEventListener('touchmove', (ev) => {
+    const t = ev.touches[0];
+    if (edgeStart && t && t.clientX - edgeStart.x > 30 && Math.abs(t.clientY - edgeStart.y) < t.clientX - edgeStart.x) edgeSwiped = Date.now();
+  }, { passive: true });
+  // Übernimmt iOS die Geste, bricht es die Berührung ab (touchcancel); ein normaler Tipp endet mit touchend
+  document.addEventListener('touchcancel', () => { if (edgeStart) edgeSwiped = Date.now(); edgeStart = null; }, { passive: true });
+  document.addEventListener('touchend', () => { edgeStart = null; }, { passive: true });
+  window.addEventListener('popstate', () => { if (edgeStart) edgeSwiped = Date.now(); });
   document.addEventListener('click', onClick);
   document.addEventListener('change', onChange);
   document.addEventListener('input', onInput);
@@ -336,12 +346,7 @@ function applyTheme() {
   const t = S.settings.theme || 'auto';
   if (t === 'auto') delete document.documentElement.dataset.theme;
   else document.documentElement.dataset.theme = t;
-  // Statusleiste (theme-color) passend zum gewählten Design – bei „Automatisch“ gilt die Angabe je Systemmodus
-  const bg = { light: '#f3f5f3', dark: '#0f1512' };
-  for (const m of document.querySelectorAll('meta[name="theme-color"]')) {
-    const sys = m.media.includes('dark') ? 'dark' : 'light';
-    m.content = bg[t === 'auto' ? sys : t];
-  }
+  // Hinweis: theme-color/color-scheme-Metas NIE zur Laufzeit ändern – iOS 26 zeichnet den oberen Rand danach weich.
 }
 
 // ---------------------------------------------------------------------------
@@ -713,44 +718,57 @@ let lastRoute = '';
 let lastDepth = 0;
 let navTransition = false;
 let systemSwipe = false; // Zurück per Wischgeste: iOS animiert selbst
-let edgeTouchAt = 0;
+let edgeSwiped = 0;
 const scrollMem = new Map();
 const tabFor = (r) =>
   ({ einkauf: 'einkauf', rueckblick: 'rueckblick', planen: 'rueckblick', einstellungen: 'einstellungen', rezepte: 'rezepte', bearbeiten: 'rezepte' })[r.name] ||
   (r.name === 'rezept' ? (S.ui.recipeFrom === 'einkauf' ? 'einkauf' : 'rezepte') : 'woche');
 
 /**
- * Seitenwechsel per Link/Zurück. Tiefer oder zurück im selben Tab: echter iOS-Übergang mit der View-Transitions-
- * Technik (Safari ab iOS 18) – die alte Seite schiebt sich sichtbar weg, die neue kommt darüber bzw. darunter
- * hervor; Tab-Leiste und Navigationsleiste bleiben stehen. Ohne diese Technik: CSS-Animation in render().
+ * Seitenwechsel per Link/Zurück. Tiefer oder zurück im selben Tab: Übergang wie in iOS – ein Abbild der alten
+ * Seite (Klon) bleibt kurz stehen und schiebt sich weg bzw. wird überschoben. Bewusst OHNE View Transitions: deren
+ * Ebene liegt über allem, auch über #top-edge, und brächte iOS 26 dazu, den oberen Rand weichzuzeichnen.
  */
 function onRouteChange() {
   const r = route();
   const depth = routeDepth(r);
   const kind = tabFor(r) !== lastTab || r.name === 'kochen' || lastTab === '' || depth === lastDepth ? null : depth > lastDepth ? 'push' : 'pop';
   // Vom linken Rand gewischt: iOS hat den Wechsel schon selbst animiert – keine zweite Animation
-  if (Date.now() - edgeTouchAt < 1500) {
-    edgeTouchAt = 0;
+  if (edgeSwiped && Date.now() - edgeSwiped < 1200) {
+    edgeSwiped = 0;
     systemSwipe = true;
     return render();
   }
-  if (!kind || !document.startViewTransition || reducedMotion() || navTransition) return render();
+  const old = document.getElementById('view');
+  if (!kind || !old || reducedMotion()) return render();
+  // Abbild der alten Seite an genau derselben Stelle festhalten
+  const rect = old.getBoundingClientRect();
+  document.querySelectorAll('.view-ghost-wrap').forEach((g) => g.remove());
+  const wrap = document.createElement('div');
+  wrap.className = `view-ghost-wrap ${kind === 'push' ? 'under' : 'over'}`;
+  wrap.setAttribute('aria-hidden', 'true');
+  const ghost = old.cloneNode(true);
+  ghost.removeAttribute('id');
+  ghost.classList.remove('enter', 'push', 'pop', 'slide-in', 'slide-back');
+  ghost.classList.add('view-ghost');
+  for (const el of ghost.querySelectorAll('[id]')) el.removeAttribute('id');
+  ghost.style.top = `${rect.top}px`;
+  ghost.style.width = `${rect.width}px`;
+  wrap.appendChild(ghost);
+  document.body.appendChild(wrap);
   navTransition = true;
-  document.documentElement.dataset.nav = kind;
-  let vt;
-  try {
-    vt = document.startViewTransition(() => render());
-  } catch {
-    navTransition = false;
-    delete document.documentElement.dataset.nav;
-    return render();
-  }
-  vt.finished.finally(() => {
-    navTransition = false;
-    delete document.documentElement.dataset.nav;
-  });
-}
-let lastTab = '';
+  render();
+  navTransition = false;
+  const view = document.getElementById('view');
+  view.classList.remove('enter', 'push', 'pop', 'slide-in', 'slide-back');
+  void view.offsetWidth;
+  view.classList.add(kind === 'push' ? 'slide-in' : 'slide-back');
+  const done = () => {
+    wrap.remove();
+    view.classList.remove('slide-in', 'slide-back');
+  };
+  setTimeout(done, 520);
+}let lastTab = '';
 /** Wie tief liegt eine Seite? 0 = Tab-Übersicht, 1 = Detail, 2 = Detail im Detail – für Push/Pop wie in iOS */
 function routeDepth(r) {
   if (r.name === 'bearbeiten') return 2;
