@@ -727,7 +727,8 @@ const IC = {
   list: svgIcon('<path d="M9 6h11M9 12h11M9 18h11"/><circle cx="4.5" cy="6" r=".8" fill="currentColor"/><circle cx="4.5" cy="12" r=".8" fill="currentColor"/><circle cx="4.5" cy="18" r=".8" fill="currentColor"/>', 20),
   grid: svgIcon('<rect x="4" y="4" width="6.5" height="6.5" rx="1.6"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.6"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.6"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.6"/>', 20),
   clock: svgIcon('<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>', 18),
-  dishes: svgIcon('<ellipse cx="12" cy="13" rx="8.5" ry="5"/><ellipse cx="12" cy="13" rx="4" ry="2.2"/><path d="M8 5.5c.6-.8 1.4-1 2-.6M13 4.5c.6-.6 1.4-.6 2 0"/>', 18),
+  dishes: svgIcon('<rect x="3.5" y="12" width="17" height="8" rx="2.5"/><path d="M3.5 15.5h17"/><circle cx="8" cy="7" r="2"/><circle cx="13.5" cy="5.5" r="1.4"/><circle cx="16.5" cy="8.8" r="1.6"/>', 18),
+  pot: svgIcon('<path d="M4.5 10h15v6.5a3.5 3.5 0 0 1-3.5 3.5H8a3.5 3.5 0 0 1-3.5-3.5Z"/><path d="M2.5 10h19M9 10V7.5h6V10M10.5 7.5V5.5h3v2"/>'),
   pencil: svgIcon('<path d="M15.5 4.5 19.5 8.5 8.5 19.5H4.5v-4Z"/><path d="m13.5 6.5 4 4"/>', 18),
   tag: svgIcon('<path d="M3.5 12.2V4.5h7.7l9 9-7.7 7.7Z"/><circle cx="8" cy="9" r="1.3"/>'),
   basket: svgIcon('<path d="M3.5 10h17l-1.8 8.4a2 2 0 0 1-2 1.6H7.3a2 2 0 0 1-2-1.6Z"/><path d="m8 10 3-6M16 10l-3-6M9 14v2.5M12 14v2.5M15 14v2.5"/>'),
@@ -1555,14 +1556,14 @@ function todayCard(plan, b) {
   const mains = order.map((slot) => day.meals.find((m) => m.slot === slot && (m.kind === 'recipe' || m.kind === 'eatout'))).filter(Boolean);
   const next = mains.find((m) => order.indexOf(m.slot) >= idx) || mains[mains.length - 1];
   if (!next) return '';
-  const when = `${tomorrow ? 'Morgen' : order.indexOf(next.slot) === nowIdx ? 'Jetzt' : 'Als Nächstes'} · ${slotLabel(next)}`;
+  const when = tomorrow ? `Morgen · ${slotLabel(next)}` : 'Als Nächstes';
   let card;
   if (next.kind === 'eatout') {
     card = `<div class="today-card eatout"><div class="today-body"><span class="today-when">${when}</span><b class="today-title">Heute isst du auswärts</b><span class="today-meta">Genieß den Abend – Mise hat ihn eingeplant.</span></div></div>`;
   } else {
     const r = recipe(next.recipeId);
     card = `<a class="today-card ${themeCls(r)}" href="#/mahlzeit/${next.key}">
-      <span class="today-img ${r.img ? 'has-img' : ''}">${recipeArt(r, false)}</span>
+      <span class="today-img ${r.img ? 'has-img' : ''}" aria-hidden="true">${recipeArt(r, false)}</span>
       <span class="today-body"><span class="today-when">${when}</span><b class="today-title">${e(r.name)}</b>
         <span class="today-meta">${r.time} Min.${S.settings.hideNumbers ? '' : ` · ${num(next.macros.kcal)} kcal`}</span>
         <span class="today-cta">Zum Rezept ${IC.arrow}</span></span></a>`;
@@ -2345,7 +2346,7 @@ function recipeHtml(r, items, macros, subtitle, back, info, cookKey, withServing
     ${info}
     ${servings}
     <section class="card">${H2(IC.basket, 'Zutaten')}<p class="hint">Antippen zum Abhaken, während du alles bereitlegst.</p><ul class="ings">${ingList}</ul></section>
-    ${allTools.length ? `<section class="card">${H2(IC.pan, 'Das brauchst du')}<div class="chips tools">${allTools.map((t) => `<span class="chip">${e(t)}</span>`).join('')}</div><p class="hint">Bei der Zubereitung steht an jedem Schritt, was neu dazukommt.</p></section>` : ''}
+    ${allTools.length ? `<section class="card">${H2(IC.pot, 'Das brauchst du')}<div class="chips tools">${allTools.map((t) => `<span class="chip">${e(t)}</span>`).join('')}</div><p class="hint">Bei der Zubereitung steht an jedem Schritt, was neu dazukommt.</p></section>` : ''}
     <section class="card">${H2(IC.cook, 'Zubereitung')}<ol class="steps tl">${steps}</ol>
       ${startBtn('block')}
     </section>`;
@@ -2912,24 +2913,18 @@ function viewReview(weekArg) {
     }
     if (list.length) byDay.push({ short: d.short, list });
   }
-  const icon = (id, field, val, emoji, label) => {
-    const cur = fb.recipes[id]?.[field];
-    const on = val === undefined ? !!cur : cur === val;
-    return `<button class="pill circle ${on ? 'on' : ''}" data-action="fb" data-week="${ws}" data-id="${id}" data-field="${field}" data-val="${val ?? ''}" aria-label="${label}" title="${label}">${emoji}</button>`;
-  };
+  // Alle Gerichte der Woche in einem Raster. Antippen = „Gefällt mir nicht“ (ausgegraut), nochmal = zurück.
+  const dishes = byDay.flatMap((d) => d.list);
   const dishesCard = () =>
-    byDay.length
-      ? `<section class="card"><h2>Gerichte der Woche</h2><ul class="fb-days">${byDay
-          .map(
-            (d) => `<li class="fb-day"><span class="day-dot">${d.short}</span><div class="fb-meals">${d.list
-              .map((id) => {
-                const more = also.get(id).slice(1);
-                return `<div class="fb-meal"><div class="fb-name">${e(recipe(id)?.name || id)}${more.length ? ` <small class="muted">· auch ${more.join(', ')}</small>` : ''}</div><div class="pills">
-          ${icon(id, 'rating', 1, IC.up, 'War gut')}${icon(id, 'rating', -1, IC.down, 'War schlecht')}${icon(id, 'dishes', undefined, IC.dishes, 'War zu viel Abwasch')}${icon(id, 'tooComplex', undefined, IC.clock, 'War zu aufwendig')}${icon(id, 'tooExpensive', undefined, IC.euro, 'War zu teuer')}
-        </div></div>`;
-              })
-              .join('')}</div></li>`
-          )
+    dishes.length
+      ? `<section class="card"><h2>Gerichte der Woche</h2><p class="hint">Tippe an, was dir nicht geschmeckt hat oder zu aufwendig war – Mise plant es dann seltener.</p>
+        <ul class="fb-grid">${dishes
+          .map((id) => {
+            const r = recipe(id);
+            const off = fb.recipes[id]?.rating === -1;
+            return `<li><button class="fb-dish ${off ? 'off' : ''}" data-action="fb-dislike" data-week="${ws}" data-id="${id}" aria-pressed="${off}" aria-label="${e(r?.name || id)}${off ? ': gefällt mir nicht' : ''}">
+              <span class="fb-art">${recipeArt(r)}${off ? `<i class="fb-x" aria-hidden="true">${IC.down}</i>` : ''}</span><span class="fb-dn">${e(shortName(r) || id)}</span></button></li>`;
+          })
           .join('')}</ul></section>`
       : '';
   return `${top(trendCard(ws, ws))}
@@ -3194,6 +3189,7 @@ function settingsSections(st) {
       ['teilen', 'Rezepte für alle Geräte', st.shareToken ? 'An' : 'Aus'],
       ['ki', 'KI-Rezepte', st.aiKey ? 'An' : 'Aus'],
       ['sicherung', 'Datensicherung', S.snapshots.length ? 'Täglich' : ''],
+      ['profil', 'Profil wechseln', ''],
       ['quellen', 'Quellen & Richtlinien', ''],
     ]],
   ];
@@ -3359,6 +3355,14 @@ function settingsPage(id, st) {
             <label class="btn">Importieren<input type="file" accept="application/json,.json" id="import-file" hidden></label></div>
             <p class="hint">${store.get('lastExport') ? `In iCloud zuletzt: ${fmtDateTime(store.get('lastExport'))}` : 'Noch nie in iCloud gesichert.'}</p>`) +
           `<ul class="set-list danger-list"><li><button data-action="reset-settings">Einstellungen zurücksetzen</button></li><li><button data-action="reset-app">App zurücksetzen (alles löschen)</button></li></ul>`,
+      };
+    case 'profil':
+      return {
+        explain: `Startet die Einführung neu – dort legst du ein <b>neues Profil</b> an oder lädst ein <b>vorhandenes</b> aus einer Sicherung. Dein jetziges Profil${st.name ? ` (<b>${e(st.name)}</b>)` : ''} wird dabei ersetzt; die automatischen Sicherungen auf diesem Gerät bleiben erhalten.`,
+        html:
+          card(`<button class="btn block" data-action="export">${IC.cloud}Jetziges Profil vorher sichern</button>
+            <p class="hint">${store.get('lastExport') ? `Zuletzt gesichert: ${fmtDateTime(store.get('lastExport'))}` : 'Noch nie in iCloud gesichert.'}</p>`) +
+          card(`<button class="btn primary block" data-action="restart-onboarding">Einführung neu starten</button>`),
       };
     case 'quellen':
       return {
@@ -3793,6 +3797,19 @@ async function onClick(ev) {
       }
       return;
     }
+    case 'restart-onboarding': {
+      if (!(await confirmBox('Einführung neu starten?', `Danach wählst du ein neues oder vorhandenes Profil. Das jetzige${S.settings.name ? ` (${S.settings.name})` : ''} wird ersetzt – automatische Sicherungen bleiben auf dem Gerät.`, 'Neu starten'))) return;
+      // Sicherheitskopie des jetzigen Stands, dann alles Lokale leeren (die Tagessicherungen liegen getrennt)
+      try {
+        if (await autoSnapshot(exportAll, berlinNow().iso, true)) S.snapshots = await listSnapshots();
+      } catch {
+        /* egal */
+      }
+      for (const k of store.keys()) store.del(k);
+      location.hash = '#/woche';
+      location.reload();
+      return;
+    }
     case 'reset-app': {
       if (!(await confirmBox('Mise zurücksetzen?', 'Pläne, Einkaufslisten, Rückblick, eigene Rezepte und Einstellungen werden auf diesem Gerät gelöscht.', 'Weiter'))) return;
       if (!(await confirmBox('Ganz sicher?', 'Tipp: Vorher unter „Datensicherung“ sichern. Danach startet die Einführung neu.', 'Zurücksetzen'))) return;
@@ -4045,6 +4062,25 @@ async function onClick(ev) {
     case 'toggle-hide':
       S.ui.hideChecked = !S.ui.hideChecked;
       return render();
+    case 'fb-dislike': {
+      const { week, id } = el.dataset;
+      let off = false;
+      updateFeedback(week, (fb) => {
+        const r = (fb.recipes[id] ||= {});
+        r.rating = r.rating === -1 ? 0 : -1;
+        off = r.rating === -1;
+      });
+      haptic();
+      if (off) sound.uncheck();
+      else sound.check();
+      // nur die Kachel umschalten – Liste bleibt stehen
+      el.classList.toggle('off', off);
+      el.setAttribute('aria-pressed', String(off));
+      const art = el.querySelector('.fb-art');
+      art.querySelector('.fb-x')?.remove();
+      if (off) art.insertAdjacentHTML('beforeend', `<i class="fb-x" aria-hidden="true">${IC.down}</i>`);
+      return;
+    }
     case 'fb': {
       const { week, id, field, val } = el.dataset;
       updateFeedback(week, (fb) => {
