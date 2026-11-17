@@ -1,7 +1,7 @@
 // Mise – App-Oberfläche (Vanilla JS, kein Build-Schritt). Design nach Figma-Vorlage.
 import { DAY_NAMES, DAY_SHORT, SLOT_LABEL, addDays, clone, berlinNow, escapeHtml as e, euro, formatDate, isoWeek, mondayOf, num, shortName } from './util.js';
 import { buildIndex, plausibility } from './nutrition.js';
-import { cakesOf, generatePlan, readyKind, refitPlan, setEatOut, swapMeal } from './planner.js';
+import { cakesOf, generatePlan, overallGrade, readyKind, refitPlan, setEatOut, swapMeal } from './planner.js';
 import { ALLERGENS, DIETS, recipeBlocked, restrictions } from './diet.js';
 import { mergeOffers, storeOpen, storeOrder, STORES, STORE_IDS } from './prices.js';
 import { packText } from './shopping.js';
@@ -1071,8 +1071,10 @@ function bar(value, target, label, unit = '') {
   const pct = Math.min(100, (value / target) * 100);
   const ok = Math.abs(value - target) / target <= 0.05 || (label === 'Protein' && value >= target * 0.97);
   const fmt = (x) => (unit ? g_(x) : num(x));
-  return `<div class="bar"><div class="bar-label"><span>${label}</span><span>${fmt(value)} / ${fmt(target)}</span></div>
-    <div class="bar-track"><div class="bar-fill ${ok ? 'ok' : value < target ? 'low' : 'high'}" style="width:${pct}%"></div></div></div>`;
+  const state = ok ? 'ok' : value < target ? 'low' : 'high';
+  const short = { Kohlenhydrate: 'Kohlenh.' }[label] || label.replace(/ \(.*\)/, '');
+  return `<div class="bar" aria-label="${label}: ${fmt(value)} von ${fmt(target)}"><span class="bar-label">${short}</span><b class="bar-v">${fmt(value)}</b><small class="bar-t">/ ${fmt(target)}</small>
+    <div class="bar-track"><div class="bar-fill ${state}" style="width:${pct}%"></div></div></div>`;
 }
 
 /** Passendes Gericht-Emoji für Kacheln (aus Name/Tags abgeleitet, eigenes `emoji`-Feld hat Vorrang) */
@@ -1543,7 +1545,7 @@ function viewWeek() {
           .map(([l, v, t, k, kt]) => `<div class="mb"><span class="mb-l">${l}</span><span class="mb-v">${cnt(k, v, 'g')}<small> / ${cnt(kt, t, 'g')}</small></span><span class="mb-track"><i style="width:${Math.min(100, (v / t) * 100).toFixed(0)}%"></i></span></div>`)
           .join('')}
       </div>
-      <button class="link hero-link" data-action="toggle-eval">${S.ui.evalOpen ? '▾' : '▸'} Bewertung des Plans</button>
+      <button class="link hero-link" data-action="toggle-eval" aria-expanded="${!!S.ui.evalOpen}">${overallGrade(evalItems(plan)) ? gradeBadge(overallGrade(evalItems(plan)), 'small') : ''}<span>Bewertung des Plans</span><span class="sl-chev ${S.ui.evalOpen ? 'open' : ''}" aria-hidden="true">›</span></button>
       ${S.ui.evalOpen ? `<div class="hero-eval">${evaluationHtml(plan)}</div>` : ''}
     </section>
     ${isCurrent ? laterStart(plan) : ''}
@@ -1624,8 +1626,34 @@ function laterStart(plan) {
   </section>`;
 }
 
+// Bewertung wie beim Nutri-Score: Noten A–E mit Farbe UND Buchstabe (nie nur Farbe)
+const GRADES = ['A', 'B', 'C', 'D', 'E'];
+const GRADE_SAY = ['Hervorragend ausgewogen', 'Sehr gute Woche', 'Solide – mit etwas Luft nach oben', 'Ausbaufähig – schau dir die Tipps an', 'Unausgewogen – die Tipps helfen weiter'];
+/** Ältere Pläne kennen noch keine Noten: aus Stufe und Titel ableiten */
+const evalItems = (plan) =>
+  (plan.evaluation || []).map((x) => ({
+    ...x,
+    cat: x.cat || x.title.split(':')[0],
+    short: x.short || (x.title.split(':')[1] || '').trim(),
+    grade: x.grade !== undefined ? x.grade : { ok: 1, hint: 3, warn: 4 }[x.level] ?? null,
+  }));
+const gradeBadge = (g, cls = '') => (g ? `<span class="grade g${g} ${cls}" aria-label="Note ${GRADES[g - 1]}">${GRADES[g - 1]}</span>` : `<span class="grade gi ${cls}" aria-hidden="true">i</span>`);
+
 function evaluationHtml(plan) {
-  return `<ol class="eval">${(plan.evaluation || []).map((x) => `<li class="${x.level}"><b>${e(x.title)}</b><br>${e(x.text)}</li>`).join('')}</ol>`;
+  const items = evalItems(plan);
+  const total = overallGrade(items);
+  const scale = total
+    ? `<div class="score">
+        <div class="score-scale" role="img" aria-label="Wochen-Score ${GRADES[total - 1]} auf einer Skala von A (sehr gut) bis E">${GRADES.map((l, i) => `<span class="sc g${i + 1} ${i + 1 === total ? 'on' : ''}">${l}</span>`).join('')}</div>
+        <p class="score-say"><b>${GRADE_SAY[total - 1]}</b><small>Wochen-Score aus ${items.filter((x) => x.grade).length} Bereichen</small></p>
+      </div>`
+    : '';
+  return `${scale}<ul class="score-list">${items
+    .map(
+      (x) => `<li><details><summary>${gradeBadge(x.grade)}<span class="sl-txt"><b>${e(x.cat)}</b><small>${e(x.short)}</small></span><span class="sl-chev" aria-hidden="true">›</span></summary>
+        <p class="sl-more"><b>${e(x.title)}</b><br>${e(x.text)}</p></details></li>`
+    )
+    .join('')}</ul>`;
 }
 
 /** Bezeichnung der Mahlzeit, Wochenend-Mittag heißt „Kaffee & Kuchen“ */
