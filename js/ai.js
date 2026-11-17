@@ -5,11 +5,12 @@
 const SDK_URL = 'https://esm.sh/@anthropic-ai/sdk';
 const MODEL = 'claude-opus-5-5';
 
-const PRINCIPLES = `Du entwickelst Rezepte für Michael (Muskelaufbau, ca. 2.800 kcal und 140 g Protein pro Tag).
+const GOAL_TEXT = { abnehmen: 'Abnehmen', halten: 'Gewicht halten', aufbauen: 'Muskelaufbau' };
+/** Grundsätze für die KI – mit den Zielen der Person, die Mise gerade nutzt (nicht fest verdrahtet) */
+const principles = (p = {}) => `Du entwickelst Rezepte für ${p.name || 'eine Person'} (Ziel: ${GOAL_TEXT[p.goal] || 'ausgewogen essen'}${p.kcal ? `, ca. ${p.kcal} kcal` : ''}${p.protein ? ` und ${p.protein} g Protein` : ''} pro Tag${p.diet && p.diet !== 'alles' ? `, Ernährung: ${p.diet}` : ''}${p.allergies?.length ? `, ohne: ${p.allergies.join(', ')}` : ''}).
 Prinzipien: schnell und alltagstauglich, wenig Abwasch, jede Mahlzeit mit klarer Proteinquelle,
 Gemüse/Obst und Ballaststoffe ausgewogen, gern Olivenöl, Nüsse, Fisch, Vollkorn. Genuss gehört dazu:
-Pasta, Reis, Pizza, italienische Küche, Käse sind ausdrücklich erlaubt – ergänzen statt verbieten.
-Er mag keine gekochten Möhren, gekochten Kohlrabi, Sellerie und klassische gekochte Bohnen.`;
+Pasta, Reis, Pizza, italienische Küche, Käse sind ausdrücklich erlaubt – ergänzen statt verbieten.`;
 
 function schema(ids) {
   return {
@@ -65,7 +66,7 @@ function schema(ids) {
  * @param avoid       Namen bestehender Rezepte (für „etwas Neues“)
  * @param dislikes    Abneigungen
  */
-export async function inventRecipe({ apiKey, title = '', type = 'main', ingredients, avoid = [], dislikes = [] }) {
+export async function inventRecipe({ apiKey, title = '', type = 'main', ingredients, avoid = [], dislikes = [], profile = {} }) {
   if (!apiKey) throw new Error('Für KI-Rezepte fehlt der API-Schlüssel (Einstellungen → KI-Rezepte).');
   const { default: Anthropic } = await import(SDK_URL);
   const client = new Anthropic({ apiKey, dangerouslyAllowBrowser: true });
@@ -74,7 +75,7 @@ export async function inventRecipe({ apiKey, title = '', type = 'main', ingredie
   const kind = type === 'breakfast' ? 'ein Frühstück (ca. 550 kcal, mind. 30 g Protein)' : 'ein Hauptgericht (ca. 800 kcal, mind. 40 g Protein, max. 30 Minuten)';
   const task = title
     ? `Erfinde ${kind} mit dem Titel „${title}“. Bleib nah am Titel.`
-    : `Erfinde ${kind}, das NICHT in dieser Liste vorkommt und trotzdem gut zu Michael passt:\n${avoid.join('\n')}`;
+    : `Erfinde ${kind}, das NICHT in dieser Liste vorkommt und trotzdem gut zu diesen Zielen passt:\n${avoid.join('\n')}`;
 
   const response = await client.beta.messages.create({
     model: MODEL,
@@ -82,7 +83,7 @@ export async function inventRecipe({ apiKey, title = '', type = 'main', ingredie
     betas: ['server-side-fallback-2026-07-01'],
     fallbacks: 'default',
     output_config: { effort: 'low', format: { type: 'json_schema', schema: schema(usable.map((i) => i.id)) } },
-    system: `${PRINCIPLES}\nWeitere Abneigungen: ${dislikes.join(', ') || 'keine'}.\nAntworte auf Deutsch. Verwende ausschließlich Zutaten-IDs aus dieser Liste (Mengen für 1 Portion in Gramm):\n${list}`,
+    system: `${principles(profile)}\nAbneigungen: ${dislikes.join(', ') || 'keine'}.\nAntworte auf Deutsch. Verwende ausschließlich Zutaten-IDs aus dieser Liste (Mengen für 1 Portion in Gramm):\n${list}`,
     messages: [{ role: 'user', content: task }],
   });
   if (response.stop_reason === 'refusal') throw new Error('Die KI hat dieses Rezept abgelehnt. Versuch einen anderen Titel.');
