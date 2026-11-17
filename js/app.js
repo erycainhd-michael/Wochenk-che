@@ -1152,8 +1152,7 @@ function dayStateText({ off, eat }) {
 /** „Wann bist du da?“: jeder Tag wechselt beim Antippen geplant → 🍴 abends auswärts → nicht da → geplant */
 function laterStart(plan) {
   if (!S.ui.laterOpen) {
-    const t = dayStateText(planDayState(plan));
-    return `<button class="link later-link" data-action="later-open">📅 ${t ? `${e(t)} – ändern` : 'Tage abwählen oder abends auswärts?'}</button>`;
+    return `<button class="link later-link" data-action="later-open">📅 Woche neu planen</button>`;
   }
   const off = S.ui.laterOff || [];
   const eat = S.ui.laterEat || [];
