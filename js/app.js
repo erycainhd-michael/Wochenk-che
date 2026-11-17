@@ -163,6 +163,9 @@ async function init() {
   }
   timers = new TimerManager((tickOnly) => (tickOnly ? updateTimerDock() : renderTimerDock()));
   window.addEventListener('hashchange', onRouteChange);
+  if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
+  // Wischgeste „Zurück“ beginnt am linken Bildschirmrand
+  document.addEventListener('touchstart', (ev) => { if (ev.touches[0]?.clientX < 28) edgeTouchAt = Date.now(); }, { passive: true });
   document.addEventListener('click', onClick);
   document.addEventListener('change', onChange);
   document.addEventListener('input', onInput);
@@ -333,6 +336,12 @@ function applyTheme() {
   const t = S.settings.theme || 'auto';
   if (t === 'auto') delete document.documentElement.dataset.theme;
   else document.documentElement.dataset.theme = t;
+  // Statusleiste (theme-color) passend zum gewählten Design – bei „Automatisch“ gilt die Angabe je Systemmodus
+  const bg = { light: '#f3f5f3', dark: '#0f1512' };
+  for (const m of document.querySelectorAll('meta[name="theme-color"]')) {
+    const sys = m.media.includes('dark') ? 'dark' : 'light';
+    m.content = bg[t === 'auto' ? sys : t];
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -703,6 +712,9 @@ function route() {
 let lastRoute = '';
 let lastDepth = 0;
 let navTransition = false;
+let systemSwipe = false; // Zurück per Wischgeste: iOS animiert selbst
+let edgeTouchAt = 0;
+const scrollMem = new Map();
 const tabFor = (r) =>
   ({ einkauf: 'einkauf', rueckblick: 'rueckblick', planen: 'rueckblick', einstellungen: 'einstellungen', rezepte: 'rezepte', bearbeiten: 'rezepte' })[r.name] ||
   (r.name === 'rezept' ? (S.ui.recipeFrom === 'einkauf' ? 'einkauf' : 'rezepte') : 'woche');
@@ -716,6 +728,12 @@ function onRouteChange() {
   const r = route();
   const depth = routeDepth(r);
   const kind = tabFor(r) !== lastTab || r.name === 'kochen' || lastTab === '' || depth === lastDepth ? null : depth > lastDepth ? 'push' : 'pop';
+  // Vom linken Rand gewischt: iOS hat den Wechsel schon selbst animiert – keine zweite Animation
+  if (Date.now() - edgeTouchAt < 1500) {
+    edgeTouchAt = 0;
+    systemSwipe = true;
+    return render();
+  }
   if (!kind || !document.startViewTransition || reducedMotion() || navTransition) return render();
   navTransition = true;
   document.documentElement.dataset.nav = kind;
@@ -756,6 +774,10 @@ function render() {
   if (lastRoute.startsWith('kochen/') && r.name !== 'kochen') keepAwake(false);
   const key = r.name + '/' + r.args.join('/');
   const changed = key !== lastRoute;
+  const prevKey = lastRoute;
+  const prevDepth = lastDepth;
+  // Scrollposition der verlassenen Seite merken – beim Zurück geht es genau dorthin (wie in iOS)
+  if (changed && prevKey) scrollMem.set(prevKey, window.scrollY);
   // Wochenwechsel im Rückblick: Seite bleibt, wo sie ist (kein Sprung nach oben, kein Einblenden)
   const sameView = r.name === 'rueckblick' && lastRoute.startsWith('rueckblick/');
   const shownRecipe = routeRecipe(r);
@@ -799,7 +821,7 @@ function render() {
   // Übergänge wie in iOS: tiefer = von rechts hereinschieben, zurück = von links, Tab-Wechsel = Überblenden.
   // Der Kochmodus hat fest positionierte Bedienelemente in der Seite und blendet deshalb nur über.
   const depth = routeDepth(r);
-  if (changed && !sameView && !navTransition) {
+  if (changed && !sameView && !navTransition && !systemSwipe) {
     const kind = tab !== lastTab || r.name === 'kochen' || lastTab === '' || depth === lastDepth ? 'enter' : depth > lastDepth ? 'push' : 'pop';
     view.classList.remove('enter', 'push', 'pop');
     void view.offsetWidth; // Animation neu starten
@@ -844,7 +866,8 @@ function render() {
   renderTimerDock();
   setupKwStrip();
   setupTrips();
-  if (changed && !sameView) window.scrollTo(0, 0);
+  if (changed && !sameView) window.scrollTo(0, routeDepth(r) < prevDepth ? scrollMem.get(key) || 0 : 0);
+  systemSwipe = false;
   setupNavbar(r.name);
 }
 

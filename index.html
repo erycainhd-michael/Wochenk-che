@@ -9,7 +9,9 @@
     <meta name="theme-color" content="#0f1512" media="(prefers-color-scheme: dark)" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <!-- Bewusst KEIN apple-mobile-web-app-status-bar-style="black-translucent": Seit iOS 26.1 legt das iPhone damit
+         einen eigenen Weichzeichner über Statusleiste und oberen Seitenrand (Titel, Zurück & Co. wirkten unscharf).
+         Ohne den Tag zeichnet iOS eine deckende Statusleiste in der theme-color. -->
     <meta name="apple-mobile-web-app-title" content="Mise" />
     <link rel="manifest" href="manifest.webmanifest" />
     <link rel="icon" href="icons/icon-192.png" type="image/png" />
