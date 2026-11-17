@@ -6,7 +6,12 @@
 // nur, wenn in den iPhone-Einstellungen „System-Haptik“ eingeschaltet ist.
 
 /** Ein kurzes Tippen. pattern: Dauer/Muster für Geräte mit navigator.vibrate (Android) */
+let lastHaptic = 0;
 export function haptic(pattern = 12) {
+  // doppelte Aufrufe aus demselben Tipp nur einmal spüren lassen
+  const now = performance.now();
+  if (now - lastHaptic < 60) return;
+  lastHaptic = now;
   try {
     if (typeof navigator.vibrate === 'function' && !/iPhone|iPad/.test(navigator.userAgent)) {
       navigator.vibrate(pattern);

@@ -21,38 +21,49 @@ const SP = process.argv[2];
     await page.goto('http://localhost:8765/'); await page.waitForTimeout(3000); await page.clock.runFor(4000);
     const R = { id: P.id, steps: [] };
     const waitSel = async (sel) => { for (let i = 0; i < 60; i++) { if (await page.$(sel)) return true; await page.clock.runFor(300); await page.waitForTimeout(150); } return false; };
-    await waitSel('[data-set=name]');
+    // Einführung: eine Frage pro Bildschirm (Kacheln gehen nach kurzer Pause selbst weiter)
     const note = (s) => R.steps.push(s);
-    // Schritt 0: Name
+    const tick = async () => { await page.clock.runFor(450); await page.waitForTimeout(150); };
+    const step = () => page.$eval('.ob-flow', (x) => x.dataset.step).catch(() => '');
+    await waitSel('.ob-next');
+    await page.click('.ob-next'); await tick();
     await page.fill('[data-set=name]', P.name.split(/[ ,]/)[0]).catch(() => note('Namensfeld fehlt'));
-    await page.dispatchEvent('[data-set=name]', 'change'); await page.waitForTimeout(300);
-    if (!(await page.$('[data-field=sex]'))) await page.click('.ob-nav .btn.primary'); await page.waitForTimeout(400);
-    await waitSel('[data-field=sex]');
-    // Schritt 1: über dich
-    await page.click(`[data-action=ob-set][data-field=sex][data-val=${P.sex}]`);
-    for (const [f, v] of [['age', P.age], ['height', P.height], ['weight', String(P.weight).replace('.', ',')]]) { await page.fill(`[data-ob=${f}]`, String(v)); await page.dispatchEvent(`[data-ob=${f}]`, 'change'); }
-    await page.click('.ob-nav .btn.primary'); await page.waitForTimeout(500);
-    const step1Blocked = await page.$(`[data-ob=age]`);
-    note(step1Blocked ? `Schritt 1 blockiert: ${toasts.at(-1)}` : 'Schritt 1 ok');
-    if (step1Blocked) { results.push(R); await ctx.close(); continue; }
-    // Schritt 2: Aktivität & Ziel
-    await page.click(`[data-action=ob-set][data-field=activity][data-val=${P.activity}]`);
-    await page.click(`[data-action=ob-set][data-field=goal][data-val=${P.goal}]`, { force: true });
-    if (P.goalWeight) { await page.fill('[data-ob=goalWeight]', String(P.goalWeight)).catch(() => {}); await page.dispatchEvent('[data-ob=goalWeight]', 'change').catch(() => {}); }
+    await page.click('.ob-next'); await tick();
+    await page.click(`[data-action=ob-pick][data-field=sex][data-val=${P.sex}]`); await tick();
+    let blocked = false;
+    for (const [f, v] of [['age', P.age], ['height', P.height], ['weight', String(P.weight).replace('.', ',')]]) {
+      await page.fill(`[data-ob=${f}]`, String(v)); await page.click('.ob-next'); await tick();
+      if ((await step()) === f) { note(`Schritt ${f} blockiert: ${toasts.at(-1)}`); blocked = true; break; }
+    }
+    note(blocked ? 'Angaben blockiert' : 'Angaben ok');
+    if (blocked) { results.push(R); await ctx.close(); continue; }
+    await page.click(`[data-action=ob-pick][data-field=activity][data-val=${P.activity}]`); await tick();
     const txt2 = await page.evaluate(() => document.body.innerText);
-    await page.click('.ob-nav .btn.primary'); await page.waitForTimeout(500);
-    // Schritt 3: Ziele
-    const goals = await page.$$eval('.ob input[data-set^="goals."]', (x) => x.map((i) => i.dataset.set.split('.')[1] + '=' + i.value).join(' '));
+    await page.click(`[data-action=ob-pick][data-field=goal][data-val=${P.goal}]`, { force: true }); await tick();
+    if ((await step()) === 'goal') { await page.click('[data-action=ob-pick][data-field=goal][data-val=halten]'); await tick(); }
+    if ((await step()) === 'goalWeight') {
+      if (P.goalWeight) { await page.fill('[data-ob=goalWeight]', String(P.goalWeight)); await page.click('.ob-next'); }
+      else await page.click('[data-skip]');
+      await tick();
+      if ((await step()) === 'goalWeight') { await page.click('[data-skip]'); await tick(); }
+    }
+    await page.clock.runFor(1500);
     const txt3 = await page.evaluate(() => document.body.innerText);
-    R.goals = goals;
-    R.warnings = /untergewicht|essstörung|ärzt|minderjährig|jugendlich|schwanger|vorsicht|hinweis/i.test(txt2 + txt3) ? 'Warnung sichtbar' : 'keine Warnung';
-    if (P.proteinOverride) { await page.fill('[data-set="goals.protein"]', String(P.proteinOverride)); await page.dispatchEvent('[data-set="goals.protein"]', 'change'); }
-    await page.click('.ob-nav .btn.primary'); await page.waitForTimeout(400);
-    // Schritt 4: Budget, Laden, Auswärts
-    const hasAllergyStep = /allergi|unverträglich|vegan|vegetar|abneigung/i.test(await page.evaluate(() => document.body.innerText));
-    R.allergyInOnboarding = hasAllergyStep;
+    R.goals = await page.evaluate(() => { const g = JSON.parse(localStorage.getItem('mf1:settings') || '{}').goals || {}; return Object.entries(g).map(([k, v]) => `${k}=${v}`).join(' '); });
+    R.warnings = /untergewicht|essstörung|ärzt|minderjährig|jugendlich|schwanger|vorsicht|hinweis|nicht möglich/i.test(txt2 + txt3 + toasts.join(' ')) ? 'Warnung sichtbar' : 'keine Warnung';
+    if (P.proteinOverride) { await page.click('[data-action=ob-edit-goals]'); await tick(); await page.fill('[data-set="goals.protein"]', String(P.proteinOverride)); await page.dispatchEvent('[data-set="goals.protein"]', 'change'); }
+    await page.click('.ob-next'); await tick();
+    // Ernährung, Allergien, Besonderes, Haushalt, Budget, Laden, Auswärts
+    R.allergyInOnboarding = true;
+    await page.click('[data-action=ob-pick][data-field=diet][data-val=alles]'); await tick();
+    await page.click('.ob-next'); await tick();
+    await page.click('.ob-next'); await tick();
+    await page.click('[data-action=ob-pick][data-field=household][data-val="1"]'); await tick();
     await page.fill('[data-set=budget]', String(P.budget)); await page.dispatchEvent('[data-set=budget]', 'change');
+    await page.click('.ob-next'); await tick();
+    await page.click('[data-action=ob-pick][data-field=mainStore][data-val=lidl]'); await tick();
     for (const d of P.eatOut || []) { await page.click(`[data-action=eatout-day][data-day="${d}"]`); await page.waitForTimeout(150); }
+    await page.click('.ob-next'); await tick();
     await cdp.send('Emulation.setCPUThrottlingRate', { rate: 4 });
     const t0 = Date.now();
     await page.click('[data-action=first-plan]');

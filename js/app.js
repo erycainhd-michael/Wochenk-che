@@ -629,7 +629,8 @@ function toast(title, { icon = '✓', sub = '', kind = '' } = {}) {
   document.querySelectorAll('.toast').forEach((t) => t.remove());
   const t = document.createElement('div');
   t.className = `toast ${kind}`;
-  t.innerHTML = `<span class="toast-icon">${e(icon)}</span><span class="toast-text"><b>${e(title)}</b>${sub ? `<small>${e(sub)}</small>` : ''}</span>`;
+  // statt Emojis ein ruhiges Symbol: Hinweis/Warnung oder Häkchen
+  t.innerHTML = `<span class="toast-icon">${kind === 'warn' ? IC.alert : IC.check}</span><span class="toast-text"><b>${e(title)}</b>${sub ? `<small>${e(sub)}</small>` : ''}</span>`;
   document.body.appendChild(t);
   requestAnimationFrame(() => requestAnimationFrame(() => t.classList.add('show')));
   setTimeout(() => {
@@ -709,6 +710,22 @@ function feedbackFor(ws) {
 // ---------------------------------------------------------------------------
 // Rendering
 // ---------------------------------------------------------------------------
+
+/** Feine Linien-Icons im Stil der SF Symbols – ersetzen Emojis in Bedienelementen */
+const svgIcon = (d, size = 20) => `<svg class="ic" viewBox="0 0 24 24" width="${size}" height="${size}" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`;
+const IC = {
+  swap: svgIcon('<path d="M4 8h13l-3.5-3.5M20 16H7l3.5 3.5"/>'),
+  search: svgIcon('<circle cx="11" cy="11" r="6.5"/><path d="m16 16 4.5 4.5"/>'),
+  calendar: svgIcon('<rect x="3.5" y="5" width="17" height="15.5" rx="3"/><path d="M3.5 10h17M8 3v4M16 3v4"/>', 18),
+  check: svgIcon('<path d="m5 12.5 4.5 4.5L19 7.5"/>'),
+  alert: svgIcon('<path d="M12 8v5"/><circle cx="12" cy="16.5" r=".6" fill="currentColor"/><path d="M10.3 4.2 2.9 17.4A2 2 0 0 0 4.6 20.4h14.8a2 2 0 0 0 1.7-3L13.7 4.2a2 2 0 0 0-3.4 0Z"/>'),
+  cook: svgIcon('<path d="M4 11h16v2a6 6 0 0 1-6 6h-4a6 6 0 0 1-6-6Z"/><path d="M20 12h1.5M9 7c0-1 1-1.5 1-2.5M13 7c0-1 1-1.5 1-2.5"/>', 18),
+  fork: svgIcon('<path d="M7 3v8a2 2 0 0 0 2 2v8M7 3v5M11 3v8a2 2 0 0 1-2 2M17 21V3c-2 1.5-3 4-3 7v3h3"/>', 18),
+  arrow: svgIcon('<path d="M5 12h14m-5-5 5 5-5 5"/>', 18),
+  cloud: svgIcon('<path d="M7 18.5h10a4 4 0 0 0 .6-8A5.5 5.5 0 0 0 7 9.5a4.5 4.5 0 0 0 0 9Z"/><path d="M12 11v5m-2.2-2.2L12 16l2.2-2.2"/>', 18),
+};
+/** Emojis aus Texten entfernen (z. B. Begrüßungssprüche) */
+const stripEmoji = (t) => String(t).replace(/\s*[\p{Extended_Pictographic}\u{1F3FB}-\u{1F3FF}\u{FE0F}\u{200D}]+/gu, '').replace(/'/g, '’').replace(/&#39;/g, '’').trim();
 
 const CHEVRON_LEFT = '<svg viewBox="0 0 12 20" width="12" height="20" aria-hidden="true"><path d="M10 2 2 10l8 8" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 /** Zurück wie in iOS – nur der Pfeil; wohin es geht, sagt VoiceOver */
@@ -883,7 +900,7 @@ function render() {
     const cr = cookRecipe(S.ui.cookActive);
     resume.classList.toggle('magic', isFancy(cr));
     resume.classList.toggle('gourmet', isGourmet(cr));
-    resume.innerHTML = `<a href="#/kochen/${encodeURIComponent(S.ui.cookActive)}">👨‍🍳 Weiter kochen</a><button data-action="cook-end" aria-label="Kochmodus beenden">✕</button>`;
+    resume.innerHTML = `<a href="#/kochen/${encodeURIComponent(S.ui.cookActive)}">${IC.cook}Weiter kochen</a><button data-action="cook-end" aria-label="Kochmodus beenden">✕</button>`;
   } else resume?.remove();
   applyFx();
   applyCounts();
@@ -946,7 +963,7 @@ function setupNavbar(name) {
     title.textContent = '';
     return;
   }
-  title.textContent = h1.textContent.replace(/\s+/g, ' ').trim();
+  title.textContent = (h1.dataset.navTitle || h1.textContent).replace(/\s+/g, ' ').trim();
   const top = bar.offsetHeight || 44;
   navObs = new IntersectionObserver(([en]) => bar.classList.toggle('show', !en.isIntersecting && en.boundingClientRect.top < top), { rootMargin: `-${top}px 0px 0px 0px` });
   navObs.observe(h1);
@@ -1438,8 +1455,9 @@ function viewWeek() {
     banners.push(`<div class="banner">Neue Woche! Der neue Plan wird ab ${S.settings.planHour ?? 8}:00 Uhr erstellt. <button class="btn small" data-action="plan-now">Jetzt planen</button></div>`);
   }
   const lastExp = store.get('lastExport');
-  if (Object.keys(S.plans).length && (!lastExp || Date.now() - new Date(lastExp) > 7 * 864e5) && Date.now() > (store.get('exportSnooze') || 0)) {
-    banners.push(`<div class="banner backup"><span>💾 Zeit für die wöchentliche Sicherung in iCloud – ein Tipp, dann „In Dateien sichern“.</span><span class="banner-btns"><button class="btn small primary" data-action="export">Sichern</button><button class="btn small" data-action="backup-later">Später</button></span></div>`);
+  const firstWeek = Object.keys(S.plans).sort()[0];
+  if (firstWeek && firstWeek < ws && (!lastExp || Date.now() - new Date(lastExp) > 7 * 864e5) && Date.now() > (store.get('exportSnooze') || 0)) {
+    banners.push(`<div class="banner backup"><span class="banner-ic">${IC.cloud}</span><span>Zeit für die wöchentliche Sicherung in iCloud – ein Tipp, dann „In Dateien sichern“.</span><span class="banner-btns"><button class="btn small primary" data-action="export">Sichern</button><button class="btn small" data-action="backup-later">Später</button></span></div>`);
   }
   if (isCurrent && b.weekday >= 5 && !feedbackFor(ws)) {
     banners.push(`<div class="banner">Wie war die Woche? Dein Feedback verbessert die nächsten Pläne. <a class="btn small" href="#/rueckblick">Feedback geben</a></div>`);
@@ -1459,10 +1477,11 @@ function viewWeek() {
   // Zahlen zählen beim Öffnen animiert zum neuen Wert, wenn sich Ziele geändert haben
   const cnt = (key, v, fmt) => `<i data-count="${key}" data-to="${v}" data-fmt="${fmt}" data-ease="back">${COUNT_FMT[fmt](v)}</i>`;
   return `
-    <div class="eyebrow greet">${greeting()}</div>
-    <header class="top">
-      <div><h1>KW ${isoWeek(plan.weekStart)}</h1><div class="sub">${formatDate(plan.weekStart)} – ${formatDate(addDays(plan.weekStart, 6), { day: 'numeric', month: 'long' })}</div></div>
+    <header class="wk-head">
+      <p class="wk-eyebrow">${isCurrent ? `${DAY_NAMES[b.weekday]}, ${formatDate(addDays(plan.weekStart, b.weekday), { day: 'numeric', month: 'long' })}` : `${formatDate(plan.weekStart)} – ${formatDate(addDays(plan.weekStart, 6), { day: 'numeric', month: 'long' })}`} · KW ${isoWeek(plan.weekStart)}</p>
+      <h1 class="wk-title" data-nav-title="KW ${isoWeek(plan.weekStart)}">${stripEmoji(greeting())}</h1>
     </header>
+    ${isCurrent ? todayCard(plan, b) : ''}
     ${banners.join('')}
     <section class="card hero">
       <div class="hero-top">
@@ -1487,6 +1506,48 @@ function viewWeek() {
 
 
 /** Alle Tage der Woche – auch ohne Kochen (Frühstück gibt es trotzdem). Nur Abwesenheit und ein späterer Wochenstart blenden Tage aus. */
+/**
+ * Oben auf der Wochenseite: das nächste Gericht von heute als einladende Karte mit Bild, darunter der Tag als
+ * kleine Zeitleiste (Frühstück · Mittag · Abend). Nach dem Abendessen zeigt sie das Frühstück von morgen.
+ */
+function todayCard(plan, b) {
+  const order = ['fruehstueck', 'mittag', 'abend'];
+  const nowIdx = b.hour < 10 ? 0 : b.hour < 14 ? 1 : b.hour < 21 ? 2 : 3;
+  let day = plan.days.find((x) => x.day === b.weekday && !x.away);
+  let idx = nowIdx;
+  let tomorrow = false;
+  if (!day || nowIdx === 3) {
+    day = plan.days.find((x) => x.day === b.weekday + 1 && !x.away);
+    idx = 0;
+    tomorrow = true;
+  }
+  if (!day) return '';
+  const mains = order.map((slot) => day.meals.find((m) => m.slot === slot && (m.kind === 'recipe' || m.kind === 'eatout'))).filter(Boolean);
+  const next = mains.find((m) => order.indexOf(m.slot) >= idx) || mains[mains.length - 1];
+  if (!next) return '';
+  const when = `${tomorrow ? 'Morgen' : order.indexOf(next.slot) === nowIdx ? 'Jetzt' : 'Als Nächstes'} · ${slotLabel(next)}`;
+  let card;
+  if (next.kind === 'eatout') {
+    card = `<div class="today-card eatout"><div class="today-body"><span class="today-when">${when}</span><b class="today-title">Heute isst du auswärts</b><span class="today-meta">Genieß den Abend – Mise hat ihn eingeplant.</span></div></div>`;
+  } else {
+    const r = recipe(next.recipeId);
+    card = `<a class="today-card ${themeCls(r)}" href="#/mahlzeit/${next.key}">
+      <span class="today-img ${r.img ? 'has-img' : ''}">${recipeArt(r, false)}</span>
+      <span class="today-body"><span class="today-when">${when}</span><b class="today-title">${e(r.name)}</b>
+        <span class="today-meta">${r.time} Min.${S.settings.hideNumbers ? '' : ` · ${num(next.macros.kcal)} kcal`}</span>
+        <span class="today-cta">Zum Rezept ${IC.arrow}</span></span></a>`;
+  }
+  const steps = mains
+    .map((m) => {
+      const i = order.indexOf(m.slot);
+      const st = tomorrow ? (m === next ? 'now' : 'later') : i < order.indexOf(next.slot) ? 'done' : m === next ? 'now' : 'later';
+      const label = m.kind === 'eatout' ? 'auswärts' : e(shortName(recipe(m.recipeId)));
+      return `<a class="tl-step ${st}" href="${m.kind === 'eatout' ? '#/woche' : `#/mahlzeit/${m.key}`}"><i></i><span>${slotLabel(m)}</span><b>${label}</b></a>`;
+    })
+    .join('');
+  return `${card}<nav class="today-line" aria-label="${tomorrow ? 'Morgen' : 'Heute'}">${steps}</nav>`;
+}
+
 function daysHtml(plan, firstDay, todayIdx) {
   return plan.days
     .filter((d) => !d.away)
@@ -1503,20 +1564,20 @@ function planDayState(plan) {
 // Tagesnamen ausgeschrieben: „So“ liest sich sonst wie das Wort „so“
 const dayList = (days) => days.map((d) => DAY_NAMES[d]).join(', ');
 function dayStateText({ off, eat }) {
-  return [off.length ? `ohne ${dayList(off)}` : '', eat.length ? `🍴 ${dayList(eat)} abends auswärts` : ''].filter(Boolean).join(' · ');
+  return [off.length ? `ohne ${dayList(off)}` : '', eat.length ? `${dayList(eat)} abends auswärts` : ''].filter(Boolean).join(' · ');
 }
 
 /** „Wann bist du da?“: jeder Tag wechselt beim Antippen geplant → 🍴 abends auswärts → nicht da → geplant */
 function laterStart(plan) {
   if (!S.ui.laterOpen) {
-    return `<button class="link later-link" data-action="later-open">📅 Woche neu planen</button>`;
+    return `<button class="link later-link" data-action="later-open">${IC.calendar}Woche neu planen</button>`;
   }
   const off = S.ui.laterOff || [];
   const eat = S.ui.laterEat || [];
   const pill = (d, i) => {
     const st = off.includes(i) ? 'off' : eat.includes(i) ? 'eat' : '';
     const aria = `${DAY_NAMES[i]}: ${st === 'off' ? 'nicht da' : st === 'eat' ? 'abends auswärts' : 'geplant'}`;
-    return `<button class="pill circle ${st}" data-action="later-day" data-day="${i}" aria-label="${aria}">${st === 'eat' ? '🍴' : d}</button>`;
+    return `<button class="pill circle ${st}" data-action="later-day" data-day="${i}" aria-label="${aria}">${st === 'eat' ? IC.fork : d}</button>`;
   };
   return `<section class="card later">
     <h2>Wann bist du da?</h2>
@@ -1546,7 +1607,7 @@ function mealRow(plan, m) {
   const badges = [];
   if (m.leftover) badges.push('<span class="badge">Portion von gestern</span>');
   else if (cook && cook.portions.length > 1) badges.push('<span class="badge">+ Portion für morgen</span>');
-  if (isFancy(r)) badges.push(`<span class="badge ${themeCls(r)}">✨ ${fancyLabel(r)}</span>`);
+  if (isFancy(r)) badges.push(`<span class="badge ${themeCls(r)}">${fancyLabel(r)}</span>`);
   if (peopleOf(m) > 1) badges.push(`<span class="badge">für ${peopleOf(m)} Personen</span>`);
   if (r.source === 'ki' || isFresh(r)) badges.push('<span class="badge new">neu</span>');
   for (const a of m.addons || []) badges.push(`<span class="badge">+ ${e(recipe(a)?.name || a)}</span>`);
@@ -1563,8 +1624,8 @@ function mealRow(plan, m) {
       ${badges.length ? `<div class="badges">${badges.join('')}</div>` : ''}
     </a>
     <div class="meal-btns">
-      <button class="round-btn" data-action="swap" data-key="${m.key}" aria-label="Neues Rezept vorschlagen">🔄</button>
-      <a class="round-btn" href="#/waehlen/${m.key}" aria-label="Rezept aus der Sammlung wählen">🔎</a>
+      <button class="round-btn" data-action="swap" data-key="${m.key}" aria-label="Neues Rezept vorschlagen">${IC.swap}</button>
+      <a class="round-btn" href="#/waehlen/${m.key}" aria-label="Rezept aus der Sammlung wählen">${IC.search}</a>
     </div>
   </li>`;
 }
@@ -1572,7 +1633,7 @@ function mealRow(plan, m) {
 function dayCard(plan, d, open, isToday) {
   const g = plan.goals;
   if (d.away) {
-    return `<section class="card day away" data-day="${d.day}"><div class="day-head"><b>${d.name} ${formatDate(d.date)}${isToday ? ' · heute' : ''}</b><span class="sub">✈️ Noch unterwegs – kein Plan, kein Einkauf</span></div></section>`;
+    return `<section class="card day away" data-day="${d.day}"><div class="day-head"><b>${d.name} ${formatDate(d.date)}${isToday ? ' · heute' : ''}</b><span class="sub">Noch unterwegs – kein Plan, kein Einkauf</span></div></section>`;
   }
   return `<section class="card day ${isToday ? 'accent' : ''}" data-day="${d.day}">
     <button class="day-head" data-action="toggle-day" data-day="${d.day}" data-open="${open ? 1 : 0}">
@@ -2232,7 +2293,7 @@ function recipeHtml(r, items, macros, subtitle, back, info, cookKey, withServing
     : '';
   const magic = isFancy(r) ? 'magic' : '';
   const startBtn = (cls) =>
-    active === cookKey ? `<a class="btn primary ${magic} ${cls}" href="${cookHref}">👨‍🍳 Weiter kochen</a>` : `<a class="btn primary ${magic} ${cls}" href="${cookHref}">${magic ? '✨' : '👨‍🍳'} Kochmodus starten</a>`;
+    active === cookKey ? `<a class="btn primary ${magic} ${cls}" href="${cookHref}">${IC.cook}Weiter kochen</a>` : `<a class="btn primary ${magic} ${cls}" href="${cookHref}">${IC.cook}Kochmodus starten</a>`;
   const ar = active && cookRecipe(active);
   const activeMagic = isFancy(ar) ? `magic ${isGourmet(ar) ? 'gourmet' : ''}` : '';
   const fav = recipe(r.id) ? isFav(r.id) : null;
@@ -2240,7 +2301,7 @@ function recipeHtml(r, items, macros, subtitle, back, info, cookKey, withServing
     fav === null
       ? ''
       : `<button class="fav-btn ${fav ? 'on' : ''}" data-action="fav-toggle" data-id="${e(r.id)}" aria-label="${fav ? 'Aus Favoriten entfernen' : 'Zu Favoriten hinzufügen'}">⭐</button>`;
-  return `<header class="top">${back}<div class="top-actions">${star}${active ? `<a class="btn primary pill ${activeMagic}" href="${resumeHref}">👨‍🍳 Weiter kochen</a>` : startBtn('pill')}</div></header>
+  return `<header class="top">${back}<div class="top-actions">${star}${active ? `<a class="btn primary pill ${activeMagic}" href="${resumeHref}">${IC.cook}Weiter kochen</a>` : startBtn('pill')}</div></header>
     <section class="card accent rhero">
       <div class="rhero-art ${r.img ? 'has-img' : ''} slot-${r.type === 'breakfast' ? 'fruehstueck' : 'abend'}">${recipeArt(r, false)}${recipe(r.id) ? cookedBadge(r.id) : ''}</div>
       <div class="card-head"><div class="sub">${e(subtitle)}</div><a class="btn small pill" href="#/bearbeiten/${r.id}">✏️ Ändern</a></div>
@@ -3010,7 +3071,7 @@ function lastWeightBefore(ws) {
 function dayPills(days, action) {
   const set = new Set(days);
   // Abende auswärts: Besteck statt Tageskürzel
-  return `<div class="pills days">${DAY_SHORT.map((d, i) => `<button class="pill circle ${set.has(i) ? 'on eat' : ''}" data-action="${action}" data-day="${i}" aria-label="${DAY_NAMES[i]}${set.has(i) ? ': abends auswärts' : ''}">${set.has(i) ? '🍴' : d}</button>`).join('')}</div>`;
+  return `<div class="pills days">${DAY_SHORT.map((d, i) => `<button class="pill circle ${set.has(i) ? 'on eat' : ''}" data-action="${action}" data-day="${i}" aria-label="${DAY_NAMES[i]}${set.has(i) ? ': abends auswärts' : ''}">${set.has(i) ? IC.fork : d}</button>`).join('')}</div>`;
 }
 
 function updateFeedback(ws, fn) {
@@ -3335,6 +3396,12 @@ function toggleDay(list, day) {
 }
 
 async function onClick(ev) {
+  // Tab-Leiste: leises Tick + Tippen wie bei iOS-Pickern
+  const tab = ev.target.closest('.tab');
+  if (tab && !tab.classList.contains('active')) {
+    sound.tap();
+    haptic();
+  }
   const el = ev.target.closest('[data-action]');
   if (!el) return;
   const a = el.dataset.action;

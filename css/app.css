@@ -1288,3 +1288,67 @@ body:has(.confirm-box) #top-edge { background-color: color-mix(in srgb, var(--bg
 .ob-hero .ob-sub { margin-bottom: 0; }
 @media (prefers-reduced-motion: reduce) { .ob-screen.fwd, .ob-screen.back, .ob-screen.shake { animation: none; } }
 .ob-top[hidden] { display: none; }
+
+/* --- Hochwertige Gestaltung ------------------------------------------------------------------------------------
+   Schrift: große Überschriften und Kennzahlen in „Fraunces“ (Serifenschrift mit optischen Größen, warm, kulinarisch),
+   Fließtext bleibt in der gut lesbaren Sans. Alle Größen in rem – Dynamic Type wirkt weiter. */
+:root { --font-display: 'Fraunces', 'Iowan Old Style', 'Palatino', Georgia, serif; }
+h1, .ob-q, .hero-big, .hero-mid, .ob-kcal b, .ob-macros b, .today-title, .wk-title {
+  font-family: var(--font-display); font-optical-sizing: auto; font-weight: 600; letter-spacing: -0.012em;
+}
+h1 { font-size: 2.1rem; line-height: 1.12; }
+.ob-q { font-weight: 560; }
+.hero-big { font-size: 2.8rem; font-weight: 600; letter-spacing: -0.02em; }
+.hero-mid { font-weight: 600; letter-spacing: -0.01em; }
+/* feine Linien-Icons */
+.ic { display: inline-block; vertical-align: -0.2em; flex: none; }
+.round-btn .ic { width: 20px; height: 20px; color: var(--text); opacity: 0.8; }
+.later-link { display: inline-flex; align-items: center; gap: 8px; }
+.btn .ic { margin-right: 2px; }
+#cook-resume a { display: inline-flex; align-items: center; gap: 6px; }
+.pill.circle .ic { width: 18px; height: 18px; }
+.toast-icon .ic { width: 20px; height: 20px; }
+.banner-ic { display: inline-grid; place-items: center; color: var(--accent); }
+.banner.backup > span:nth-child(2) { flex: 1; min-width: 60%; }
+
+/* Wochenseite: persönlicher Kopf */
+.wk-head { margin: 6px 0 16px; }
+.wk-eyebrow { margin: 0 0 4px; font-size: 0.85rem; font-weight: 600; letter-spacing: 0.02em; text-transform: uppercase; color: var(--muted); }
+.wk-title { font-size: 2.1rem; line-height: 1.12; margin: 0; text-wrap: balance; }
+
+/* „Als Nächstes“: großes Bild, Titel in der Display-Schrift, deutlicher Weg ins Rezept */
+.today-card {
+  display: grid; grid-template-columns: 112px 1fr; gap: 16px; align-items: center; padding: 12px; margin: 0 0 12px;
+  border-radius: 26px; background: var(--card); color: var(--text); text-decoration: none;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04), 0 10px 30px rgba(0, 0, 0, 0.07);
+  transition: transform 0.45s var(--spring);
+}
+.today-card:active { transform: scale(0.98); transition-duration: 0.12s; }
+.today-card.eatout { grid-template-columns: 1fr; padding: 18px 20px; }
+.today-img { width: 112px; height: 112px; border-radius: 20px; overflow: hidden; display: grid; place-items: center; background: linear-gradient(145deg, #1f7a4d, #0f4a2e); }
+.today-img .r-img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.today-img .r-emoji { font-size: 3rem; }
+.today-body { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.today-when { font-size: 0.75rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--accent); }
+.today-title { font-size: 1.3rem; line-height: 1.2; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.today-meta { color: var(--muted); font-size: 0.85rem; }
+.today-cta { display: inline-flex; align-items: center; gap: 4px; margin-top: 4px; font-weight: 600; font-size: 0.9rem; color: var(--accent); }
+/* Tag als Zeitleiste */
+.today-line { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 8px; margin: 0 0 18px; position: relative; }
+.tl-step { display: flex; flex-direction: column; gap: 2px; padding: 10px 4px 0; text-decoration: none; color: var(--muted); position: relative; min-width: 0; }
+.tl-step i { position: absolute; top: 0; left: 4px; right: -4px; height: 3px; border-radius: 99px; background: var(--line); }
+.tl-step.done i { background: color-mix(in srgb, var(--accent) 45%, var(--line)); }
+.tl-step.now i { background: var(--accent); }
+.tl-step span { font-size: 0.72rem; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; }
+.tl-step b { font-size: 0.85rem; font-weight: 500; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tl-step.done b { color: var(--muted); }
+.tl-step.now span { color: var(--accent); }
+
+/* Wochen-Kennzahlen: tiefer, edler Verlauf statt flacher Fläche */
+.card.hero {
+  background: radial-gradient(120% 140% at 0% 0%, color-mix(in srgb, var(--hero) 80%, #fff) 0%, var(--hero) 45%, color-mix(in srgb, var(--hero) 75%, #000) 100%);
+  box-shadow: 0 14px 34px color-mix(in srgb, var(--hero) 35%, transparent);
+  border-radius: 26px;
+}
+/* ruhigere Karten: weniger Linie, weicher Schatten */
+.card { border-color: color-mix(in srgb, var(--line) 70%, transparent); box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03); }
