@@ -689,9 +689,10 @@ function feedbackFor(ws) {
 // Rendering
 // ---------------------------------------------------------------------------
 
+const CHEVRON_LEFT = '<svg viewBox="0 0 12 20" width="12" height="20" aria-hidden="true"><path d="M10 2 2 10l8 8" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 /** Zurück wie in iOS – nur der Pfeil; wohin es geht, sagt VoiceOver */
 const backLink = (href, to) =>
-  `<a class="back" href="${href}" aria-label="Zurück zu ${to}"><svg viewBox="0 0 12 20" width="12" height="20" aria-hidden="true"><path d="M10 2 2 10l8 8" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg></a>`;
+  `<a class="back" href="${href}" aria-label="Zurück zu ${to}">${CHEVRON_LEFT}</a>`;
 
 function route() {
   const h = location.hash.replace(/^#\/?/, '');
@@ -700,6 +701,15 @@ function route() {
 }
 
 let lastRoute = '';
+let lastDepth = 0;
+let lastTab = '';
+/** Wie tief liegt eine Seite? 0 = Tab-Übersicht, 1 = Detail, 2 = Detail im Detail – für Push/Pop wie in iOS */
+function routeDepth(r) {
+  if (r.name === 'bearbeiten') return 2;
+  if (['rezept', 'mahlzeit', 'waehlen', 'start'].includes(r.name)) return 1;
+  if (r.name === 'einstellungen' && r.args[0]) return 1;
+  return 0;
+}
 function render() {
   // Einladungslink (#/einladung/SCHLÜSSEL): Freigabe-Schlüssel übernehmen, dann normal weiter
   if (location.hash.startsWith('#/einladung/')) {
@@ -758,11 +768,17 @@ function render() {
   for (const t of app.querySelectorAll('.tab')) t.classList.toggle('active', t.dataset.tab === tab);
   // Willkommensbildschirm beim allerersten Start: noch ohne Menü
   document.body.classList.toggle('no-nav', fn === viewWeek && !displayedPlan() && !store.get('welcomed'));
+  // Übergänge wie in iOS: tiefer = von rechts hereinschieben, zurück = von links, Tab-Wechsel = Überblenden.
+  // Der Kochmodus hat fest positionierte Bedienelemente in der Seite und blendet deshalb nur über.
+  const depth = routeDepth(r);
   if (changed && !sameView) {
-    view.classList.remove('enter');
+    const kind = tab !== lastTab || r.name === 'kochen' || lastTab === '' || depth === lastDepth ? 'enter' : depth > lastDepth ? 'push' : 'pop';
+    view.classList.remove('enter', 'push', 'pop');
     void view.offsetWidth; // Animation neu starten
-    view.classList.add('enter');
+    view.classList.add(kind);
   }
+  lastDepth = depth;
+  lastTab = tab;
   // Aufwendiges Gericht: Grün wird zu Orange, im Kochmodus läuft ein farbiger Rahmen um den Bildschirm
   const fancy = isFancy(shownRecipe) && ['rezept', 'mahlzeit', 'kochen'].includes(r.name);
   document.body.classList.toggle('fancy', fancy);
@@ -809,23 +825,56 @@ function render() {
  * erscheint oben eine kompakte Leiste mit dem Titel (Material-Unschärfe, Haarlinie). Antippen → nach oben.
  */
 let navObs = null;
+/**
+ * Navigationsleiste wie in iOS: Der Zurück-Pfeil sitzt fest oben und bleibt beim Scrollen erreichbar, der kleine
+ * Titel erscheint, sobald die große Überschrift nach oben verschwunden ist.
+ * Wichtig für die Schärfe auf dem iPhone: Glas (backdrop-filter) und Text liegen in GETRENNTEN Elementen, und der
+ * Titel wird nur über die Textfarbe eingeblendet – nie über opacity. Text in einer per opacity animierten oder
+ * weichgezeichneten Ebene rendert iOS-Safari sonst unscharf.
+ */
 function setupNavbar(name) {
   let bar = document.getElementById('navbar');
   if (!bar) {
+    const glass = document.createElement('div');
+    glass.id = 'navglass';
+    glass.setAttribute('aria-hidden', 'true');
+    document.body.appendChild(glass);
     bar = document.createElement('div');
     bar.id = 'navbar';
-    bar.setAttribute('aria-hidden', 'true');
-    bar.innerHTML = '<span></span>';
-    bar.addEventListener('click', () => window.scrollTo({ top: 0, behavior: reducedMotion() ? 'auto' : 'smooth' }));
+    bar.innerHTML = `<a class="nb-back" hidden>${CHEVRON_LEFT}</a><span class="nb-title" aria-hidden="true"></span>`;
+    bar.querySelector('.nb-title').addEventListener('click', () => window.scrollTo({ top: 0, behavior: reducedMotion() ? 'auto' : 'smooth' }));
     document.body.appendChild(bar);
+    let ticking = false;
+    const onScroll = () => {
+      ticking = false;
+      document.body.classList.toggle('scrolled', window.scrollY > 4);
+    };
+    window.addEventListener('scroll', () => { if (!ticking) { ticking = true; requestAnimationFrame(onScroll); } }, { passive: true });
   }
+  document.body.classList.toggle('scrolled', window.scrollY > 4);
   navObs?.disconnect();
+  const title = bar.querySelector('.nb-title');
+  const back = bar.querySelector('.nb-back');
+  // Zurück-Pfeil der Seite in die feste Leiste holen (der Platz im Seitenkopf bleibt frei)
+  const orig = [...document.querySelectorAll('#view .top a.back')].find((a) => a.querySelector('svg'));
+  document.body.classList.toggle('has-back', !!orig);
+  back.hidden = !orig;
+  if (orig) {
+    back.setAttribute('href', orig.getAttribute('href'));
+    back.setAttribute('aria-label', orig.getAttribute('aria-label') || 'Zurück');
+    if (orig.dataset.action) back.dataset.action = orig.dataset.action;
+    else delete back.dataset.action;
+    orig.classList.add('moved');
+    orig.setAttribute('aria-hidden', 'true');
+    orig.tabIndex = -1;
+  }
   const h1 = document.querySelector('#view h1');
   if (!h1 || name === 'kochen') {
     bar.classList.remove('show');
+    title.textContent = '';
     return;
   }
-  bar.firstChild.textContent = h1.textContent.replace(/\s+/g, ' ').trim();
+  title.textContent = h1.textContent.replace(/\s+/g, ' ').trim();
   const top = bar.offsetHeight || 44;
   navObs = new IntersectionObserver(([en]) => bar.classList.toggle('show', !en.isIntersecting && en.boundingClientRect.top < top), { rootMargin: `-${top}px 0px 0px 0px` });
   navObs.observe(h1);
@@ -2717,6 +2766,16 @@ const READY = [
 ];
 const storeLabel = (id) => (id === 'edeka' ? 'Edeka' : STORES[id].short || STORES[id].name);
 
+/** Ein Satz, was Mise beim Essen weglässt – aus Ernährungsform, Allergien und Sonderfällen */
+function dietSentence(st) {
+  const diet = { pescetarisch: 'ohne Fleisch', vegetarisch: 'vegetarisch', vegan: 'vegan' }[st.diet];
+  const al = (st.allergies || []).map((a) => ALLERGENS.find((x) => x[0] === a)?.[1] || a);
+  const extra = [st.profile?.pregnant && 'passend zur Schwangerschaft', st.carbSpread && 'mit verteilten Kohlenhydraten', st.fasting && 'mit Essen nur vor Sonnenaufgang und abends'].filter(Boolean);
+  if (!diet && !al.length && !extra.length) return 'Mise plant alles ein – ohne Einschränkungen.';
+  const parts = [diet, al.length && `ohne ${joinDe(al)}`, ...extra].filter(Boolean);
+  return `Mise plant ${parts.join(', ')}.`;
+}
+
 function settingsSections(st) {
   const hide = !!st.hideNumbers;
   const goal = st.profile?.goal || 'halten';
@@ -2732,7 +2791,7 @@ function settingsSections(st) {
     ['Du & dein Essen', [
       ['ziel', 'Ziel & Tagesziele', hide ? goalLabel : `${goalLabel} · ${num(st.goals.kcal)} kcal`],
       ['ernaehrung', 'Ernährung & Allergien', allergies.length ? `${diet} · ohne ${allergies.length === 1 ? allergies[0] : `${allergies.length} Allergene`}` : diet],
-      ['auswaerts', 'Auswärts essen', days.length ? days.map((d) => DAY_SHORT[d]).join(', ') : 'Nie'],
+      ['auswaerts', 'Auswärts essen', days.length === 7 ? 'Jeden Abend' : days.length ? days.map((d) => DAY_SHORT[d]).join(', ') : 'Nie'],
       ['gerichte', 'Gerichte & Abneigungen', `${PREP.find((p) => p[1] === nearest(PREP, st.sliders.simple))[0]}${st.dislikes.length ? ` · ${st.dislikes.length} Abneigung${st.dislikes.length > 1 ? 'en' : ''}` : ''}`],
       ['fertig', 'Fertiggerichte', ready.length ? `${ready.length} von 3 an` : 'Aus'],
     ]],
@@ -2788,7 +2847,7 @@ function settingsPage(id, st) {
       const how = { abnehmen: 'etwas weniger, als du verbrauchst, mit viel Protein, damit die Muskeln bleiben', halten: 'so viel, wie du verbrauchst', aufbauen: 'etwas mehr, als du verbrauchst, mit viel Protein für den Muskelaufbau' }[goal];
       return {
         explain: hide
-          ? `Du willst ${GOALS.find((g) => g[0] === goal)?.[1].toLowerCase()}. Mise plant jeden Tag ${how}.`
+          ? `Dein Ziel: ${GOALS.find((g) => g[0] === goal)?.[1]}. Mise plant jeden Tag ${how}.`
           : `Mise plant jeden Tag rund <b>${num(st.goals.kcal)} kcal</b> und <b>${st.goals.protein} g Protein</b> – ${how}.`,
         html: card(`${goalSeg()}
           ${hide ? '' : `<div class="grid2">
@@ -2806,7 +2865,7 @@ function settingsPage(id, st) {
       const rx = restrictions(st);
       const n = S.recipes.filter((r) => r.type === 'main' && !(r.tags || []).includes('fertiggericht') && !recipeBlocked(r, st, S.idx, rx)).length;
       return {
-        explain: `Mise plant nur Gerichte, die dazu passen – gerade <b>${n} Hauptgerichte</b>. Geprüft werden die Zutaten, keine Spuren: Bei schweren Allergien immer die Packung lesen.`,
+        explain: `${dietSentence(st)} Gerade passen <b>${n} Hauptgerichte</b>${n < 10 ? ' – das ist wenig, der Plan wiederholt sich dann öfter' : ''}. Mise prüft die Zutaten, aber keine Spuren – bei schweren Allergien immer die Packung lesen.`,
         html: dietCard(st, false, true),
       };
     }
@@ -2814,16 +2873,22 @@ function settingsPage(id, st) {
       const days = eatOutDays(st.eatOut);
       return {
         explain: days.length
-          ? `${joinDe(days.map((d) => DAY_NAMES[d]))}abend${days.length > 1 ? 's' : ''} isst du auswärts. Mise kocht dann nicht${hide ? '' : ` und rechnet ca. ${num(st.eatOutKcal)} kcal ein`}.`
+          ? `${days.length === 7 ? 'Du isst jeden Abend auswärts.' : `Am ${joinDe(days.map((d) => DAY_NAMES[d]))} isst du abends auswärts.`} Mise kocht dann nicht${hide ? '' : ` und rechnet dafür ca. ${num(st.eatOutKcal)} kcal ein`}.`
           : 'Mise plant jeden Abend zu Hause. Tippe die Tage an, an denen du abends meist auswärts isst.',
         html: card(`${dayPills(days, 'eatout-day')}<p class="hint">Für eine einzelne Woche änderst du das im Rückblick.</p>`),
       };
     }
     case 'gerichte': {
-      const prep = PREP.find((p) => p[1] === nearest(PREP, st.sliders.simple))[0].replace('Min.', 'Minuten');
       const fix = nearest(DISHES, st.sliders.dishes) === 90;
+      const prep = {
+        95: `Mise wählt vor allem Gerichte, die in höchstens 15 Minuten fertig sind${fix ? ', mit wenig Abwasch' : ''}.`,
+        60: `Mise wählt vor allem Gerichte, die in 15 bis 30 Minuten fertig sind${fix ? ', mit wenig Abwasch' : ''}.`,
+        20: `Mise wählt auch Gerichte, die länger als 30 Minuten brauchen${fix ? ', aber mit wenig Abwasch' : ''}.`,
+      }[nearest(PREP, st.sliders.simple)];
+      const n = Math.max(0, Number(st.complexPerWeek) || 0);
+      const complex = n === 0 ? 'Aufwendige Gerichte plant Mise keine.' : n === 1 ? 'Dazu kommt höchstens ein aufwendiges Gericht pro Woche.' : `Dazu kommen höchstens ${n} aufwendige Gerichte pro Woche.`;
       return {
-        explain: `Mise wählt vor allem Gerichte mit ${prep} Zubereitung${fix ? ' und wenig Abwasch' : ''}, dazu höchstens ${st.complexPerWeek} aufwendige pro Woche.${st.dislikes.length ? ` Nie dabei: ${e(joinDe(st.dislikes))}.` : ''}`,
+        explain: `${prep} ${complex}${st.dislikes.length ? ` Nie dabei: ${e(joinDe(st.dislikes))}.` : ''}`,
         html: card(`<div class="field">Zubereitung${seg(PREP, 'simple')}</div>
           <div class="field">Abwasch${seg(DISHES, 'dishes')}</div>
           ${field('complexPerWeek', 'Aufwendige Gerichte pro Woche', 'min="0" max="3"')}`) +
