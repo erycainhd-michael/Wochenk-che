@@ -36,11 +36,23 @@ const SYNONYMS = {
   champignons: ['pilze'],
   champignons_glas: ['pilze'],
   rinderfond: ['fond'],
-  eier: ['eigelb', 'eigelbe', 'eiweiss', 'eiweisse', 'eiern'],
+  eier: ['eigelb', 'eigelbe', 'eiweiss', 'eiweisse', 'eiern', 'ei', 'eies', 'spiegelei', 'spiegeleier', 'ruehrei'],
+  apfel: ['apfel', 'apfels', 'apfelspalten', 'apfelscheiben', 'apfelwuerfel'],
+  kochschinken: ['schinken', 'schinkenstreifen', 'schinkenwuerfel'],
+  rohschinken: ['rohschinken', 'schinken', 'schinkenscheiben'],
+  romana: ['salat', 'salatblaetter'],
+  rote_zwiebel: ['zwiebel', 'zwiebeln', 'zwiebelringe', 'zwiebelringen', 'zwiebelwuerfel'],
+  fisch_weiss: ['fisch', 'fischfilet', 'fischfilets', 'fischstuecke'],
+  bordelaise: ['fischfilet', 'fisch'],
+  nussmix: ['nuesse', 'nuessen'],
+  salsiccia: ['bratwuerste', 'bratwurst', 'wurst'],
+  baguette: ['brot', 'brotscheiben'],
+  vk_pasta: ['pasta', 'nudeln'],
+  vk_toast: ['toast', 'toasts'],
   minze: ['minzblaetter', 'minzblatt'],
   zwiebelsuppe_pulver: ['zwiebelsuppen'],
   gouda: ['kaese'],
-  parmesan: ['kaese'],
+  parmesan: ['kaese', 'pecorino'],
   gruyere: ['kaese'],
   tomatenmark: ['tomatenmark'],
   kochsahne: ['kochcreme'],
@@ -133,7 +145,7 @@ export function recipeMatches(texts, terms, amts = []) {
     const amt = amts[n] || {};
     for (const m of String(text).matchAll(WORD)) {
       const w = norm(m[0]).replace(/-$/, '');
-      if (w.length < 3 || GENERIC.has(w)) continue;
+      if ((w.length < 3 && w !== 'ei') || GENERIC.has(w)) continue;
       // Bindestrich-Wörter: der letzte Teil bestimmt, was es ist („Fondue-Gewürz“ ist ein Gewürz);
       // ist der nichtssagend („Zwiebelsuppen-Pulver“), zählt der erste
       const parts = w.split('-').filter(Boolean);
