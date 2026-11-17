@@ -1085,6 +1085,22 @@ export function swapMeal(plan, mealKey, input, chosenId = null) {
 // Bewertungstexte (Ergänzen statt Verbieten, keine Moralisierung)
 // ---------------------------------------------------------------------------
 
+/**
+ * Note 1–5 (A–E, wie beim Nutri-Score) aus einem Messwert und vier Schwellen.
+ * higherIsBetter: Werte ab der ersten Schwelle sind A; sonst sind Werte bis zur ersten Schwelle A.
+ */
+function step(v, th, higherIsBetter = false) {
+  for (let i = 0; i < th.length; i++) if (higherIsBetter ? v >= th[i] : v <= th[i]) return i + 1;
+  return 5;
+}
+
+/** Gesamtnote der Woche aus den bewerteten Kategorien (Mittelwert, gerundet) */
+export function overallGrade(evaluation) {
+  const gs = (evaluation || []).map((x) => x.grade).filter((x) => x != null);
+  if (!gs.length) return null;
+  return Math.min(5, Math.max(1, Math.round(gs.reduce((a, b) => a + b, 0) / gs.length)));
+}
+
 export function evaluatePlan(plan, ctx) {
   const g = ctx.settings.goals;
   const st = plan.score.stats;
@@ -1097,7 +1113,11 @@ export function evaluatePlan(plan, ctx) {
   const avgF = avg(active, (d) => d.totals.f);
 
   // 1. Kalorien
+  const kRatio = st.daysInRange / Math.max(1, nDays);
   out.push({
+    cat: 'Kalorien',
+    grade: step(kRatio, [0.85, 0.7, 0.55, 0.4], true),
+    short: `${st.daysInRange} von ${nDays} Tagen im Ziel`,
     level: st.daysInRange >= nDays - 1 ? 'ok' : 'hint',
     title: `Energie: Ø ${num(avgK)} kcal/Tag`,
     text:
@@ -1110,6 +1130,9 @@ export function evaluatePlan(plan, ctx) {
   if (lowProtein(g)) {
     const over = avgP / g.protein - 1;
     out.push({
+      cat: 'Protein',
+      grade: step(over, [0.05, 0.1, 0.15, 0.25]),
+      short: over > 0.05 ? `${Math.round(over * 100)} % über deiner Obergrenze` : 'nah an deiner Obergrenze',
       level: over > 0.15 ? 'warn' : 'ok',
       title: `Protein: Ø ${num(avgP)}g/Tag (Obergrenze ${g.protein}g)`,
       text:
@@ -1120,6 +1143,9 @@ export function evaluatePlan(plan, ctx) {
   } else {
   const lowMeals = plan.days.flatMap((d) => d.meals.filter((m) => m.kind === 'recipe' && m.slot !== 'snack' && m.macros.p < 25).map((m) => `${d.short} ${ctx.recipesById.get(m.recipeId).name}`));
   out.push({
+    cat: 'Protein',
+    grade: step(st.pRatio, [0.97, 0.92, 0.85, 0.75], true),
+    short: st.pRatio >= 0.97 ? 'Ziel erreicht' : `etwas unter dem Ziel (${Math.round(st.pRatio * 100)} %)`,
     level: st.pRatio >= 0.97 ? 'ok' : 'hint',
     title: `Protein: Ø ${num(avgP)}g/Tag`,
     text:
@@ -1130,6 +1156,9 @@ export function evaluatePlan(plan, ctx) {
 
   // 3. Gemüse, Obst, Ballaststoffe
   out.push({
+    cat: 'Gemüse & Obst',
+    grade: Math.min(5, step(st.veg, [400, 330, 260, 200], true) + (Math.abs(st.fib - st.fiberTarget) > 6 ? 1 : 0)),
+    short: `${num(st.veg)} g am Tag${st.veg >= 400 ? ' – reichlich' : ''}`,
     level: st.veg >= 380 && Math.abs(st.fib - st.fiberTarget) <= 6 ? 'ok' : 'hint',
     title: `Gemüse & Obst: Ø ${num(st.veg)}g/Tag · Ballaststoffe Ø ${num(st.fib)}g`,
     text:
@@ -1140,6 +1169,9 @@ export function evaluatePlan(plan, ctx) {
 
   // 4. Vielfalt
   out.push({
+    cat: 'Vielfalt',
+    grade: Math.min(5, step(st.plants, [25, 20, 15, 10], true) + (st.proteins.length < 3 ? 1 : 0)),
+    short: `${st.plants} Pflanzen, ${st.proteins.length} Proteinquellen`,
     level: st.plants >= 20 && st.proteins.length >= 4 ? 'ok' : 'hint',
     title: `Vielfalt: ${st.plants} pflanzliche Lebensmittel, ${st.proteins.length} Proteinquellen`,
     text: `Proteinquellen: ${st.proteins.join(', ')}. Fischgerichte: ${st.fishCooks}.` + (st.fishCooks < 1 ? ' Ein Fischgericht (z. B. Lachs-Bowl) würde die Woche noch abrunden.' : ''),
@@ -1148,6 +1180,9 @@ export function evaluatePlan(plan, ctx) {
   // 5. Alltag
   const prepCount = plan.cooks.filter((c) => c.portions.length > 1).length;
   out.push({
+    cat: 'Alltag',
+    grade: null,
+    short: `${plan.cooks.length}× kochen, Ø ${num(st.avgTime)} Min.`,
     level: 'ok',
     title: `Alltag: ${plan.cooks.length}× kochen, davon ${prepCount}× mit Rest für den nächsten Tag`,
     text: `Ø ${num(st.avgTime)} Min. pro Gericht.` + (plan.structure.complex.length ? ' Ein aufwendigeres Gericht liegt am Wochenende.' : ''),
@@ -1158,6 +1193,9 @@ export function evaluatePlan(plan, ctx) {
   const fDev = (avgF - g.fat) / g.fat;
   if (Math.abs(cDev) > 0.12 || Math.abs(fDev) > 0.15) {
     out.push({
+      cat: 'Makros',
+      grade: step(Math.max(Math.abs(cDev), Math.abs(fDev)), [0.12, 0.2, 0.3, 0.4]),
+      short: fDev > 0.15 ? 'etwas mehr Fett als geplant' : cDev < -0.12 ? 'etwas weniger Kohlenhydrate' : 'leichte Abweichung',
       level: 'hint',
       title: `Makros: Ø ${num(avgC)}g Kohlenhydrate · ${num(avgF)}g Fett`,
       text:
@@ -1173,16 +1211,19 @@ export function evaluatePlan(plan, ctx) {
   const stockBags = Object.entries(plan.structure.stock || {});
   if (stockBags.length) {
     const names = stockBags.map(([id, g]) => `${Math.round(g / (ctx.idx.get(id)?.pack || g))} × ${ctx.idx.get(id)?.name || id}`).join(', ');
-    out.push({ level: 'ok', title: 'Vorrat fürs Gefrierfach', text: `Fertiggerichte sind im Angebot – zusätzlich gekauft: ${names}. Sie kommen in den nächsten Wochen automatisch in den Plan.` });
+    out.push({ cat: 'Vorrat', grade: null, short: 'Fertiggerichte im Angebot gekauft', level: 'ok', title: 'Vorrat fürs Gefrierfach', text: `Fertiggerichte sind im Angebot – zusätzlich gekauft: ${names}. Sie kommen in den nächsten Wochen automatisch in den Plan.` });
   }
 
   // Budget
   const b = ctx.settings.budget;
   if (plan.cost <= b) {
-    out.push({ level: 'ok', title: `Einkauf: ca. ${euro(plan.cost)}`, text: `Budget ${euro(b)} eingehalten (Vorratsartikel wie Öl und Gewürze nicht eingerechnet).` });
+    out.push({ cat: 'Einkauf', grade: 1, short: `${euro(plan.cost)} – im Budget`, level: 'ok', title: `Einkauf: ca. ${euro(plan.cost)}`, text: `Budget ${euro(b)} eingehalten (Vorratsartikel wie Öl und Gewürze nicht eingerechnet).` });
   } else {
     const info = plan.budgetInfo;
     out.push({
+      cat: 'Einkauf',
+      grade: step(plan.cost / b - 1, [0, 0.05, 0.15, 0.3]),
+      short: `${euro(plan.cost - b)} über Budget`,
       level: 'warn',
       title: `Einkauf: ca. ${euro(plan.cost)} – ${euro(plan.cost - b)} über Budget`,
       text:

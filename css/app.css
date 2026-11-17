@@ -1385,3 +1385,50 @@ body.no-nav .view { box-sizing: border-box; position: fixed; inset: 0; height: a
 body.no-nav .ob { padding-top: 0; }
 body.no-nav .ob-flow { min-height: 100%; }
 .ob-number.ob-text input { width: 100% !important; }
+
+/* --- Tageswerte schlank: vier Spalten in einer Zeile ---------------------------------------------------------- */
+.bars { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px 10px; padding-top: 12px; }
+.bars .bar { margin: 0; display: flex; flex-direction: column; min-width: 0; }
+.bars .bar-label { display: block; font-size: 0.72rem; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bars .bar-v { font-size: 0.95rem; font-weight: 600; line-height: 1.2; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.bars .bar-t { font-size: 0.7rem; color: var(--muted); white-space: nowrap; }
+.bars .bar-track { height: 4px; margin-top: 4px; }
+.bars .mini { grid-column: 1 / -1; margin-top: 6px; font-size: 0.78rem; }
+html.large-text .bars { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+
+/* --- Bewertung wie beim Nutri-Score ------------------------------------------------------------------------------
+   Farben nach dem Nutri-Score, Buchstabe immer dazu (Farbe nie allein). Dunkle Schrift auf hellen Stufen für Kontrast. */
+:root { --g1: #038141; --g2: #85bb2f; --g3: #fecb02; --g4: #ee8100; --g5: #e63e11; }
+.hero-link { display: inline-flex; align-items: center; gap: 10px; }
+.hero-link .sl-chev { transition: transform 0.25s; display: inline-block; }
+.hero-link .sl-chev.open { transform: rotate(90deg); }
+.hero-eval { background: var(--card); color: var(--text); border-radius: 20px; padding: 16px 14px 6px; margin-top: 12px; }
+.grade { flex: none; display: inline-grid; place-items: center; width: 32px; height: 32px; border-radius: 10px; font-weight: 800; font-size: 1.05rem; color: #fff; letter-spacing: 0; }
+.grade.small { width: 26px; height: 26px; border-radius: 8px; font-size: 0.9rem; box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.9); }
+.grade.g1, .sc.g1 { background: var(--g1); color: #fff; }
+.grade.g2, .sc.g2 { background: var(--g2); color: #13250a; }
+.grade.g3, .sc.g3 { background: var(--g3); color: #2b2200; }
+.grade.g4, .sc.g4 { background: var(--g4); color: #2a1500; }
+.grade.g5, .sc.g5 { background: var(--g5); color: #fff; }
+.grade.gi { background: var(--field); color: var(--muted); font-weight: 700; font-style: italic; }
+.score { display: flex; align-items: center; gap: 14px; padding: 0 2px 14px; border-bottom: 1px solid var(--line); }
+.score-scale { display: flex; align-items: center; flex: none; }
+.sc { display: grid; place-items: center; width: 26px; height: 34px; font-weight: 800; font-size: 0.95rem; opacity: 0.55; }
+.sc:first-child { border-radius: 10px 0 0 10px; }
+.sc:last-child { border-radius: 0 10px 10px 0; }
+.sc.on { opacity: 1; width: 40px; height: 48px; font-size: 1.5rem; border-radius: 12px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2); position: relative; z-index: 1; margin: 0 -3px; }
+.score-say { margin: 0; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.score-say b { font-size: 1rem; line-height: 1.25; }
+.score-say small { color: var(--muted); font-size: 0.78rem; }
+.score-list { list-style: none; margin: 4px 0 0; padding: 0; }
+.score-list li + li { border-top: 1px solid var(--line); }
+.score-list summary { list-style: none; display: flex; align-items: center; gap: 12px; padding: 10px 2px; min-height: 48px; cursor: pointer; }
+.score-list summary::-webkit-details-marker { display: none; }
+.sl-txt { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.sl-txt b { font-size: 0.95rem; }
+.sl-txt small { color: var(--muted); font-size: 0.82rem; line-height: 1.3; }
+.score-list .sl-chev { color: var(--muted); font-size: 1.3rem; transition: transform 0.25s; }
+.score-list details[open] .sl-chev { transform: rotate(90deg); }
+.sl-more { margin: 0 2px 12px 44px; font-size: 0.88rem; line-height: 1.45; color: var(--text); }
+.sl-more b { font-weight: 600; }
+@media (prefers-reduced-motion: reduce) { .score-list .sl-chev, .hero-link .sl-chev { transition: none; } }
