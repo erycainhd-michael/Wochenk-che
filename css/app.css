@@ -1216,3 +1216,75 @@ body.no-numbers .hero-top { justify-content: flex-end; }
 body:has(#splash) #top-edge { background-color: #0a3021; }
 body:has(#busy) #top-edge { background-color: color-mix(in srgb, var(--bg) 65%, #000); }
 body:has(.confirm-box) #top-edge { background-color: color-mix(in srgb, var(--bg) 70%, #000); }
+
+/* --- Einführung: eine Frage pro Bildschirm -------------------------------------------------------------------- */
+.ob-flow { min-height: calc(var(--vh, 100vh) - var(--sat) - 44px - 40px); display: flex; flex-direction: column; }
+.ob-top { display: flex; align-items: center; gap: 12px; margin: 0 0 28px; }
+.ob-back { width: 44px; height: 44px; flex: none; display: grid; place-items: center start; background: none; border: 0; color: var(--text); padding: 0; cursor: pointer; }
+.ob-back:active { opacity: 0.4; }
+.ob-progress { flex: 1; height: 4px; border-radius: 99px; background: var(--line); overflow: hidden; margin-right: 44px; }
+.ob-progress i { display: block; height: 100%; border-radius: inherit; background: var(--accent); transition: width 0.5s var(--ease-ios); }
+.ob-screen { flex: 1; display: flex; flex-direction: column; }
+.ob-screen.fwd { animation: obIn 0.42s var(--ease-ios) both; }
+.ob-screen.back { animation: obBack 0.42s var(--ease-ios) both; }
+@keyframes obIn { from { opacity: 0; transform: translateX(28px); } }
+@keyframes obBack { from { opacity: 0; transform: translateX(-28px); } }
+.ob-screen.shake { animation: obShake 0.4s; }
+@keyframes obShake { 20%, 60% { transform: translateX(-8px); } 40%, 80% { transform: translateX(8px); } }
+/* Frage groß und ruhig, Antworten darunter */
+.ob-q { font-size: 1.9rem; line-height: 1.15; letter-spacing: -0.01em; margin: 0 0 10px; text-wrap: balance; }
+.ob-sub { color: var(--muted); font-size: 1rem; line-height: 1.4; margin: 0 0 26px; text-wrap: pretty; }
+.ob-q + .ob-tiles, .ob-q + .ob-number, .ob-q + .ob-chips, .ob-q + .ob-circles, .ob-q + .ob-stepper { margin-top: 18px; }
+.ob-tiles { display: grid; gap: 12px; }
+.ob-tiles-2 { grid-template-columns: 1fr 1fr; }
+.ob-tile {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 4px; text-align: left; width: 100%;
+  min-height: 64px; padding: 16px 20px; border-radius: 20px; cursor: pointer; font: inherit; color: var(--text);
+  background: var(--card); border: 1.5px solid var(--line);
+  transition: transform 0.45s var(--spring), border-color 0.2s, background-color 0.2s, box-shadow 0.2s;
+}
+.ob-tile b { font-size: 1.15rem; font-weight: 600; letter-spacing: -0.02em; }
+.ob-tile small { color: var(--muted); font-size: 0.9rem; line-height: 1.35; }
+.ob-tile:active { transform: scale(0.97); transition-duration: 0.1s; }
+.ob-tile.on { border-color: var(--accent); background: var(--accent-soft); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent); }
+.ob-tile.on b { color: var(--accent); }
+.ob-tile[aria-disabled='true'] { opacity: 0.45; }
+/* große Zahleneingabe mit Einheit */
+.ob-number { display: flex; align-items: baseline; justify-content: center; gap: 10px; margin: 8px 0 0; padding: 18px 20px; border-radius: 22px; background: var(--card); border: 1.5px solid var(--line); }
+.ob-number:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent); }
+.ob-number input { all: unset; width: 4.2ch; min-width: 0; text-align: right; font-size: 3rem; font-weight: 700; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; color: var(--text); }
+.ob-number input::placeholder { color: var(--line); }
+.ob-number span { font-size: 1.3rem; font-weight: 600; color: var(--muted); }
+.ob-number.ob-text input { width: 100%; text-align: center; font-size: 2rem; }
+.ob-actions { margin-top: auto; padding-top: 28px; display: grid; gap: 10px; }
+.ob-actions .btn { margin: 0; }
+.ob-next { min-height: 56px; font-size: 1.1rem; }
+/* Ergebnis */
+.ob-result { text-align: center; padding: 18px 0 6px; }
+.ob-kcal b { display: block; font-size: 4rem; line-height: 1; font-weight: 700; letter-spacing: -0.03em; color: var(--accent); font-variant-numeric: tabular-nums; }
+.ob-kcal span { color: var(--muted); font-size: 1rem; }
+.ob-macros { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 26px; }
+.ob-macros div { background: var(--card); border: 1px solid var(--line); border-radius: 18px; padding: 14px 6px; display: flex; flex-direction: column; gap: 2px; }
+.ob-macros b { font-size: 1.35rem; font-variant-numeric: tabular-nums; }
+.ob-macros span { color: var(--muted); font-size: 0.8rem; }
+.ob-edit { margin-top: 18px; }
+/* Haushalt, Budget, Allergien, Tage */
+.ob-circles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+.ob-circle { aspect-ratio: 1; border-radius: 50%; border: 1.5px solid var(--line); background: var(--card); color: var(--text); font: inherit; font-size: 1.8rem; font-weight: 600; cursor: pointer; transition: transform 0.45s var(--spring), background-color 0.2s, border-color 0.2s; }
+.ob-circle:active { transform: scale(0.92); transition-duration: 0.1s; }
+.ob-circle.on { background: var(--accent); border-color: var(--accent); color: var(--accent-text); }
+.ob-stepper { display: grid; grid-template-columns: 56px 1fr 56px; align-items: center; gap: 12px; }
+.ob-stepper .ob-number { margin: 0; }
+.ob-step-btn { width: 56px; height: 56px; border-radius: 50%; border: 1.5px solid var(--line); background: var(--card); color: var(--text); font-size: 1.6rem; cursor: pointer; transition: transform 0.45s var(--spring); }
+.ob-step-btn:active { transform: scale(0.88); transition-duration: 0.1s; }
+.ob-chips { gap: 10px; }
+.ob-chips .chip { min-height: 44px; padding: 0 16px; font-size: 1rem; border: 1.5px solid transparent; }
+.ob-chips .chip.on { border-color: var(--accent); }
+.ob-days .pills.days { justify-content: space-between; }
+.ob-card { padding-top: 4px; padding-bottom: 4px; }
+.ob-card > .toggle-row:first-child { border-top: 0; }
+.ob-hero { text-align: center; padding: 6vh 0 0; }
+.ob-hero .welcome-icon { width: 112px; height: 112px; margin-bottom: 26px; }
+.ob-hero .ob-sub { margin-bottom: 0; }
+@media (prefers-reduced-motion: reduce) { .ob-screen.fwd, .ob-screen.back, .ob-screen.shake { animation: none; } }
+.ob-top[hidden] { display: none; }

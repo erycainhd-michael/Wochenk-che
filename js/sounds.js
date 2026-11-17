@@ -180,6 +180,10 @@ function play(fn, force = false) {
 const C5 = 523.25, E5 = 659.25, G5 = 783.99, A5 = 880, C6 = 1046.5, E6 = 1318.5, G6 = 1568;
 
 export const sound = {
+  /** Auswahl getroffen: ganz leises, weiches „Tick“ (wie ein Picker in iOS) */
+  tap: () => play(() => tone(1320, 0, 0.035, { vol: 0.05 })),
+  /** Weiter zum nächsten Schritt: kurzer, heller Doppelton aufwärts */
+  next: () => play(() => [G5, C6].forEach((f, i) => tone(f, i * 0.06, 0.09, { type: 'triangle', vol: 0.07 }))),
   /** Abhaken auf der Einkaufsliste: kurzes „Plopp“ */
   check: () => play(() => tone([620, 980], 0, 0.09, { vol: 0.14 })),
   /** Häkchen wieder entfernen: leiser, abwärts */

@@ -179,6 +179,13 @@ async function init() {
   document.addEventListener('click', onClick);
   document.addEventListener('change', onChange);
   document.addEventListener('input', onInput);
+  // Einführung: Return auf der Tastatur = Weiter
+  document.addEventListener('keydown', (ev) => {
+    if (ev.key === 'Enter' && ev.target.closest?.('.ob-screen') && ev.target.tagName === 'INPUT') {
+      ev.preventDefault();
+      obGo(1);
+    }
+  });
   document.addEventListener('pointerdown', onSortStart);
   // iOS gibt Audio nur bei Berührungen frei – bei jeder Berührung prüfen (z. B. nach dem Hintergrund)
   document.addEventListener('touchend', unlockAudio, { passive: true });
@@ -1129,6 +1136,7 @@ const profDraft = () => (S.ui.prof ||= { sex: '', age: '', height: '', weight: '
 /** Einführung: 0 Willkommen · 1 Über dich · 2 Alltag & Ziel · 3 Tagesziele · 4 Einkauf. edit = später aus den Einstellungen */
 function viewStart(stepArg) {
   const edit = !!store.get('welcomed');
+  if (!edit) return viewOnboarding();
   const step = edit ? Math.min(3, Math.max(1, Number(stepArg) || 1)) : S.ui.ob || 0;
   const p = profDraft();
   const st = S.settings;
@@ -1187,6 +1195,232 @@ function viewStart(stepArg) {
       <button class="link" data-action="ob-step" data-step="3">‹ Zurück</button></section>`;
   }
   return `<div class="ob">${dots}${body}</div>`;
+}
+
+// ---------------------------------------------------------------------------
+// Einführung beim ersten Start: eine Frage pro Bildschirm, große Antworten, ein Tipp geht weiter
+// ---------------------------------------------------------------------------
+
+const OB_STEPS = ['welcome', 'name', 'sex', 'age', 'height', 'weight', 'activity', 'goal', 'goalWeight', 'result', 'diet', 'allergies', 'special', 'household', 'budget', 'store', 'eatout', 'ready'];
+const OB_GOAL_TEXT = {
+  abnehmen: 'Etwas weniger essen, als du verbrauchst – mit viel Protein für die Muskeln.',
+  halten: 'So viel, wie du verbrauchst. Ausgewogen und satt.',
+  aufbauen: 'Etwas mehr als dein Bedarf, mit viel Protein für Muskelaufbau.',
+};
+const obKey = () => OB_STEPS[Math.min(OB_STEPS.length - 1, Math.max(0, Number(S.ui.ob) || 0))];
+/** Nächster/vorheriger Schritt – das Zielgewicht entfällt beim Halten */
+function obNeighbor(key, dir) {
+  let i = OB_STEPS.indexOf(key) + dir;
+  if (OB_STEPS[i] === 'goalWeight' && profDraft().goal === 'halten') i += dir;
+  return OB_STEPS[Math.max(0, Math.min(OB_STEPS.length - 1, i))];
+}
+
+function viewOnboarding() {
+  const key = obKey();
+  const p = profDraft();
+  const st = S.settings;
+  const i = OB_STEPS.indexOf(key);
+  const progress = key === 'welcome' ? 0 : Math.round((i / (OB_STEPS.length - 1)) * 100);
+  const name = (st.name || '').trim();
+  const tile = (field, val, title, sub, on, extra = '') =>
+    `<button class="ob-tile ${on ? 'on' : ''}" data-action="ob-pick" data-field="${field}" data-val="${val}" aria-pressed="${!!on}"${extra}><b>${title}</b>${sub ? `<small>${sub}</small>` : ''}</button>`;
+  const next = (label = 'Weiter', cls = 'primary') => `<button class="btn ${cls} block ob-next" data-action="ob-go" data-dir="1">${label}</button>`;
+  const numInput = (field, unit, ph, mode = 'numeric') =>
+    `<label class="ob-number"><input type="text" inputmode="${mode}" enterkeyhint="next" data-ob="${field}" value="${e(String(p[field] ?? ''))}" placeholder="${ph}" aria-label="${unit}"><span>${unit}</span></label>`;
+  const q = (title, sub = '') => `<h1 class="ob-q">${title}</h1>${sub ? `<p class="ob-sub">${sub}</p>` : ''}`;
+  let body = '';
+  switch (key) {
+    case 'welcome': {
+      const snap = S.snapshots[0];
+      body = `<div class="ob-hero"><img class="welcome-icon" src="icons/icon-512.png" alt="">
+          <h1 class="ob-q">Alles an seinem Platz.</h1>
+          <p class="ob-sub"><b>Mise en Place</b> – erst bereitstellen, dann entspannt kochen. Mise plant deine Woche, den Einkauf und jede Portion passend zu deinen Zielen.</p></div>
+        <div class="ob-actions">
+          <button class="btn primary block ob-next" data-action="ob-go" data-dir="1">Los geht’s</button>
+          ${snap ? `<select id="snap-pick" hidden><option value="${snap.day}"></option></select><button class="btn block" data-action="snap-restore">Sicherung vom ${fmtDateTime(snap.savedAt)} wiederherstellen</button>` : ''}
+          <label class="btn ghost block">Ich habe schon ein Profil<input type="file" accept="application/json,.json" data-import="profile" hidden></label>
+          <p class="hint center">Alles bleibt nur auf diesem Gerät.</p></div>`;
+      break;
+    }
+    case 'name':
+      body = `${q('Wie heißt du?', 'Damit Mise dich begrüßen kann.')}
+        <label class="ob-number ob-text"><input type="text" autocomplete="given-name" enterkeyhint="next" data-set="name" value="${e(st.name || '')}" placeholder="Vorname" aria-label="Vorname"></label>
+        <div class="ob-actions">${next()}</div>`;
+      break;
+    case 'sex':
+      body = `${q(name ? `Schön, dich kennenzulernen, ${e(name)}.` : 'Schön, dich kennenzulernen.', 'Für die Berechnung deines Bedarfs:')}
+        <div class="ob-tiles">${[['w', 'Frau'], ['m', 'Mann'], ['d', 'Divers']].map(([v, l]) => tile('sex', v, l, '', p.sex === v)).join('')}</div>`;
+      break;
+    case 'age':
+      body = `${q('Wie alt bist du?')}${numInput('age', 'Jahre', '30')}<div class="ob-actions">${next()}</div>`;
+      break;
+    case 'height':
+      body = `${q('Wie groß bist du?')}${numInput('height', 'cm', '175')}<div class="ob-actions">${next()}</div>`;
+      break;
+    case 'weight':
+      body = `${q('Und dein aktuelles Gewicht?', 'Bleibt nur auf diesem Gerät.')}${numInput('weight', 'kg', '75', 'decimal')}<div class="ob-actions">${next()}</div>`;
+      break;
+    case 'activity':
+      body = `${q('Wie aktiv ist dein Alltag?', 'Ohne Sport – den trägst du später pro Tag ein.')}
+        <div class="ob-tiles">${ACTIVITY.map(([v, l, sub]) => tile('activity', v, l, sub, p.activity === v)).join('')}</div>`;
+      break;
+    case 'goal': {
+      const blocked = goalBlocked(p, 'abnehmen');
+      body = `${q('Was ist dein Ziel?')}
+        <div class="ob-tiles">${GOALS.map(([v, l]) => tile('goal', v, l, OB_GOAL_TEXT[v], p.goal === v, v === 'abnehmen' && blocked ? ' aria-disabled="true"' : '')).join('')}</div>
+        ${blocked ? `<p class="hint warn-hint">${e(blockedText(blocked))}</p>` : ''}`;
+      break;
+    }
+    case 'goalWeight':
+      body = `${q('Hast du ein Wunschgewicht?', 'Optional – Mise gratuliert dir, wenn du es erreichst.')}${numInput('goalWeight', 'kg', String(Math.round(Number(p.weight) || 75) + (p.goal === 'aufbauen' ? 4 : -5)), 'decimal')}
+        <div class="ob-actions">${next()}<button class="btn ghost block" data-action="ob-go" data-dir="1" data-skip="1">Überspringen</button></div>`;
+      break;
+    case 'result': {
+      const g = st.goals;
+      body = `${q(name ? `${e(name)}, das ist dein Tag.` : 'Das ist dein Tag.', 'Berechnet aus deinen Angaben – du kannst es jederzeit anpassen.')}
+        <div class="ob-result">
+          <div class="ob-kcal"><b data-countup="${g.kcal}">0</b><span>kcal pro Tag</span></div>
+          <div class="ob-macros">${[['Protein', g.protein], ['Kohlenhydrate', g.carbs], ['Fett', g.fat]].map(([l, v]) => `<div><b data-countup="${v}" data-unit="g">0 g</b><span>${l}</span></div>`).join('')}</div>
+        </div>
+        ${S.ui.obEdit ? `<div class="card ob-edit"><div class="grid2">${[['goals.kcal', 'Kalorien'], ['goals.protein', 'Protein (g)'], ['goals.carbs', 'Kohlenhydrate (g)'], ['goals.fat', 'Fett (g)']].map(([k, l]) => `<label class="field">${l}<input type="number" inputmode="numeric" data-set="${k}" value="${getPath(st, k)}"></label>`).join('')}</div></div>` : ''}
+        <div class="ob-actions">${next('Passt')}${S.ui.obEdit ? '' : '<button class="btn ghost block" data-action="ob-edit-goals">Selbst anpassen</button>'}</div>`;
+      break;
+    }
+    case 'diet':
+      body = `${q('Wie isst du?')}
+        <div class="ob-tiles">${DIETS.map(([v, l]) => tile('diet', v, l, { alles: 'Fleisch, Fisch, alles', pescetarisch: 'Fisch ja, Fleisch nein', vegetarisch: 'ohne Fleisch und Fisch', vegan: 'rein pflanzlich' }[v], (st.diet || 'alles') === v)).join('')}</div>`;
+      break;
+    case 'allergies':
+      body = `${q('Verträgst du etwas nicht?', 'Tippe alles an, was nie in den Plan soll.')}
+        <div class="chips allergy-chips ob-chips">${ALLERGENS.map(([v, l]) => `<button class="chip ${(st.allergies || []).includes(v) ? 'on' : ''}" data-action="toggle-allergy" data-val="${v}" aria-pressed="${(st.allergies || []).includes(v)}">${l}</button>`).join('')}</div>
+        <div class="ob-actions">${next((st.allergies || []).length ? 'Weiter' : 'Nichts davon')}</div>`;
+      break;
+    case 'special': {
+      const sw = (attr, on, label, sub) => `<label class="toggle-row"><span><b>${label}</b><small>${sub}</small></span><span class="switch"><input type="checkbox" ${attr} ${on ? 'checked' : ''}><i></i></span></label>`;
+      body = `${q('Gibt es etwas Besonderes?', 'Meist nicht – dann einfach weiter.')}
+        <div class="card ob-card">
+          ${p.sex !== 'm' ? sw('data-action="toggle-pregnant"', st.profile?.pregnant, 'Schwanger', '+250 kcal, nichts Rohes, keine Leber') : ''}
+          ${sw('data-set="carbSpread"', st.carbSpread, 'Kohlenhydrate verteilen', 'z. B. bei Diabetes')}
+          ${sw('data-set="fasting"', st.fasting, 'Fasten tagsüber', 'z. B. im Ramadan')}
+          ${sw('data-set="hideNumbers"', st.hideNumbers, 'Kalorien ausblenden', 'gleicher Plan, nur ohne Zahlen')}
+        </div>
+        <div class="ob-actions">${next()}</div>`;
+      break;
+    }
+    case 'household': {
+      const cur = Math.max(1, Number(st.household) || 1);
+      body = `${q('Wie viele essen abends mit?', 'Dich eingerechnet. Mise kauft abends für alle ein.')}
+        <div class="ob-circles">${[1, 2, 3, 4, 5, 6].map((n) => `<button class="ob-circle ${cur === n ? 'on' : ''}" data-action="ob-pick" data-field="household" data-val="${n}" aria-pressed="${cur === n}" aria-label="${n} ${n === 1 ? 'Person' : 'Personen'}">${n}</button>`).join('')}</div>`;
+      break;
+    }
+    case 'budget':
+      body = `${q('Wie viel darf der Einkauf kosten?', 'Pro Woche. Mise plant so günstig wie möglich.')}
+        <div class="ob-stepper">
+          <button class="ob-step-btn" data-action="ob-budget" data-d="-5" aria-label="5 Euro weniger">−</button>
+          <label class="ob-number"><input type="number" inputmode="numeric" data-set="budget" value="${st.budget}" aria-label="Wochenbudget in Euro"><span>€</span></label>
+          <button class="ob-step-btn" data-action="ob-budget" data-d="5" aria-label="5 Euro mehr">+</button>
+        </div>
+        <div class="ob-actions">${next()}</div>`;
+      break;
+    case 'store':
+      body = `${q('Wo kaufst du meistens ein?', 'Weitere Läden schaltest du später dazu.')}
+        <div class="ob-tiles ob-tiles-2">${STORE_IDS.filter((id) => !['dm', 'rossmann'].includes(id)).map((id) => tile('mainStore', id, e(STORES[id].short), '', st.mainStore === id)).join('')}</div>`;
+      break;
+    case 'eatout': {
+      const days = eatOutDays(st.eatOut);
+      body = `${q('Isst du abends manchmal auswärts?', 'Tippe die Tage an – dann kocht Mise an diesen Abenden nicht.')}
+        <div class="ob-days">${dayPills(days, 'eatout-day')}</div>
+        <div class="ob-actions">${next(days.length ? 'Weiter' : 'Nie – ich koche jeden Abend')}</div>`;
+      break;
+    }
+    case 'ready':
+      body = `<div class="ob-hero"><img class="welcome-icon" src="icons/icon-512.png" alt="">
+          ${q(name ? `Alles bereit, ${e(name)}.` : 'Alles bereit.', 'Mise stellt jetzt deine erste Woche zusammen – mit Plan, Einkaufsliste und Portionen.')}</div>
+        <div class="ob-actions"><button class="btn primary block" data-action="first-plan">Meine Woche planen</button></div>`;
+      break;
+  }
+  // Einblenden nur beim Schrittwechsel – nicht bei jedem Neuzeichnen (Allergie antippen o. Ä.)
+  const anim = S.ui.obShown === key ? '' : S.ui.obDir < 0 ? 'back' : 'fwd';
+  S.ui.obShown = key;
+  const back = i > 0 ? `<button class="ob-back" data-action="ob-go" data-dir="-1" aria-label="Zurück">${CHEVRON_LEFT}</button>` : '<span class="ob-back"></span>';
+  return `<div class="ob ob-flow" data-step="${key}">
+    <div class="ob-top" ${key === 'welcome' ? 'hidden' : ''}>${back}<div class="ob-progress" role="progressbar" aria-label="Fortschritt" aria-valuenow="${progress}" aria-valuemin="0" aria-valuemax="100"><i style="width:${progress}%"></i></div></div>
+    <div class="ob-screen ${anim}">${body}</div></div>`;
+}
+
+/** Zahlen auf dem Ergebnis-Bildschirm hochzählen lassen */
+function obCountUp() {
+  const els = document.querySelectorAll('[data-countup]');
+  if (!els.length) return;
+  const t0 = performance.now();
+  const dur = reducedMotion() ? 0 : 1100;
+  const step = (t) => {
+    const k = dur ? Math.min(1, (t - t0) / dur) : 1;
+    const ease = 1 - Math.pow(1 - k, 3);
+    for (const el of els) el.textContent = `${num(Math.round(Number(el.dataset.countup) * ease))}${el.dataset.unit ? ' ' + el.dataset.unit : ''}`;
+    if (k < 1) requestAnimationFrame(step);
+  };
+  requestAnimationFrame(step);
+}
+
+/** Einführung: einen Schritt weiter/zurück – mit Prüfung der Angaben */
+function obGo(dir, skip = false) {
+  const key = obKey();
+  const p = profDraft();
+  // Eingaben direkt aus dem Feld übernehmen (falls „change“ noch nicht gefeuert hat)
+  const input = document.querySelector('.ob-screen input[data-ob]');
+  if (input) p[input.dataset.ob] = input.value.replace(',', '.').trim();
+  const nameInput = document.querySelector('.ob-screen input[data-set="name"]');
+  if (nameInput) {
+    S.settings.name = nameInput.value.trim();
+    saveSettings();
+  }
+  if (dir > 0) {
+    const ok = (v, lo, hi) => Number(v) >= lo && Number(v) <= hi;
+    const bad = {
+      sex: !p.sex && 'Bitte wähle eine Antwort',
+      age: !ok(p.age, 14, 100) && 'Bitte ein Alter zwischen 14 und 100 eintragen',
+      height: !ok(p.height, 120, 230) && 'Bitte die Größe in cm eintragen (120–230)',
+      weight: !ok(p.weight, 35, 250) && 'Bitte das Gewicht in kg eintragen (35–250)',
+    }[key];
+    if (bad) {
+      haptic([20, 40, 20]);
+      document.querySelector('.ob-screen')?.classList.add('shake');
+      setTimeout(() => document.querySelector('.ob-screen')?.classList.remove('shake'), 420);
+      return toast(bad, { icon: '✏️', kind: 'warn' });
+    }
+    if (key === 'weight' && goalBlocked(p)) p.goal = 'halten';
+    if (key === 'goalWeight') {
+      if (skip) p.goalWeight = '';
+      const gwBad = !skip && goalWeightProblem(p, parseKg(p.goalWeight));
+      if (gwBad) return toast('Zielgewicht bitte prüfen', { icon: '💚', sub: gwBad, kind: 'warn' });
+    }
+    // nach Ziel bzw. Zielgewicht: Tagesziele berechnen
+    if (key === 'goalWeight' || (key === 'goal' && p.goal === 'halten')) obCalc();
+  }
+  const to = obNeighbor(key, dir);
+  S.ui.obDir = dir;
+  S.ui.obEdit = false;
+  S.ui.ob = OB_STEPS.indexOf(to);
+  if (dir > 0) sound.next();
+  haptic();
+  render();
+  window.scrollTo(0, 0);
+  if (to === 'result') obCountUp();
+  // Tastatur gleich öffnen (iOS erlaubt das nur direkt in der Reaktion auf den Tipp)
+  document.querySelector('.ob-screen input[data-ob], .ob-screen input[data-set="name"]')?.focus();
+}
+
+function obCalc() {
+  const p = profDraft();
+  S.settings.goals = calcGoals(p);
+  if (S.settings.profile?.pregnant) S.settings.goals = shiftForPregnancy(S.settings.goals, true);
+  S.settings.profile = { ...p, pregnant: !!S.settings.profile?.pregnant };
+  S.settings.bodyWeight = Number(p.weight);
+  S.settings.bodyWeightAt = new Date().toISOString();
+  const gw = parseKg(p.goalWeight);
+  S.settings.goalWeight = gw || null;
+  saveSettings();
 }
 
 function viewWelcome() {
@@ -3326,6 +3560,50 @@ async function onClick(ev) {
       fx(`.meal[data-key="${el.dataset.key}"]`, 'swapped');
       location.hash = '#/woche';
       toast('Rezept übernommen', { icon: '🔄', sub: 'Einkaufsliste ist aktualisiert' });
+      return;
+    }
+    case 'ob-go':
+      return obGo(Number(el.dataset.dir), !!el.dataset.skip);
+    case 'ob-edit-goals':
+      S.ui.obEdit = true;
+      haptic();
+      return render();
+    case 'ob-budget': {
+      S.settings.budget = Math.max(20, Math.min(400, (Number(S.settings.budget) || 60) + Number(el.dataset.d)));
+      saveSettings();
+      sound.tap();
+      haptic();
+      const inp = document.querySelector('.ob-stepper input');
+      if (inp) inp.value = S.settings.budget;
+      return;
+    }
+    case 'ob-pick': {
+      if (el.getAttribute('aria-disabled') === 'true') {
+        const p0 = profDraft();
+        return toast('Abnehmen ist hier nicht möglich', { icon: '💚', sub: blockedText(goalBlocked(p0, 'abnehmen')), kind: 'warn' });
+      }
+      const f = el.dataset.field;
+      const v = el.dataset.val;
+      if (['sex', 'activity', 'goal'].includes(f)) profDraft()[f] = v;
+      else if (f === 'diet') {
+        S.settings.diet = v;
+        applyRestrictions();
+      } else if (f === 'household') S.settings.household = Number(v);
+      else if (f === 'mainStore') {
+        S.settings.mainStore = v;
+        S.settings.stores[v] = true;
+        S.settings.storeOrder = [v, ...storeOrder(S.settings).filter((x) => x !== v)];
+      }
+      saveSettings();
+      // Auswahl sichtbar machen, kurz stehen lassen, dann weiter
+      for (const t of el.parentElement.querySelectorAll('[aria-pressed]')) {
+        t.classList.toggle('on', t === el);
+        t.setAttribute('aria-pressed', String(t === el));
+      }
+      sound.tap();
+      haptic();
+      clearTimeout(S.ui.obTimer);
+      S.ui.obTimer = setTimeout(() => obGo(1), reducedMotion() ? 0 : 260);
       return;
     }
     case 'ob-set': {
