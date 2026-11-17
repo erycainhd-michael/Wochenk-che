@@ -1019,7 +1019,7 @@ function viewStart(stepArg) {
     .map((i) => `<i class="${i === step ? 'on' : i < step ? 'done' : ''}"></i>`)
     .join('')}</div>`;
   const nav = (label, next) =>
-    `<div class="grid2 ob-nav">${step > (edit ? 1 : 0) ? `<button class="btn" data-action="ob-step" data-step="${step - 1}">Zurück</button>` : edit ? `<a class="btn" href="#/einstellungen">Abbrechen</a>` : '<span></span>'}<button class="btn primary" data-action="ob-step" data-step="${next}">${label}</button></div>`;
+    `<div class="grid2 ob-nav">${step > (edit ? 1 : 0) ? `<button class="btn" data-action="ob-step" data-step="${step - 1}">Zurück</button>` : edit ? `<a class="btn" href="#/einstellungen/ziel">Abbrechen</a>` : '<span></span>'}<button class="btn primary" data-action="ob-step" data-step="${next}">${label}</button></div>`;
   const pills = (field, opts) =>
     `<div class="seg">${opts.map(([v, l]) => `<button class="pill ${p[field] === v ? 'on' : ''}" data-action="ob-set" data-field="${field}" data-val="${v}">${l}</button>`).join('')}</div>`;
   const inp = (field, label, ph, mode = 'numeric') => `<label class="field">${label}<input type="text" inputmode="${mode}" data-ob="${field}" value="${e(String(p[field] ?? ''))}" placeholder="${ph}"></label>`;
@@ -2525,18 +2525,20 @@ function householdField(st) {
 }
 
 /** Ernährungsform, Allergien, Schwangerschaft – in der Einführung (vor dem ersten Plan) und in den Einstellungen */
-function dietCard(st, onboarding = false) {
+function dietCard(st, onboarding = false, page = false) {
   const rx = restrictions(st);
   const showPregnancy = (st.profile?.sex || S.ui.prof?.sex) !== 'm';
   const n = S.recipes.filter((r) => r.type === 'main' && !(r.tags || []).includes('fertiggericht') && !recipeBlocked(r, st, S.idx, rx)).length;
-  return `<section class="card ${onboarding ? 'accent' : ''}"><h2>${onboarding ? 'Was isst du nicht?' : 'Ernährung & Allergien'}</h2>
+  const sw = (attr, on, label, sub) => `<label class="toggle-row"><span><b>${label}</b><small>${sub}</small></span><span class="switch"><input type="checkbox" ${attr} ${on ? 'checked' : ''}><i></i></span></label>`;
+  return `<section class="card ${onboarding ? 'accent' : ''}">${page ? '' : `<h2>${onboarding ? 'Was isst du nicht?' : 'Ernährung & Allergien'}</h2>`}
     <div class="field">Ernährungsform<div class="seg diet-seg">${DIETS.map(([v, l]) => `<button class="pill ${(st.diet || 'alles') === v ? 'on' : ''}" data-action="set-diet" data-val="${v}">${l}</button>`).join('')}</div></div>
     <div class="field">Allergien & Unverträglichkeiten<div class="chips allergy-chips">${ALLERGENS.map(([v, l]) => `<button class="chip ${(st.allergies || []).includes(v) ? 'on' : ''}" data-action="toggle-allergy" data-val="${v}" aria-pressed="${(st.allergies || []).includes(v)}">${l}</button>`).join('')}</div></div>
-    ${showPregnancy ? `<label class="toggle-row"><span><b>Schwanger</b><small>+250 kcal pro Tag, ohne Räucherlachs, Rohschinken, Leber und rohe Eier</small></span><span class="switch"><input type="checkbox" data-action="toggle-pregnant" ${st.profile?.pregnant ? 'checked' : ''}><i></i></span></label>` : ''}
-    <label class="toggle-row"><span><b>Kohlenhydrate verteilen</b><small>z. B. bei Diabetes: höchstens ca. 60 g pro Mahlzeit, kein Kuchen, keine gezuckerten Snacks</small></span><span class="switch"><input type="checkbox" data-set="carbSpread" ${st.carbSpread ? 'checked' : ''}><i></i></span></label>
-    <label class="toggle-row"><span><b>Fasten tagsüber</b><small>z. B. Ramadan: nur Suhur vor Sonnenaufgang und Iftar am Abend</small></span><span class="switch"><input type="checkbox" data-set="fasting" ${st.fasting ? 'checked' : ''}><i></i></span></label>
-    <label class="toggle-row"><span><b>Kalorien ausblenden</b><small>Plan und Einkauf bleiben gleich – nur die Zahlen zu Kalorien und Nährwerten sind nicht zu sehen</small></span><span class="switch"><input type="checkbox" data-set="hideNumbers" ${st.hideNumbers ? 'checked' : ''}><i></i></span></label>
-    <p class="hint">${n} Hauptgerichte passen dazu. Mise kennt die 14 Hauptallergene der Zutaten, aber keine Spuren – prüfe bei schweren Allergien immer die Packung.</p>
+    ${page ? '</section><section class="card">' : ''}
+    ${showPregnancy ? sw('data-action="toggle-pregnant"', st.profile?.pregnant, 'Schwanger', '+250 kcal, nichts Rohes, keine Leber') : ''}
+    ${sw('data-set="carbSpread"', st.carbSpread, 'Kohlenhydrate verteilen', 'z. B. bei Diabetes: max. ca. 60 g pro Mahlzeit')}
+    ${sw('data-set="fasting"', st.fasting, 'Fasten tagsüber', 'z. B. Ramadan: Suhur und Iftar')}
+    ${sw('data-set="hideNumbers"', st.hideNumbers, 'Kalorien ausblenden', 'gleicher Plan, nur ohne Zahlen')}
+    ${page ? '' : `<p class="hint">${n} Hauptgerichte passen dazu. Mise kennt die 14 Hauptallergene der Zutaten, aber keine Spuren – prüfe bei schweren Allergien immer die Packung.</p>`}
   </section>`;
 }
 
@@ -2701,119 +2703,213 @@ function goalSeg() {
   return `<div class="seg">${GOALS.map(([v, l]) => `<button class="pill ${cur === v ? 'on' : ''}" data-action="set-goal" data-val="${v}"${blocked && v === 'abnehmen' ? ' aria-disabled="true"' : ''}>${l}</button>`).join('')}</div>${blocked ? `<p class="hint warn-hint">${e(blockedText(blocked))}</p>` : ''}`;
 }
 
-function viewSettings() {
+// Einstellungen wie in iOS: eine Liste, jeder Eintrag öffnet eine eigene Seite.
+// Oben auf jeder Seite steht in ein, zwei Sätzen, wie Mise mit den aktuellen Werten plant – darunter nur die Regler.
+const joinDe = (xs) => (xs.length < 2 ? xs.join('') : `${xs.slice(0, -1).join(', ')} und ${xs[xs.length - 1]}`);
+const READY = [
+  ['meals', 'Tiefkühl- & Kühlgerichte', 'nur eiweißreiche Sorten'],
+  ['pizza', 'Pizza als Cheat Meal', 'höchstens 1× pro Woche am Wochenende'],
+  ['soup', 'Eintopf aus der Dose', 'immer mit Vollkornbrot & Hüttenkäse'],
+];
+const storeLabel = (id) => (id === 'edeka' ? 'Edeka' : STORES[id].short || STORES[id].name);
+
+function settingsSections(st) {
+  const hide = !!st.hideNumbers;
+  const goal = st.profile?.goal || 'halten';
+  const goalLabel = GOALS.find((g) => g[0] === goal)?.[1] || 'Halten';
+  const days = eatOutDays(st.eatOut);
+  const on = storeOrder(st).filter((id) => st.stores[id]);
+  const ready = READY.filter(([k]) => st.readyMeals?.[k] !== false);
+  const diet = DIETS.find((d) => d[0] === (st.diet || 'alles'))?.[1] || 'Alles';
+  const allergies = (st.allergies || []).map((a) => ALLERGENS.find((x) => x[0] === a)?.[1] || a);
+  const people = Math.max(1, Number(st.household) || 1);
+  const theme = { dark: 'Dunkel', light: 'Hell' }[st.theme] || 'Automatisch';
+  return [
+    ['Du & dein Essen', [
+      ['ziel', '🎯', 'Ziel & Tagesziele', hide ? goalLabel : `${goalLabel} · ${num(st.goals.kcal)} kcal`],
+      ['ernaehrung', '🥗', 'Ernährung & Allergien', allergies.length ? `${diet} · ohne ${allergies.length === 1 ? allergies[0] : `${allergies.length} Allergene`}` : diet],
+      ['auswaerts', '🍴', 'Auswärts essen', days.length ? days.map((d) => DAY_SHORT[d]).join(', ') : 'Nie'],
+      ['gerichte', '🍳', 'Gerichte & Abneigungen', `${PREP.find((p) => p[1] === nearest(PREP, st.sliders.simple))[0].replace('min', ' Min.')}${st.dislikes.length ? ` · ${st.dislikes.length} Abneigung${st.dislikes.length > 1 ? 'en' : ''}` : ''}`],
+      ['fertig', '🍕', 'Fertiggerichte', ready.length ? `${ready.length} von 3 an` : 'Aus'],
+    ]],
+    ['Einkauf', [
+      ['laeden', '🛒', 'Läden', on.length ? `${storeLabel(on[0])}${on.length > 1 ? ` + ${on.length - 1}` : ''}` : 'Keiner'],
+      ['budget', '💶', 'Budget & Haushalt', `${euro(st.budget)} · ${people} ${people === 1 ? 'Person' : 'Personen'}${st.studi ? ' · Studi' : ''}`],
+    ]],
+    ['App', [
+      ['darstellung', '🎨', 'Darstellung', theme],
+      ['teilen', '🌍', 'Rezepte für alle Geräte', st.shareToken ? 'An' : 'Aus'],
+      ['ki', '✨', 'KI-Rezepte', st.aiKey ? 'An' : 'Aus'],
+      ['sicherung', '☁️', 'Datensicherung', S.snapshots.length ? 'Täglich' : ''],
+      ['quellen', '📚', 'Quellen & Richtlinien', ''],
+    ]],
+  ];
+}
+
+function viewSettings(section) {
   const st = S.settings;
-  const pl = plausibility(st.goals);
+  if (!section) {
+    return `<header class="top"><h1>Einstellungen</h1></header>
+    ${settingsSections(st)
+      .map(
+        ([title, rows]) => `<h3 class="set-group">${title}</h3><ul class="set-list">${rows
+          .map(([id, icon, label, value]) => `<li><a href="#/einstellungen/${id}"><span class="set-icon" aria-hidden="true">${icon}</span><span class="set-label">${label}</span><span class="set-value">${e(value)}</span><span class="chev" aria-hidden="true">›</span></a></li>`)
+          .join('')}</ul>`
+      )
+      .join('')}
+    <p class="sub center">Mise ersetzt keine ärztliche oder Ernährungsberatung.</p>`;
+  }
+  const title = settingsSections(st).flatMap((g) => g[1]).find((r) => r[0] === section)?.[2];
+  if (!title) return viewSettings();
+  const body = settingsPage(section, st);
+  return `<header class="top col"><a class="back" href="#/einstellungen">‹ Einstellungen</a><h1>${title}</h1></header>
+  <p class="set-explain">${body.explain}</p>
+  ${body.html}`;
+}
+
+function settingsPage(id, st) {
   const field = (path, label, attrs = '') =>
     `<label class="field">${label}<input type="number" inputmode="numeric" data-set="${path}" value="${getPath(st, path)}" ${attrs}></label>`;
   const seg = (opts, key) => {
     const cur = nearest(opts, st.sliders[key]);
     return `<div class="seg">${opts.map(([label, v]) => `<button class="pill ${cur === v ? 'on' : ''}" data-action="slider" data-key="${key}" data-val="${v}">${label}</button>`).join('')}</div>`;
   };
-  return `<header class="top"><h1>Einstellungen</h1></header>
-
-  <section class="card accent"><h2>Ziel & Tagesziele</h2>
-    ${goalSeg()}
-    <p class="hint">${e(GOAL_HINT[st.profile?.goal || 'halten'])}</p>
-    <div class="grid2">
-      ${field('goals.kcal', 'Kalorien (kcal)', 'step="50"')}
-      ${field('goals.carbs', 'Kohlenhydrate (g)', 'step="5"')}
-      ${field('goals.protein', 'Protein (g)', 'step="5"')}
-      ${field('goals.fat', 'Fett (g)', 'step="5"')}
-    </div>
-    ${pl.ok ? '' : `<p class="warn-text">⚠️ ${e(pl.message)}</p>`}
-    ${!pl.ok && pl.suggestedCarbs > 0 ? `<button class="btn small pill" data-action="fix-carbs" data-val="${pl.suggestedCarbs}">Kohlenhydrate auf ${pl.suggestedCarbs}g setzen</button>` : ''}
-    <a class="btn small pill" href="#/start/1">🧮 Mit Assistent neu berechnen</a>
-  </section>
-
-  <section class="card"><h2>Feineinstellungen</h2>
-    <div class="field">Zubereitung${seg(PREP, 'simple')}</div>
-    <div class="field">Abwasch${seg(DISHES, 'dishes')}</div>
-  </section>
-
-  <section class="card"><h2>Wann isst du auswärts?</h2>
-    <p class="sub">Tippe die Tage an. Sie werden mit ca. ${num(st.eatOutKcal)} kcal eingerechnet; an diesen Tagen wird entsprechend weniger gekocht. Du kannst das im Rückblick für jede Woche ändern.</p>
-    ${dayPills(eatOutDays(st.eatOut), 'eatout-day')}
-  </section>
-
-  <section class="card"><h2>Fertiggerichte</h2>
-    <p class="sub">Für schnelle, günstige Tage: Fertiggerichte kommen nur in den Plan, wenn sie im Angebot sind oder noch im Vorrat liegen – bei einem Angebot wird ein kleiner Vorrat angelegt. Ausgewählt wird, was zu deinem Ziel passt; der Rest des Tages gleicht die Nährwerte aus.</p>
-    ${[
-      ['meals', 'Tiefkühl- & Kühlgerichte', 'z. B. Frosta, prepmymeal – nur eiweißreiche Sorten'],
-      ['pizza', 'Pizza als Cheat Meal', 'höchstens einmal pro Woche am Wochenende abends – beim Abnehmen alle zwei Wochen'],
-      ['soup', 'Eintopf aus der Dose', 'wenn es mal was Warmes sein soll – immer mit Vollkornbrot & Hüttenkäse'],
-    ]
-      .map(([k, label, sub]) => `<label class="toggle-row"><span><b>${label}</b><small>${sub}</small></span><span class="switch"><input type="checkbox" data-set="readyMeals.${k}" ${st.readyMeals?.[k] !== false ? 'checked' : ''}><i></i></span></label>`)
-      .join('')}
-  </section>
-
-  <section class="card"><h2>Einkauf</h2>
-    <p class="sub">Halte ≡ gedrückt und zieh die Läden in deine Reihenfolge. Ganz oben steht dein Hauptladen.</p>
-    <ul class="store-sort" data-sortable="stores">${storeOrder(st)
-      .map(
-        (id, i) => `<li class="store-row ${st.stores[id] ? '' : 'off'}" data-store="${id}"><span class="drag-handle" aria-label="Verschieben">≡</span>
-        <span class="store-name">${e(id === 'edeka' ? 'Edeka No1 Center Schloßstraße' : STORES[id].name)}${i === 0 ? ' <small class="badge">Hauptladen</small>' : ''}${storeOpen(id, currentWeek()) ? '' : ` <small class="muted">ab ${STORES[id].opens.slice(8, 10)}.${STORES[id].opens.slice(5, 7)}.</small>`}</span>
-        <label class="switch"><input type="checkbox" data-set="stores.${id}" ${st.stores[id] ? 'checked' : ''} aria-label="${e(STORES[id].short)} verwenden"><i></i></label></li>`
-      )
-      .join('')}</ul>
-    <p class="sub">Gekauft wird im obersten eingeschalteten Laden. Nur wenn ein anderer eingeschalteter Laden mindestens 10 % günstiger ist (z. B. durch ein Angebot) oder der Hauptladen den Artikel nicht führt, landet er dort – z. B. Spezielles wie grüne Tagliatelle bei Edeka. dm und Rossmann führen nur Trockenware, Nüsse & Co.</p>
-    ${householdField(st)}
-    ${minBudgetHint(st)}
-    <div class="grid2 budget-row">
-      <label class="field">Wochenbudget<span class="unit-input"><input type="number" inputmode="numeric" step="1" data-set="budget" value="${st.budget}"><i>€</i></span></label>
-      <label class="studi-toggle"><input type="checkbox" class="big-check" data-set="studi" ${st.studi ? 'checked' : ''}><span>Studi-Modus</span></label>
-    </div>
-    ${S.plans[currentWeek()] && (S.plans[currentWeek()].studi ?? false) !== !!st.studi ? `<button class="btn small pill" data-action="replan-studi">Diese Woche ${st.studi ? 'im Studi-Modus ' : ''}neu planen</button>` : ''}
-  </section>
-
-  ${dietCard(st)}
-
-  <section class="card"><h2>Gerichte</h2>
-    ${field('complexPerWeek', 'Aufwendige Gerichte pro Woche', 'min="0" max="3"')}
-    <div class="field">Abneigungen (werden nicht eingeplant)
-      <div class="chips">${st.dislikes.map((d, i) => `<span class="chip soft">${e(d)} <button data-action="del-dislike" data-i="${i}" aria-label="entfernen">×</button></span>`).join('')}</div>
-      <div class="add-row"><input id="dislike-new" placeholder="z. B. Pilze"><button class="btn pill" data-action="add-dislike">Hinzufügen</button></div>
-    </div>
-  </section>
-
-  <section class="card"><h2>Darstellung</h2>
-    <label class="field">Design<select data-set="theme"><option value="auto" ${!st.theme || st.theme === 'auto' ? 'selected' : ''}>Automatisch</option><option value="dark" ${st.theme === 'dark' ? 'selected' : ''}>Dunkel</option><option value="light" ${st.theme === 'light' ? 'selected' : ''}>Hell</option></select></label>
-    <label class="field">Dein Name (für die Begrüßung)<input type="text" autocomplete="given-name" data-set="name" value="${e(st.name || '')}" placeholder="z. B. Michael"></label>
-    ${field('planHour', 'Neuer Plan montags ab (Uhr)', 'min="0" max="23"')}
-  </section>
-
-  <section class="card"><h2>Rezepte für alle Geräte</h2>
-    <p class="sub">Neue Rezepte – von dir, deiner Familie oder der KI – landen in der gemeinsamen Sammlung und erscheinen nach ein paar Minuten auf allen Geräten. Dafür braucht jedes Gerät einmal den Freigabe-Schlüssel.</p>
-    ${keyField('Freigabe-Schlüssel', 'shareToken', 'github_pat_…')}
-    <p class="hint">${st.shareToken ? `✓ Teilen ist aktiv.${store.get('shareQueue', []).length ? ` ${store.get('shareQueue', []).length} Rezept(e) warten auf Internet.` : ''}` : 'Ohne Schlüssel bleiben neue Rezepte nur auf diesem Gerät.'}</p>
-    ${st.shareToken ? `<button class="btn small pill" data-action="share-invite">📨 Einladungslink für ein anderes Gerät</button>` : ''}
-  </section>
-
-  <section class="card"><h2>KI-Rezepte <span class="sub">(optional, kostenpflichtig)</span></h2>
-    <p class="sub">Mit einem eigenen Claude-API-Schlüssel erfindet Mise neue Gerichte: jeden Montag eines für deinen Plan, bei ↻ in der Woche und wenn du unter „Rezepte“ nur einen Titel einträgst. Kosten: ca. 3–5 Cent pro Rezept auf deinem Anthropic-Konto. Der Schlüssel bleibt nur auf diesem Gerät.</p>
-    ${keyField('API-Schlüssel', 'aiKey', 'sk-ant-…')}
-    <p class="hint">${st.aiKey ? '✓ KI-Rezepte sind aktiv.' : 'Ohne Schlüssel schlägt Mise nur Rezepte aus der Sammlung vor.'} Schlüssel erstellen: console.anthropic.com → API Keys.</p>
-  </section>
-
-  <section class="card"><h2>Datensicherung</h2>
-    <p class="sub"><b>Automatisch:</b> Mise legt jeden Tag eine Kopie deiner Daten auf diesem iPhone ab (die letzten 14 Tage). ${S.snapshots.length ? `Letzte Sicherung: ${fmtDateTime(S.snapshots[0].savedAt)}.` : 'Die erste Sicherung entsteht heute.'}</p>
-    ${
-      S.snapshots.length
-        ? `<div class="snap-row"><select id="snap-pick">${S.snapshots.map((x) => `<option value="${x.day}">${fmtDateTime(x.savedAt)}</option>`).join('')}</select><button class="btn pill" data-action="snap-restore">Wiederherstellen</button></div>`
-        : ''
+  const card = (inner, cls = '') => `<section class="card ${cls}">${inner}</section>`;
+  const hide = !!st.hideNumbers;
+  const people = Math.max(1, Number(st.household) || 1);
+  switch (id) {
+    case 'ziel': {
+      const pl = plausibility(st.goals);
+      const goal = st.profile?.goal || 'halten';
+      const how = { abnehmen: 'etwas weniger, als du verbrauchst, mit viel Protein, damit die Muskeln bleiben', halten: 'so viel, wie du verbrauchst', aufbauen: 'etwas mehr, als du verbrauchst, mit viel Protein für den Muskelaufbau' }[goal];
+      return {
+        explain: hide
+          ? `Du willst ${GOALS.find((g) => g[0] === goal)?.[1].toLowerCase()}. Mise plant jeden Tag ${how}.`
+          : `Mise plant jeden Tag rund <b>${num(st.goals.kcal)} kcal</b> und <b>${st.goals.protein} g Protein</b> – ${how}.`,
+        html: card(`${goalSeg()}
+          ${hide ? '' : `<div class="grid2">
+            ${field('goals.kcal', 'Kalorien (kcal)', 'step="50"')}
+            ${field('goals.carbs', 'Kohlenhydrate (g)', 'step="5"')}
+            ${field('goals.protein', 'Protein (g)', 'step="5"')}
+            ${field('goals.fat', 'Fett (g)', 'step="5"')}
+          </div>
+          ${pl.ok ? '' : `<p class="warn-text">⚠️ ${e(pl.message)}</p>`}
+          ${!pl.ok && pl.suggestedCarbs > 0 ? `<button class="btn small pill" data-action="fix-carbs" data-val="${pl.suggestedCarbs}">Kohlenhydrate auf ${pl.suggestedCarbs}g setzen</button>` : ''}`}
+          <a class="btn small pill" href="#/start/1">🧮 Mit Assistent neu berechnen</a>`),
+      };
     }
-    <p class="sub"><b>In iCloud:</b> Gegen Verlust oder Wechsel des iPhones sichere einmal pro Woche mit einem Tipp in iCloud Drive (Teilen → „In Dateien sichern“). ${store.get('lastExport') ? `Zuletzt: ${fmtDateTime(store.get('lastExport'))}.` : 'Noch nie gesichert.'}</p>
-    <div class="grid2"><button class="btn primary" data-action="export">☁️ Sichern</button>
-    <label class="btn">Importieren<input type="file" accept="application/json,.json" id="import-file" hidden></label></div>
-    <button class="link danger" data-action="reset-settings">Einstellungen zurücksetzen</button>
-    <button class="link danger" data-action="reset-app">App zurücksetzen (alles löschen, neu beginnen)</button>
-  </section>
-  <section class="card sources"><h2>Quellen & Richtlinien</h2>
-    <p class="sub">Daran hält sich Mise bei Tageszielen, Wochenplan und Sport. Tippe einen Eintrag an, um die Quelle zu öffnen.</p>
-    <ul class="src-list">${SOURCES.map(([title, what, url]) => `<li><a href="${url}" target="_blank" rel="noopener">${e(title)} ↗</a><span>${e(what)}</span></li>`).join('')}</ul>
-    <p class="hint">Mise ersetzt keine ärztliche oder Ernährungsberatung. Preise und Nährwerte sind Richtwerte.</p>
-  </section>
-  <p class="sub center">Mise</p>`;
+    case 'ernaehrung': {
+      const rx = restrictions(st);
+      const n = S.recipes.filter((r) => r.type === 'main' && !(r.tags || []).includes('fertiggericht') && !recipeBlocked(r, st, S.idx, rx)).length;
+      return {
+        explain: `Mise plant nur Gerichte, die dazu passen – gerade <b>${n} Hauptgerichte</b>. Geprüft werden die Zutaten, keine Spuren: Bei schweren Allergien immer die Packung lesen.`,
+        html: dietCard(st, false, true),
+      };
+    }
+    case 'auswaerts': {
+      const days = eatOutDays(st.eatOut);
+      return {
+        explain: days.length
+          ? `${joinDe(days.map((d) => DAY_NAMES[d]))}abend${days.length > 1 ? 's' : ''} isst du auswärts. Mise kocht dann nicht${hide ? '' : ` und rechnet ca. ${num(st.eatOutKcal)} kcal ein`}.`
+          : 'Mise plant jeden Abend zu Hause. Tippe die Tage an, an denen du abends meist auswärts isst.',
+        html: card(`${dayPills(days, 'eatout-day')}<p class="hint">Für eine einzelne Woche änderst du das im Rückblick.</p>`),
+      };
+    }
+    case 'gerichte': {
+      const prep = PREP.find((p) => p[1] === nearest(PREP, st.sliders.simple))[0].replace('min', ' Minuten');
+      const fix = nearest(DISHES, st.sliders.dishes) === 90;
+      return {
+        explain: `Mise wählt vor allem Gerichte mit ${prep} Zubereitung${fix ? ' und wenig Abwasch' : ''}, dazu höchstens ${st.complexPerWeek} aufwendige pro Woche.${st.dislikes.length ? ` Nie dabei: ${e(joinDe(st.dislikes))}.` : ''}`,
+        html: card(`<div class="field">Zubereitung${seg(PREP, 'simple')}</div>
+          <div class="field">Abwasch${seg(DISHES, 'dishes')}</div>
+          ${field('complexPerWeek', 'Aufwendige Gerichte pro Woche', 'min="0" max="3"')}`) +
+          card(`<div class="field">Abneigungen
+            <div class="chips">${st.dislikes.map((d, i) => `<span class="chip soft">${e(d)} <button data-action="del-dislike" data-i="${i}" aria-label="entfernen">×</button></span>`).join('')}</div>
+            <div class="add-row"><input id="dislike-new" placeholder="z. B. Pilze"><button class="btn pill" data-action="add-dislike">Hinzufügen</button></div>
+          </div>`),
+      };
+    }
+    case 'fertig': {
+      const ready = READY.filter(([k]) => st.readyMeals?.[k] !== false);
+      return {
+        explain: ready.length
+          ? 'Fertiggerichte kommen nur in den Plan, wenn sie im Angebot sind oder noch im Vorrat liegen. Der Rest des Tages gleicht die Nährwerte aus.'
+          : 'Mise plant gerade ohne Fertiggerichte – alles wird frisch gekocht.',
+        html: card(READY.map(([k, label, sub]) => `<label class="toggle-row"><span><b>${label}</b><small>${sub}</small></span><span class="switch"><input type="checkbox" data-set="readyMeals.${k}" ${st.readyMeals?.[k] !== false ? 'checked' : ''}><i></i></span></label>`).join('')),
+      };
+    }
+    case 'laeden': {
+      const on = storeOrder(st).filter((x) => st.stores[x]);
+      return {
+        explain: on.length
+          ? `Mise kauft bei <b>${e(storeLabel(on[0]))}</b>. Ein anderer eingeschalteter Laden kommt nur dran, wenn er mindestens 10 % günstiger ist oder den Artikel allein führt.`
+          : 'Schalte mindestens einen Laden ein, damit Mise Preise und Einkaufsliste berechnen kann.',
+        html: card(`<ul class="store-sort" data-sortable="stores">${storeOrder(st)
+          .map(
+            (sid, i) => `<li class="store-row ${st.stores[sid] ? '' : 'off'}" data-store="${sid}"><span class="drag-handle" aria-label="Verschieben">≡</span>
+            <span class="store-name">${e(sid === 'edeka' ? 'Edeka No1 Center Schloßstraße' : STORES[sid].name)}${i === 0 ? ' <small class="badge">Hauptladen</small>' : ''}${storeOpen(sid, currentWeek()) ? '' : ` <small class="muted">ab ${STORES[sid].opens.slice(8, 10)}.${STORES[sid].opens.slice(5, 7)}.</small>`}</span>
+            <label class="switch"><input type="checkbox" data-set="stores.${sid}" ${st.stores[sid] ? 'checked' : ''} aria-label="${e(STORES[sid].short)} verwenden"><i></i></label></li>`
+          )
+          .join('')}</ul><p class="hint">Halte ≡ gedrückt, um die Reihenfolge zu ändern.</p>`),
+      };
+    }
+    case 'budget': {
+      const plan = S.plans[currentWeek()];
+      return {
+        explain: `Mise plant mit <b>${euro(st.budget)} pro Woche</b>${people > 1 ? ` und kauft abends für ${people} Personen ein – deine Portion bleibt gleich` : ''}.${st.studi ? ' Im Studi-Modus zählt der Preis noch stärker.' : ''}`,
+        html: `${minBudgetHint(st)}` +
+          card(`${householdField(st)}
+          <div class="grid2 budget-row">
+            <label class="field">Wochenbudget<span class="unit-input"><input type="number" inputmode="numeric" step="1" data-set="budget" value="${st.budget}"><i>€</i></span></label>
+            <label class="studi-toggle"><input type="checkbox" class="big-check" data-set="studi" ${st.studi ? 'checked' : ''}><span>Studi-Modus</span></label>
+          </div>
+          ${plan && (plan.studi ?? false) !== !!st.studi ? `<button class="btn small pill" data-action="replan-studi">Diese Woche ${st.studi ? 'im Studi-Modus ' : ''}neu planen</button>` : ''}`),
+      };
+    }
+    case 'darstellung':
+      return {
+        explain: 'Wie Mise aussieht und wann der neue Wochenplan kommt.',
+        html: card(`<label class="field">Design<select data-set="theme"><option value="auto" ${!st.theme || st.theme === 'auto' ? 'selected' : ''}>Automatisch</option><option value="dark" ${st.theme === 'dark' ? 'selected' : ''}>Dunkel</option><option value="light" ${st.theme === 'light' ? 'selected' : ''}>Hell</option></select></label>
+          <label class="field">Dein Name<input type="text" autocomplete="given-name" data-set="name" value="${e(st.name || '')}" placeholder="z. B. Michael"></label>
+          ${field('planHour', 'Neuer Plan montags ab (Uhr)', 'min="0" max="23"')}`),
+      };
+    case 'teilen': {
+      const q = store.get('shareQueue', []).length;
+      return {
+        explain: st.shareToken
+          ? `Neue Rezepte landen in der gemeinsamen Sammlung und erscheinen nach ein paar Minuten auf allen Geräten.${q ? ` ${q} Rezept(e) warten auf Internet.` : ''}`
+          : 'Neue Rezepte bleiben gerade nur auf diesem Gerät. Mit dem Freigabe-Schlüssel erscheinen sie auf allen Geräten.',
+        html: card(`${keyField('Freigabe-Schlüssel', 'shareToken', 'github_pat_…')}
+          ${st.shareToken ? `<button class="btn small pill" data-action="share-invite">📨 Einladungslink für ein anderes Gerät</button>` : ''}`),
+      };
+    }
+    case 'ki':
+      return {
+        explain: st.aiKey
+          ? 'Mise erfindet jeden Montag ein neues Gericht für deinen Plan – und wenn du ↻ tippst oder nur einen Titel einträgst. Kosten: ca. 3–5 Cent pro Rezept.'
+          : 'Mise schlägt gerade nur Rezepte aus der Sammlung vor. Mit einem eigenen Claude-API-Schlüssel erfindet Mise neue (ca. 3–5 Cent pro Rezept).',
+        html: card(`${keyField('API-Schlüssel', 'aiKey', 'sk-ant-…')}<p class="hint">Der Schlüssel bleibt nur auf diesem Gerät. Erstellen: console.anthropic.com → API Keys.</p>`),
+      };
+    case 'sicherung':
+      return {
+        explain: `Mise sichert jeden Tag automatisch auf diesem Gerät (14 Tage). ${S.snapshots.length ? `Zuletzt: ${fmtDateTime(S.snapshots[0].savedAt)}.` : 'Die erste Sicherung entsteht heute.'} Für ein neues Handy: einmal pro Woche in iCloud sichern.`,
+        html:
+          (S.snapshots.length
+            ? card(`<div class="field">Automatische Sicherung<div class="snap-row"><select id="snap-pick">${S.snapshots.map((x) => `<option value="${x.day}">${fmtDateTime(x.savedAt)}</option>`).join('')}</select><button class="btn pill" data-action="snap-restore">Wiederherstellen</button></div></div>`)
+            : '') +
+          card(`<div class="grid2"><button class="btn primary" data-action="export">☁️ Sichern</button>
+            <label class="btn">Importieren<input type="file" accept="application/json,.json" id="import-file" hidden></label></div>
+            <p class="hint">${store.get('lastExport') ? `In iCloud zuletzt: ${fmtDateTime(store.get('lastExport'))}` : 'Noch nie in iCloud gesichert.'}</p>`) +
+          card(`<button class="link danger" data-action="reset-settings">Einstellungen zurücksetzen</button>
+            <button class="link danger" data-action="reset-app">App zurücksetzen (alles löschen)</button>`),
+      };
+    case 'quellen':
+      return {
+        explain: 'Daran hält sich Mise bei Tageszielen, Wochenplan und Sport. Preise und Nährwerte sind Richtwerte.',
+        html: card(`<ul class="src-list">${SOURCES.map(([t, what, url]) => `<li><a href="${url}" target="_blank" rel="noopener">${e(t)} ↗</a><span>${e(what)}</span></li>`).join('')}</ul>`, 'sources'),
+      };
+  }
+  return { explain: '', html: '' };
 }
 
 // ---------------------------------------------------------------------------
@@ -3157,7 +3253,7 @@ async function onClick(ev) {
     case 'ob-done':
       refitCurrent();
       toast('Tagesziele übernommen', { icon: '🎯', sub: 'Dein Wochenplan ist angepasst' });
-      location.hash = '#/einstellungen';
+      location.hash = '#/einstellungen/ziel';
       return;
     case 'key-copy': {
       try {

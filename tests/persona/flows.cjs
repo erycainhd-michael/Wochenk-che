@@ -71,7 +71,7 @@ const SP = process.argv[2];
     if (firstMeal) { await firstMeal.click(); await page.waitForTimeout(1500); await page.clock.runFor(2000); note('Tauschen ok: ' + (toasts.at(-1) || '')); } else note('kein Tauschen-Button gefunden');
     // Abneigung nachträglich (Allergie-/Diät-Personas)
     if (P.dislikes) {
-      await go('#/einstellungen');
+      await go('#/einstellungen/gerichte');
       for (const d of P.dislikes) { await page.fill('#dislike-new', d); await page.click('[data-action=add-dislike]'); await page.waitForTimeout(150); }
       note('Abneigungen eingetragen: ' + P.dislikes.join(', ') + ' → Toast: ' + (toasts.at(-1) || '–'));
       const planAfter = await page.evaluate(() => JSON.stringify(Object.values(JSON.parse(localStorage.getItem('mf1:plans')))[0].days.map((d) => d.meals.map((m) => m.recipeId))));
