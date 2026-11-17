@@ -531,9 +531,11 @@ textarea { font: inherit; color: var(--text); background: var(--field); border: 
 /* Zielgewicht: großer Moment */
 .celebrate {
   position: fixed; inset: 0; z-index: 75; display: grid; place-items: center; padding: 24px;
-  background: color-mix(in srgb, var(--bg) 70%, transparent); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+  background: transparent; isolation: isolate;
   animation: fadeIn 0.3s ease-out; transition: opacity 0.35s;
 }
+.celebrate::before { content: ''; position: absolute; inset: 0; z-index: -1;
+  background: color-mix(in srgb, var(--bg) 70%, transparent); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); }
 .celebrate.out { opacity: 0; }
 .cel-box {
   background: var(--card); border-radius: 28px; padding: 26px 24px 20px; max-width: 340px; width: 100%; text-align: center;
@@ -918,7 +920,7 @@ body { min-height: calc(100vh + 1px); min-height: calc(100lvh + 1px); }
 .confirm-box { position: fixed; inset: 0; z-index: 85; display: grid; place-items: center; padding: 24px; background: rgba(0, 0, 0, 0.3); animation: viewIn 0.2s ease-out; }
 .cb-card {
   width: 270px; max-width: 100%; border-radius: 14px; overflow: hidden; text-align: center;
-  background: color-mix(in srgb, var(--card) 82%, transparent); -webkit-backdrop-filter: blur(30px) saturate(1.8); backdrop-filter: blur(30px) saturate(1.8);
+  position: relative; isolation: isolate; background: transparent;
   animation: alertIn 0.25s cubic-bezier(0.2, 0.9, 0.3, 1.2);
 }
 .cb-body { padding: 19px 16px 16px; }
@@ -930,6 +932,9 @@ body { min-height: calc(100vh + 1px); min-height: calc(100lvh + 1px); }
 .cb-actions button.default { font-weight: 600; }
 .cb-actions button.destructive { color: #ff3b30; }
 .cb-actions button:active { background: color-mix(in srgb, var(--text) 8%, transparent); }
+/* Milchglas als Ebene hinter dem Text – sonst zeichnet Safari den Text weich */
+.cb-card::before { content: ''; position: absolute; inset: 0; z-index: -1; border-radius: inherit;
+  background: color-mix(in srgb, var(--card) 82%, transparent); -webkit-backdrop-filter: blur(30px) saturate(1.8); backdrop-filter: blur(30px) saturate(1.8); }
 @keyframes alertIn { from { opacity: 0; transform: scale(1.12); } to { opacity: 1; transform: none; } }
 .btn.danger-fill { background: #c0392b; border-color: #c0392b; color: #fff; }
 
@@ -1062,21 +1067,27 @@ body { min-height: calc(100vh + 1px); min-height: calc(100lvh + 1px); }
 }
 
 /* Kompakte Navigationsleiste (erscheint, wenn der Large Title aus dem Bild scrollt) */
+/* Milchglas liegt als eigene Ebene HINTER dem Titel (::before) – Text in einer Ebene mit backdrop-filter und
+   Ein-/Ausblenden rendert Safari sonst weichgezeichnet. Der Titel selbst wird nur per Deckkraft eingeblendet. */
 #navbar {
-  position: fixed; top: 0; left: 0; right: 0; z-index: 30;
+  position: fixed; top: 0; left: 0; right: 0; z-index: 30; isolation: isolate;
   height: calc(var(--sat) + 44px); padding: var(--sat) 64px 0;
   display: flex; align-items: center; justify-content: center;
+  pointer-events: none;
+}
+#navbar::before {
+  content: ''; position: absolute; inset: 0; z-index: -1;
   background: color-mix(in srgb, var(--bg) 78%, transparent);
   -webkit-backdrop-filter: blur(20px) saturate(1.8); backdrop-filter: blur(20px) saturate(1.8);
   border-bottom: 0.5px solid color-mix(in srgb, var(--text) 18%, transparent);
-  opacity: 0; pointer-events: none; transition: opacity 0.2s;
+  opacity: 0; transition: opacity 0.2s;
 }
-#navbar span { font-size: 1.0625rem; font-weight: 600; letter-spacing: -0.0253em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; transform: translateY(4px); transition: transform 0.2s; }
-#navbar.show { opacity: 1; pointer-events: auto; }
-#navbar.show span { transform: none; }
+#navbar span { font-size: 1.0625rem; font-weight: 600; letter-spacing: -0.0253em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; opacity: 0; transition: opacity 0.2s; }
+#navbar.show { pointer-events: auto; }
+#navbar.show::before, #navbar.show span { opacity: 1; }
 .card.sticky { top: calc(var(--sat) + 52px); }
 body.cook-on #navbar { display: none; }
-@media (prefers-reduced-motion: reduce) { #navbar, #navbar span { transition: none; } }
+@media (prefers-reduced-motion: reduce) { #navbar::before, #navbar span { transition: none; } }
 
 /* Bedienungshilfen: „Kontrast erhöhen“ */
 @media (prefers-contrast: more) {
@@ -1105,3 +1116,16 @@ body.cook-on #navbar { display: none; }
 body.no-numbers .meal .mm, body.no-numbers .day-head .sub, body.no-numbers .macro-bars, body.no-numbers .mtiles,
 body.no-numbers .hero-top > div:first-child, body.no-numbers .hero-link, body.no-numbers .hero-eval { display: none !important; }
 body.no-numbers .hero-top { justify-content: flex-end; }
+
+/* Einstellungen als Liste (wie iOS): Gruppen mit Icon, Titel, aktuellem Wert und Pfeil */
+.set-group { margin: 22px 16px 6px; font-size: 0.8rem; font-weight: 400; text-transform: uppercase; letter-spacing: 0.02em; color: var(--muted); }
+.set-list { list-style: none; margin: 0 0 8px; padding: 0; background: var(--card); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
+.set-list li + li a::before { content: ''; position: absolute; top: 0; left: 58px; right: 0; border-top: 1px solid var(--line); }
+.set-list a { position: relative; display: flex; align-items: center; gap: 12px; min-height: 48px; padding: 8px 14px; color: var(--text); text-decoration: none; }
+.set-list a:active { background: var(--field); }
+.set-icon { flex: none; width: 30px; height: 30px; border-radius: 8px; background: var(--accent-soft); display: grid; place-items: center; font-size: 1rem; }
+.set-label { flex: 1; min-width: 0; font-size: 1.05rem; letter-spacing: -0.0242em; }
+.set-value { flex: none; max-width: 45%; color: var(--muted); font-size: 0.95rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.chev { flex: none; color: var(--muted); opacity: 0.6; font-size: 1.4rem; line-height: 1; margin-left: -4px; }
+.set-explain { margin: 4px 4px 16px; color: var(--muted); font-size: 0.95rem; line-height: 1.45; }
+.set-explain b { color: var(--text); font-weight: 600; }
