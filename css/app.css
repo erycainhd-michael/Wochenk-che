@@ -119,7 +119,7 @@ small, .sub { color: var(--muted); font-size: 0.85rem; letter-spacing: -0.009em;
 .view {
   max-width: 680px;
   margin: 0 auto;
-  padding: calc(var(--sat) + 16px) 16px calc(var(--sab) + 96px);
+  padding: calc(var(--sat) + 44px) 16px calc(var(--sab) + 96px); /* unter der 44-pt-Navigationsleiste */
 }
 body.has-timers .view { padding-bottom: calc(var(--sab) + 176px); }
 
@@ -881,7 +881,7 @@ body { min-height: calc(100vh + 1px); min-height: calc(100lvh + 1px); }
 /* Rückblick oben: Diagramm-Karte (immer gleich groß) + KW-Leiste füllen genau den Bildschirm.
    Abstand Karte → KW-Leiste = Abstand KW-Leiste → Tab-Leiste (je 16px). */
 .rb-top { display: flex; flex-direction: column; min-height: 420px; padding-bottom: 12px;
-  height: calc(var(--vh, 100vh) - var(--sat) - 16px - var(--tab-bottom, 8px) - 66px); }
+  height: calc(var(--vh, 100vh) - var(--sat) - 44px - var(--tab-bottom, 8px) - 66px); }
 .rb-top .top { flex: none; }
 .rb-top .charts { flex: 1; min-height: 0; margin: 0; display: flex; flex-direction: column; gap: 10px; overflow: hidden; }
 .rb-top .chart { flex: 1; min-height: 0; display: flex; flex-direction: column; }
@@ -1075,26 +1075,18 @@ body { min-height: calc(100vh + 1px); min-height: calc(100lvh + 1px); }
 }
 
 /* Kompakte Navigationsleiste (erscheint, wenn der Large Title aus dem Bild scrollt) */
-/* Navigationsleiste wie in iOS 26. Drei getrennte Ebenen, damit Text auf dem iPhone scharf bleibt:
-   #navglass – nur der Scroll-Rand (weicher Übergang + leichtes Glas), ohne jeden Text
-   #navbar   – Zurück-Knopf (Glas als ::before) und Titel; der Titel wird nur über die Textfarbe eingeblendet.
-   Nie opacity oder backdrop-filter auf einem Element, das selbst Text enthält. */
-#navglass {
-  position: fixed; top: 0; left: 0; right: 0; z-index: 29; pointer-events: none;
-  height: calc(var(--sat) + 60px);
-  background: linear-gradient(to bottom, var(--bg) 0%, color-mix(in srgb, var(--bg) 88%, transparent) 62%, transparent 100%);
-  -webkit-mask-image: linear-gradient(to bottom, #000 60%, transparent);
-  mask-image: linear-gradient(to bottom, #000 60%, transparent);
-  -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
-  visibility: hidden;
-}
-body.scrolled #navglass { visibility: visible; }
+/* Navigationsleiste. Sie hat bewusst eine DECKENDE Hintergrundfarbe: Ist ein fest stehendes Element am oberen
+   Rand durchsichtig, legt Safari ab iOS 26 einen eigenen Weichzeichner über den oberen Bereich – Titel und Pfeil
+   wirkten dadurch verschwommen. Mit Hintergrundfarbe färbt Safari den Rand nur ein und alles bleibt scharf. */
 #navbar {
-  position: fixed; top: 0; left: 0; right: 0; z-index: 36;
+  position: fixed; top: 0; left: 0; right: 0; z-index: 34;
   height: calc(var(--sat) + 44px); padding: var(--sat) 64px 0;
   display: flex; align-items: center; justify-content: center;
+  background-color: var(--bg);
+  border-bottom: 0.5px solid transparent; transition: border-color 0.2s;
   pointer-events: none;
 }
+body.scrolled #navbar { border-bottom-color: color-mix(in srgb, var(--text) 14%, transparent); }
 .nb-title {
   font-size: 1.0625rem; font-weight: 600; letter-spacing: -0.0253em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   color: transparent; transition: color 0.2s ease-out; cursor: default;
@@ -1107,19 +1099,18 @@ body.scrolled #navglass { visibility: visible; }
 .nb-back[hidden] { display: none; }
 .nb-back svg { position: relative; z-index: 1; margin-left: -2px; }
 .nb-back::before { content: ''; position: absolute; inset: 0; border-radius: inherit; }
-body.scrolled .nb-back::before, body.cook-on .nb-back::before { /* Glas erst, wenn Inhalt darunter liegt */
+.nb-back::before {
   background: var(--glass-tint); -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur);
   box-shadow: var(--glass-rim), var(--glass-shadow);
 }
 .nb-back:active::before { transform: scale(0.9); }
 .nb-back::before { transition: transform 0.35s var(--spring); }
-/* Pfeil aus dem Seitenkopf sitzt jetzt in der Leiste: Kopf rückt an die Leiste heran */
-.top .back.moved { visibility: hidden; }
-body.has-back .view { padding-top: var(--sat); }
-body.has-back .top:has(.back.moved) { margin-top: 0; }
-body.has-back .top.col:has(.back.moved) { gap: 2px; }
+/* Der Pfeil aus dem Seitenkopf sitzt jetzt in der Leiste */
+.top .back.moved { display: none; }
+.top:not(.col):has(> .back.moved) { justify-content: flex-end; }
+body.no-nav #navbar { display: none; }
 .card.sticky { top: calc(var(--sat) + 52px); }
-@media (prefers-reduced-motion: reduce) { .nb-title, .nb-back::before { transition: none; } }
+@media (prefers-reduced-motion: reduce) { .nb-title, .nb-back::before, #navbar { transition: none; } }
 
 /* Bedienungshilfen: „Kontrast erhöhen“ */
 @media (prefers-contrast: more) {
@@ -1226,3 +1217,78 @@ body.no-numbers .hero-top { justify-content: flex-end; }
   .tab.active img { animation: none; }
   .btn:active, .pill:active, .chip.add:active, .tab:active img { transform: none; }
 }
+
+/* --- Seitenwechsel wie in iOS (View Transitions, Safari ab iOS 18) ----------------------------------------
+   Verglichen wird nur das sichtbare Bild (root). Leisten haben eigene Namen und bleiben stehen.
+   push: neue Seite schiebt sich von rechts über die alte, die alte weicht ein Stück nach links und dunkelt ab.
+   pop:  umgekehrt – die obere Seite gleitet nach rechts weg und gibt die vorige frei. */
+.tabbar { view-transition-name: tabbar; }
+#navbar { view-transition-name: navbar; }
+#cook-resume { view-transition-name: cookresume; }
+::view-transition-group(root) { animation: none; }
+html[data-nav]::view-transition-old(root),
+html[data-nav]::view-transition-new(root) {
+  mix-blend-mode: normal; animation-duration: 0.48s; animation-timing-function: cubic-bezier(0.32, 0.72, 0, 1); animation-fill-mode: both;
+}
+html[data-nav='push']::view-transition-old(root) { animation-name: vtBehindOut; }
+html[data-nav='push']::view-transition-new(root) { animation-name: vtSlideIn; box-shadow: -10px 0 30px rgba(0, 0, 0, 0.12); }
+html[data-nav='pop']::view-transition-old(root) { animation-name: vtSlideOut; z-index: 2; box-shadow: -10px 0 30px rgba(0, 0, 0, 0.12); }
+html[data-nav='pop']::view-transition-new(root) { animation-name: vtBehindIn; }
+@keyframes vtSlideIn { from { transform: translateX(100%); } }
+@keyframes vtSlideOut { to { transform: translateX(100%); } }
+@keyframes vtBehindOut { to { transform: translateX(-30%); filter: brightness(0.94); } }
+@keyframes vtBehindIn { from { transform: translateX(-30%); filter: brightness(0.94); } }
+html[data-nav]::view-transition-old(navbar), html[data-nav]::view-transition-new(navbar) { animation-duration: 0.3s; }
+
+/* --- Liquid Glass an weiteren Stellen ------------------------------------------------------------------------
+   Schwebende Bedienelemente (Glas als Ebene hinter dem Inhalt): runde Knöpfe, Timer, „Weiter kochen“, Hinweise,
+   Kochmodus-Leiste. Knöpfe in Karten bekommen den Glas-Look ohne Weichzeichner (Lichtkante + Verlauf). */
+.round-btn, .fav-btn, .timer, .toast {
+  background: color-mix(in srgb, var(--card) 70%, transparent) linear-gradient(180deg, rgba(255, 255, 255, 0.45), rgba(255, 255, 255, 0) 70%);
+  border-color: transparent;
+  box-shadow: var(--glass-rim), 0 4px 14px rgba(0, 0, 0, 0.08);
+}
+.timer { position: relative; isolation: isolate; }
+.timer::before, .toast::before {
+  content: ''; position: absolute; inset: 0; border-radius: inherit; z-index: -1; pointer-events: none;
+  -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur);
+}
+#cook-resume {
+  background: color-mix(in srgb, var(--accent) 88%, transparent) linear-gradient(180deg, rgba(255, 255, 255, 0.3), rgba(255, 255, 255, 0) 65%);
+  box-shadow: inset 0 0.5px 0 rgba(255, 255, 255, 0.7), inset 0 0 0 0.5px rgba(255, 255, 255, 0.18), 0 8px 24px color-mix(in srgb, var(--accent) 35%, transparent);
+}
+/* Prominente Knöpfe: getöntes Glas (Lichtkante oben, leichter Verlauf) */
+.btn.primary, .seg .pill.on, .pill.on, .chip.on {
+  background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.22), rgba(255, 255, 255, 0) 60%);
+  box-shadow: inset 0 0.5px 0 rgba(255, 255, 255, 0.55), 0 3px 10px color-mix(in srgb, var(--accent) 28%, transparent);
+}
+/* Normale Knöpfe & Pillen: helles Glas */
+.btn:not(.primary):not(.link), .seg .pill:not(.on) {
+  background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.5), rgba(255, 255, 255, 0) 70%);
+  box-shadow: inset 0 0.5px 0 rgba(255, 255, 255, 0.8), inset 0 0 0 0.5px rgba(0, 0, 0, 0.05);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) .btn:not(.primary):not(.link), :root:not([data-theme='light']) .seg .pill:not(.on),
+  :root:not([data-theme='light']) .round-btn, :root:not([data-theme='light']) .fav-btn, :root:not([data-theme='light']) .timer, :root:not([data-theme='light']) .toast {
+    background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0) 70%);
+    box-shadow: inset 0 0.5px 0 rgba(255, 255, 255, 0.16), inset 0 0 0 0.5px rgba(255, 255, 255, 0.06);
+  }
+}
+:root[data-theme='dark'] .btn:not(.primary):not(.link), :root[data-theme='dark'] .seg .pill:not(.on),
+:root[data-theme='dark'] .round-btn, :root[data-theme='dark'] .fav-btn, :root[data-theme='dark'] .timer, :root[data-theme='dark'] .toast {
+  background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0) 70%);
+  box-shadow: inset 0 0.5px 0 rgba(255, 255, 255, 0.16), inset 0 0 0 0.5px rgba(255, 255, 255, 0.06);
+}
+/* Kochmodus-Leiste unten schwebt als Glas */
+body.cook-on .cook-actions { padding: 10px; border-radius: 28px; }
+body.cook-on .cook-actions::before {
+  content: ''; position: absolute; inset: 0; border-radius: inherit; z-index: -1; pointer-events: none;
+  background: var(--glass-tint); -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur);
+  box-shadow: var(--glass-rim), var(--glass-shadow);
+}
+@media (prefers-reduced-transparency: reduce) {
+  .timer::before, .toast::before, body.cook-on .cook-actions::before { -webkit-backdrop-filter: none; backdrop-filter: none; }
+}
+.shop .shop-sub { list-style: none; margin: 14px 0 2px; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.02em; color: var(--muted); }
+/* Kopfzeile, in der nur der (jetzt in die Leiste gewanderte) Pfeil stand, fällt weg */
+.top.col:not(:has(> :not(.back.moved))) { display: none; }

@@ -162,7 +162,7 @@ async function init() {
     S.offers = null; // dann gelten Richtpreise
   }
   timers = new TimerManager((tickOnly) => (tickOnly ? updateTimerDock() : renderTimerDock()));
-  window.addEventListener('hashchange', render);
+  window.addEventListener('hashchange', onRouteChange);
   document.addEventListener('click', onClick);
   document.addEventListener('change', onChange);
   document.addEventListener('input', onInput);
@@ -702,6 +702,36 @@ function route() {
 
 let lastRoute = '';
 let lastDepth = 0;
+let navTransition = false;
+const tabFor = (r) =>
+  ({ einkauf: 'einkauf', rueckblick: 'rueckblick', planen: 'rueckblick', einstellungen: 'einstellungen', rezepte: 'rezepte', bearbeiten: 'rezepte' })[r.name] ||
+  (r.name === 'rezept' ? (S.ui.recipeFrom === 'einkauf' ? 'einkauf' : 'rezepte') : 'woche');
+
+/**
+ * Seitenwechsel per Link/Zurück. Tiefer oder zurück im selben Tab: echter iOS-Übergang mit der View-Transitions-
+ * Technik (Safari ab iOS 18) – die alte Seite schiebt sich sichtbar weg, die neue kommt darüber bzw. darunter
+ * hervor; Tab-Leiste und Navigationsleiste bleiben stehen. Ohne diese Technik: CSS-Animation in render().
+ */
+function onRouteChange() {
+  const r = route();
+  const depth = routeDepth(r);
+  const kind = tabFor(r) !== lastTab || r.name === 'kochen' || lastTab === '' || depth === lastDepth ? null : depth > lastDepth ? 'push' : 'pop';
+  if (!kind || !document.startViewTransition || reducedMotion() || navTransition) return render();
+  navTransition = true;
+  document.documentElement.dataset.nav = kind;
+  let vt;
+  try {
+    vt = document.startViewTransition(() => render());
+  } catch {
+    navTransition = false;
+    delete document.documentElement.dataset.nav;
+    return render();
+  }
+  vt.finished.finally(() => {
+    navTransition = false;
+    delete document.documentElement.dataset.nav;
+  });
+}
 let lastTab = '';
 /** Wie tief liegt eine Seite? 0 = Tab-Übersicht, 1 = Detail, 2 = Detail im Detail – für Push/Pop wie in iOS */
 function routeDepth(r) {
@@ -747,9 +777,7 @@ function render() {
     bearbeiten: viewEdit,
   };
   const fn = views[r.name] || viewWeek;
-  const tab =
-    { einkauf: 'einkauf', rueckblick: 'rueckblick', planen: 'rueckblick', einstellungen: 'einstellungen', rezepte: 'rezepte', bearbeiten: 'rezepte' }[r.name] ||
-    (r.name === 'rezept' ? (S.ui.recipeFrom === 'einkauf' ? 'einkauf' : 'rezepte') : 'woche');
+  const tab = tabFor(r);
   // Hülle nur einmal bauen, damit die Tab-Leiste weich animieren kann
   if (!document.getElementById('view')) {
     app.innerHTML = `
@@ -771,7 +799,7 @@ function render() {
   // Übergänge wie in iOS: tiefer = von rechts hereinschieben, zurück = von links, Tab-Wechsel = Überblenden.
   // Der Kochmodus hat fest positionierte Bedienelemente in der Seite und blendet deshalb nur über.
   const depth = routeDepth(r);
-  if (changed && !sameView) {
+  if (changed && !sameView && !navTransition) {
     const kind = tab !== lastTab || r.name === 'kochen' || lastTab === '' || depth === lastDepth ? 'enter' : depth > lastDepth ? 'push' : 'pop';
     view.classList.remove('enter', 'push', 'pop');
     void view.offsetWidth; // Animation neu starten
@@ -828,17 +856,13 @@ let navObs = null;
 /**
  * Navigationsleiste wie in iOS: Der Zurück-Pfeil sitzt fest oben und bleibt beim Scrollen erreichbar, der kleine
  * Titel erscheint, sobald die große Überschrift nach oben verschwunden ist.
- * Wichtig für die Schärfe auf dem iPhone: Glas (backdrop-filter) und Text liegen in GETRENNTEN Elementen, und der
- * Titel wird nur über die Textfarbe eingeblendet – nie über opacity. Text in einer per opacity animierten oder
- * weichgezeichneten Ebene rendert iOS-Safari sonst unscharf.
+ * Wichtig für die Schärfe auf dem iPhone (iOS 26): Die Leiste hat eine ECHTE Hintergrundfarbe. Ist ein fest
+ * stehendes Element am oberen Rand durchsichtig, legt Safari seinen eigenen Weichzeichner („Scroll-Edge-Effekt“)
+ * über den oberen Bereich – samt Titel und Pfeil. Der Titel wird nur über die Textfarbe eingeblendet.
  */
 function setupNavbar(name) {
   let bar = document.getElementById('navbar');
   if (!bar) {
-    const glass = document.createElement('div');
-    glass.id = 'navglass';
-    glass.setAttribute('aria-hidden', 'true');
-    document.body.appendChild(glass);
     bar = document.createElement('div');
     bar.id = 'navbar';
     bar.innerHTML = `<a class="nb-back" hidden>${CHEVRON_LEFT}</a><span class="nb-title" aria-hidden="true"></span>`;
@@ -2094,7 +2118,10 @@ function viewShopping() {
       `${packText(it).replace(/(\d) g\b/g, '$1g').replace(/(\d) Liter\b/, '$1L')} · benötigt ${g_(it.need)}${it.have ? ` (davon ${g_(it.have)} Rest)` : ''}${it.offer ? ` · <span class="badge offer">Angebot${it.offerTitle ? ': ' + e(it.offerTitle) : ''}</span>` : ''}${it.note ? ` · ${e(it.note)}` : ''}${it.elsewhere ? ` · nur bei ${e(STORES[it.store]?.short || it.store)} erhältlich` : ''}`,
       it.useRefs || []
     );
-  const staples = sh.staples.map((s) => row('staple:' + s.id, s.name, '', g_(s.g), s.useRefs || [])).join('');
+  // Vorrat: erst Öl, Brühe & Co., dann die einzelnen Gewürze (statt nur „Gewürze“)
+  const staplesPlain = sh.staples.filter((s) => !s.spice).map((s) => row('staple:' + s.id, s.name, '', g_(s.g), s.useRefs || [])).join('');
+  const spiceRows = sh.staples.filter((s) => s.spice).map((s) => row('staple:' + s.id, s.name, '', '', s.useRefs || [])).join('');
+  const staples = staplesPlain + (spiceRows ? `<li class="shop-sub">Gewürze</li>${spiceRows}` : '');
   // Bei zwei Einkäufen: erst alles für Montag, dann das Frische für Donnerstag
   const trips = [...new Set(toBuy.map((i) => i.trip || 1))].sort();
   const twoTrips = trips.includes(1) && trips.includes(2);
@@ -2771,9 +2798,9 @@ function dietSentence(st) {
   const diet = { pescetarisch: 'ohne Fleisch', vegetarisch: 'vegetarisch', vegan: 'vegan' }[st.diet];
   const al = (st.allergies || []).map((a) => ALLERGENS.find((x) => x[0] === a)?.[1] || a);
   const extra = [st.profile?.pregnant && 'passend zur Schwangerschaft', st.carbSpread && 'mit verteilten Kohlenhydraten', st.fasting && 'mit Essen nur vor Sonnenaufgang und abends'].filter(Boolean);
-  if (!diet && !al.length && !extra.length) return 'Mise plant alles ein – ohne Einschränkungen.';
+  if (!diet && !al.length && !extra.length) return 'Mise plant <b>alles</b> ein – ohne Einschränkungen.';
   const parts = [diet, al.length && `ohne ${joinDe(al)}`, ...extra].filter(Boolean);
-  return `Mise plant ${parts.join(', ')}.`;
+  return `Mise plant <b>${e(parts.join(', '))}</b>.`;
 }
 
 function settingsSections(st) {
@@ -2847,8 +2874,8 @@ function settingsPage(id, st) {
       const how = { abnehmen: 'etwas weniger, als du verbrauchst, mit viel Protein, damit die Muskeln bleiben', halten: 'so viel, wie du verbrauchst', aufbauen: 'etwas mehr, als du verbrauchst, mit viel Protein für den Muskelaufbau' }[goal];
       return {
         explain: hide
-          ? `Dein Ziel: ${GOALS.find((g) => g[0] === goal)?.[1]}. Mise plant jeden Tag ${how}.`
-          : `Mise plant jeden Tag rund <b>${num(st.goals.kcal)} kcal</b> und <b>${st.goals.protein} g Protein</b> – ${how}.`,
+          ? `Dein Ziel: <b>${GOALS.find((g) => g[0] === goal)?.[1]}</b>. Mise plant jeden Tag <b>${how}</b>.`
+          : `Mise plant jeden Tag rund <b>${num(st.goals.kcal)} kcal</b> und <b>${st.goals.protein} g Protein</b> – <b>${how}</b>.`,
         html: card(`${goalSeg()}
           ${hide ? '' : `<div class="grid2">
             ${field('goals.kcal', 'Kalorien (kcal)', 'step="50"')}
@@ -2873,22 +2900,22 @@ function settingsPage(id, st) {
       const days = eatOutDays(st.eatOut);
       return {
         explain: days.length
-          ? `${days.length === 7 ? 'Du isst jeden Abend auswärts.' : `Am ${joinDe(days.map((d) => DAY_NAMES[d]))} isst du abends auswärts.`} Mise kocht dann nicht${hide ? '' : ` und rechnet dafür ca. ${num(st.eatOutKcal)} kcal ein`}.`
-          : 'Mise plant jeden Abend zu Hause. Tippe die Tage an, an denen du abends meist auswärts isst.',
+          ? `${days.length === 7 ? 'Du isst <b>jeden Abend</b> auswärts.' : `Am <b>${joinDe(days.map((d) => DAY_NAMES[d]))}</b> isst du abends auswärts.`} Mise kocht dann nicht${hide ? '' : ` und rechnet dafür ca. <b>${num(st.eatOutKcal)} kcal</b> ein`}.`
+          : 'Mise plant <b>jeden Abend zu Hause</b>. Tippe die Tage an, an denen du abends meist auswärts isst.',
         html: card(`${dayPills(days, 'eatout-day')}<p class="hint">Für eine einzelne Woche änderst du das im Rückblick.</p>`),
       };
     }
     case 'gerichte': {
       const fix = nearest(DISHES, st.sliders.dishes) === 90;
       const prep = {
-        95: `Mise wählt vor allem Gerichte, die in höchstens 15 Minuten fertig sind${fix ? ', mit wenig Abwasch' : ''}.`,
-        60: `Mise wählt vor allem Gerichte, die in 15 bis 30 Minuten fertig sind${fix ? ', mit wenig Abwasch' : ''}.`,
-        20: `Mise wählt auch Gerichte, die länger als 30 Minuten brauchen${fix ? ', aber mit wenig Abwasch' : ''}.`,
+        95: `Mise wählt vor allem Gerichte, die in <b>höchstens 15 Minuten</b> fertig sind${fix ? ', mit <b>wenig Abwasch</b>' : ''}.`,
+        60: `Mise wählt vor allem Gerichte, die in <b>15 bis 30 Minuten</b> fertig sind${fix ? ', mit <b>wenig Abwasch</b>' : ''}.`,
+        20: `Mise wählt auch Gerichte, die <b>länger als 30 Minuten</b> brauchen${fix ? ', aber mit <b>wenig Abwasch</b>' : ''}.`,
       }[nearest(PREP, st.sliders.simple)];
       const n = Math.max(0, Number(st.complexPerWeek) || 0);
-      const complex = n === 0 ? 'Aufwendige Gerichte plant Mise keine.' : n === 1 ? 'Dazu kommt höchstens ein aufwendiges Gericht pro Woche.' : `Dazu kommen höchstens ${n} aufwendige Gerichte pro Woche.`;
+      const complex = n === 0 ? 'Aufwendige Gerichte plant Mise <b>keine</b>.' : n === 1 ? 'Dazu kommt höchstens <b>ein aufwendiges Gericht</b> pro Woche.' : `Dazu kommen höchstens <b>${n} aufwendige Gerichte</b> pro Woche.`;
       return {
-        explain: `${prep} ${complex}${st.dislikes.length ? ` Nie dabei: ${e(joinDe(st.dislikes))}.` : ''}`,
+        explain: `${prep} ${complex}${st.dislikes.length ? ` Nie dabei: <b>${e(joinDe(st.dislikes))}</b>.` : ''}`,
         html: card(`<div class="field">Zubereitung${seg(PREP, 'simple')}</div>
           <div class="field">Abwasch${seg(DISHES, 'dishes')}</div>
           ${field('complexPerWeek', 'Aufwendige Gerichte pro Woche', 'min="0" max="3"')}`) +
@@ -2902,8 +2929,8 @@ function settingsPage(id, st) {
       const ready = READY.filter(([k]) => st.readyMeals?.[k] !== false);
       return {
         explain: ready.length
-          ? 'Fertiggerichte kommen nur in den Plan, wenn sie im Angebot sind oder noch im Vorrat liegen. Der Rest des Tages gleicht die Nährwerte aus.'
-          : 'Mise plant gerade ohne Fertiggerichte – alles wird frisch gekocht.',
+          ? `Erlaubt: <b>${e(joinDe(ready.map((x) => x[1])))}</b>. Sie kommen nur in den Plan, wenn sie im Angebot sind oder noch im Vorrat liegen. Der Rest des Tages gleicht die Nährwerte aus.`
+          : 'Mise plant gerade <b>ohne Fertiggerichte</b> – alles wird frisch gekocht.',
         html: card(READY.map(([k, label, sub]) => `<label class="toggle-row"><span><b>${label}</b><small>${sub}</small></span><span class="switch"><input type="checkbox" data-set="readyMeals.${k}" ${st.readyMeals?.[k] !== false ? 'checked' : ''}><i></i></span></label>`).join('')),
       };
     }
@@ -2911,7 +2938,7 @@ function settingsPage(id, st) {
       const on = storeOrder(st).filter((x) => st.stores[x]);
       return {
         explain: on.length
-          ? `Mise kauft bei <b>${e(storeLabel(on[0]))}</b>. Ein anderer eingeschalteter Laden kommt nur dran, wenn er mindestens 10 % günstiger ist oder den Artikel allein führt.`
+          ? `Mise kauft bei <b>${e(storeLabel(on[0]))}</b>.${on.length > 1 ? ` Daneben: <b>${e(joinDe(on.slice(1).map(storeLabel)))}</b> – ein anderer Laden kommt aber nur dran,` : ' Ein anderer Laden käme nur dran,'} wenn er mindestens 10 % günstiger ist oder den Artikel allein führt.`
           : 'Schalte mindestens einen Laden ein, damit Mise Preise und Einkaufsliste berechnen kann.',
         html: card(`<ul class="store-sort" data-sortable="stores">${storeOrder(st)
           .map(
@@ -2925,7 +2952,7 @@ function settingsPage(id, st) {
     case 'budget': {
       const plan = S.plans[currentWeek()];
       return {
-        explain: `Mise plant mit <b>${euro(st.budget)} pro Woche</b>${people > 1 ? ` und kauft abends für ${people} Personen ein – deine Portion bleibt gleich` : ''}.`,
+        explain: `Mise plant mit <b>${euro(st.budget)} pro Woche</b>${people > 1 ? ` und kauft abends für <b>${people} Personen</b> ein – deine Portion bleibt gleich` : ''}${st.studi ? ' – im <b>Studi-Modus</b>' : ''}.`,
         html: `${minBudgetHint(st)}` +
           card(`${householdField(st, false)}
           <label class="field">Wochenbudget<span class="unit-input"><input type="number" inputmode="numeric" step="1" data-set="budget" value="${st.budget}"><i>€</i></span></label>
@@ -2944,8 +2971,8 @@ function settingsPage(id, st) {
       const q = store.get('shareQueue', []).length;
       return {
         explain: st.shareToken
-          ? `Neue Rezepte landen in der gemeinsamen Sammlung und erscheinen nach ein paar Minuten auf allen Geräten.${q ? ` ${q} Rezept(e) warten auf Internet.` : ''}`
-          : 'Neue Rezepte bleiben gerade nur auf diesem Gerät. Mit dem Freigabe-Schlüssel erscheinen sie auf allen Geräten.',
+          ? `Teilen ist <b>an</b>: Neue Rezepte landen in der gemeinsamen Sammlung und erscheinen nach ein paar Minuten auf allen Geräten.${q ? ` ${q} Rezept(e) warten auf Internet.` : ''}`
+          : 'Neue Rezepte bleiben gerade <b>nur auf diesem Gerät</b>. Mit dem Freigabe-Schlüssel erscheinen sie auf allen Geräten.',
         html: card(`${keyField('Freigabe-Schlüssel', 'shareToken', 'github_pat_…')}
           ${st.shareToken ? `<button class="btn small pill" data-action="share-invite">Einladungslink für ein anderes Gerät</button>` : ''}`),
       };
@@ -2953,13 +2980,13 @@ function settingsPage(id, st) {
     case 'ki':
       return {
         explain: st.aiKey
-          ? 'Mise erfindet jeden Montag ein neues Gericht für deinen Plan – und wenn du ↻ tippst oder nur einen Titel einträgst. Kosten: ca. 3–5 Cent pro Rezept.'
-          : 'Mise schlägt gerade nur Rezepte aus der Sammlung vor. Mit einem eigenen Claude-API-Schlüssel erfindet Mise neue (ca. 3–5 Cent pro Rezept).',
+          ? 'KI-Rezepte sind <b>an</b>: Mise erfindet jeden Montag ein neues Gericht für deinen Plan – und wenn du ↻ tippst oder nur einen Titel einträgst. Kosten: ca. 3–5 Cent pro Rezept.'
+          : 'Mise schlägt gerade <b>nur Rezepte aus der Sammlung</b> vor. Mit einem eigenen Claude-API-Schlüssel erfindet Mise neue (ca. 3–5 Cent pro Rezept).',
         html: card(`${keyField('API-Schlüssel', 'aiKey', 'sk-ant-…')}<p class="hint">Der Schlüssel bleibt nur auf diesem Gerät. Erstellen: console.anthropic.com → API Keys.</p>`),
       };
     case 'sicherung':
       return {
-        explain: `Mise sichert jeden Tag automatisch auf diesem Gerät (14 Tage). ${S.snapshots.length ? `Zuletzt: ${fmtDateTime(S.snapshots[0].savedAt)}.` : 'Die erste Sicherung entsteht heute.'} Für ein neues Handy: einmal pro Woche in iCloud sichern.`,
+        explain: `Mise sichert jeden Tag automatisch auf diesem Gerät (14 Tage). ${S.snapshots.length ? `Zuletzt: <b>${fmtDateTime(S.snapshots[0].savedAt)}</b>.` : 'Die erste Sicherung entsteht <b>heute</b>.'} Für ein neues Handy: einmal pro Woche in iCloud sichern.`,
         html:
           (S.snapshots.length
             ? card(`<div class="field">Automatische Sicherung<div class="snap-row"><select id="snap-pick">${S.snapshots.map((x) => `<option value="${x.day}">${fmtDateTime(x.savedAt)}</option>`).join('')}</select><button class="btn pill" data-action="snap-restore">Wiederherstellen</button></div></div>`)
