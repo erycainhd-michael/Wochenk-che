@@ -329,12 +329,17 @@ input[type='checkbox']:checked::after { content: '✓'; color: var(--accent-text
   /* tief unten wie bei nativen Apps: halb im Bereich des Home-Indikators.
      --tab-bottom wird beim Start einmal gemessen, damit die Leiste beim Scrollen nicht mitwandert */
   bottom: var(--tab-bottom, max(8px, calc(var(--sab) - 14px)));
-  transform: translate3d(0, 0, 0); will-change: transform;
+  transform: translate3d(0, 0, 0);
   max-width: 648px; margin: 0 auto;
   display: grid; grid-template-columns: repeat(5, 1fr);
-  background: var(--tabbar); border: 1px solid var(--line); border-radius: 999px; box-shadow: var(--shadow);
+  border-radius: 999px;
 }
-.tab { position: relative; display: flex; align-items: center; justify-content: center; height: 64px; }
+.tabbar::before {
+  content: ''; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
+  background: var(--glass-tint); -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur);
+  box-shadow: var(--glass-rim), var(--glass-shadow);
+}
+.tab { position: relative; z-index: 1; display: flex; align-items: center; justify-content: center; height: 64px; }
 .tab img {
   width: 44px; height: 44px; border-radius: 12px; display: block;
   /* nicht gewählt: graustufig, etwas kleiner und heller */
@@ -1070,29 +1075,51 @@ body { min-height: calc(100vh + 1px); min-height: calc(100lvh + 1px); }
 }
 
 /* Kompakte Navigationsleiste (erscheint, wenn der Large Title aus dem Bild scrollt) */
-/* Kompakte Leiste beim Scrollen. Wichtig für iOS-Safari: Ein unsichtbares Element (opacity: 0) mit backdrop-filter
-   zeichnet dort trotzdem weich – alles im oberen Streifen wirkte verschwommen. Darum gibt es den Weichzeichner nur,
-   solange die Leiste sichtbar ist, und versteckt ist sie mit visibility: hidden (wird gar nicht gezeichnet).
-   Das Milchglas liegt als eigene Ebene hinter dem Titel (::before), damit der Titel selbst scharf bleibt. */
+/* Navigationsleiste wie in iOS 26. Drei getrennte Ebenen, damit Text auf dem iPhone scharf bleibt:
+   #navglass – nur der Scroll-Rand (weicher Übergang + leichtes Glas), ohne jeden Text
+   #navbar   – Zurück-Knopf (Glas als ::before) und Titel; der Titel wird nur über die Textfarbe eingeblendet.
+   Nie opacity oder backdrop-filter auf einem Element, das selbst Text enthält. */
+#navglass {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 29; pointer-events: none;
+  height: calc(var(--sat) + 60px);
+  background: linear-gradient(to bottom, var(--bg) 0%, color-mix(in srgb, var(--bg) 88%, transparent) 62%, transparent 100%);
+  -webkit-mask-image: linear-gradient(to bottom, #000 60%, transparent);
+  mask-image: linear-gradient(to bottom, #000 60%, transparent);
+  -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+  visibility: hidden;
+}
+body.scrolled #navglass { visibility: visible; }
 #navbar {
-  position: fixed; top: 0; left: 0; right: 0; z-index: 30; isolation: isolate;
+  position: fixed; top: 0; left: 0; right: 0; z-index: 36;
   height: calc(var(--sat) + 44px); padding: var(--sat) 64px 0;
   display: flex; align-items: center; justify-content: center;
-  pointer-events: none; visibility: hidden; transition: visibility 0s 0.2s;
+  pointer-events: none;
 }
-#navbar::before {
-  content: ''; position: absolute; inset: 0; z-index: -1;
-  background: color-mix(in srgb, var(--bg) 92%, transparent);
-  border-bottom: 0.5px solid color-mix(in srgb, var(--text) 18%, transparent);
-  opacity: 0; transition: opacity 0.2s;
+.nb-title {
+  font-size: 1.0625rem; font-weight: 600; letter-spacing: -0.0253em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  color: transparent; transition: color 0.2s ease-out; cursor: default;
 }
-#navbar span { font-size: 1.0625rem; font-weight: 600; letter-spacing: -0.0253em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; opacity: 0; transition: opacity 0.2s; }
-#navbar.show { pointer-events: auto; visibility: visible; transition: none; }
-#navbar.show::before { -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px); }
-#navbar.show::before, #navbar.show span { opacity: 1; }
+#navbar.show .nb-title { color: var(--text); pointer-events: auto; cursor: pointer; }
+.nb-back {
+  position: absolute; left: 12px; top: var(--sat); width: 44px; height: 44px; border-radius: 50%;
+  display: grid; place-items: center; color: var(--text); pointer-events: auto;
+}
+.nb-back[hidden] { display: none; }
+.nb-back svg { position: relative; z-index: 1; margin-left: -2px; }
+.nb-back::before { content: ''; position: absolute; inset: 0; border-radius: inherit; }
+body.scrolled .nb-back::before, body.cook-on .nb-back::before { /* Glas erst, wenn Inhalt darunter liegt */
+  background: var(--glass-tint); -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur);
+  box-shadow: var(--glass-rim), var(--glass-shadow);
+}
+.nb-back:active::before { transform: scale(0.9); }
+.nb-back::before { transition: transform 0.35s var(--spring); }
+/* Pfeil aus dem Seitenkopf sitzt jetzt in der Leiste: Kopf rückt an die Leiste heran */
+.top .back.moved { visibility: hidden; }
+body.has-back .view { padding-top: var(--sat); }
+body.has-back .top:has(.back.moved) { margin-top: 0; }
+body.has-back .top.col:has(.back.moved) { gap: 2px; }
 .card.sticky { top: calc(var(--sat) + 52px); }
-body.cook-on #navbar { display: none; }
-@media (prefers-reduced-motion: reduce) { #navbar::before, #navbar span { transition: none; } }
+@media (prefers-reduced-motion: reduce) { .nb-title, .nb-back::before { transition: none; } }
 
 /* Bedienungshilfen: „Kontrast erhöhen“ */
 @media (prefers-contrast: more) {
@@ -1152,3 +1179,50 @@ body.no-numbers .hero-top { justify-content: flex-end; }
 .danger-list button { color: var(--ring); min-height: 48px; padding: 8px 16px; display: flex; align-items: center; }
 .set-page .seg .pill { white-space: nowrap; padding: 0 8px; }
 .set-page .add-row input { margin: 0; }
+
+/* --- Liquid Glass (Apple, iOS 26) -------------------------------------------------------------------------
+   Durchscheinend, hell gebrochen, mit Lichtkante oben. Immer als eigene Ebene (::before) hinter dem Inhalt. */
+:root {
+  --glass-tint: color-mix(in srgb, var(--card) 62%, transparent) linear-gradient(180deg, rgba(255, 255, 255, 0.32), rgba(255, 255, 255, 0) 60%);
+  --glass-blur: blur(18px) saturate(1.9);
+  --glass-rim: inset 0 0.5px 0 rgba(255, 255, 255, 0.9), inset 0 0 0 0.5px rgba(0, 0, 0, 0.06), inset 0 -0.5px 0 rgba(255, 255, 255, 0.35);
+  --glass-shadow: 0 8px 28px rgba(0, 0, 0, 0.12), 0 1px 3px rgba(0, 0, 0, 0.06);
+  --spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-ios: cubic-bezier(0.32, 0.72, 0, 1);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --glass-tint: color-mix(in srgb, var(--card) 55%, transparent) linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0) 60%);
+    --glass-rim: inset 0 0.5px 0 rgba(255, 255, 255, 0.22), inset 0 0 0 0.5px rgba(255, 255, 255, 0.08);
+    --glass-shadow: 0 8px 28px rgba(0, 0, 0, 0.45);
+  }
+}
+:root[data-theme='dark'] {
+  --glass-tint: color-mix(in srgb, var(--card) 55%, transparent) linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0) 60%);
+  --glass-rim: inset 0 0.5px 0 rgba(255, 255, 255, 0.22), inset 0 0 0 0.5px rgba(255, 255, 255, 0.08);
+  --glass-shadow: 0 8px 28px rgba(0, 0, 0, 0.45);
+}
+@media (prefers-reduced-transparency: reduce) {
+  :root { --glass-tint: var(--card); --glass-blur: none; }
+}
+
+/* --- Bewegung wie in iOS ----------------------------------------------------------------------------------
+   Push/Pop: Seiten schieben sich mit der iOS-Kurve herein (schnell los, weich aus). Antippen: kurz eindrücken,
+   beim Loslassen federnd zurück. */
+.view.push { animation: viewPush 0.45s var(--ease-ios); }
+.view.pop { animation: viewPop 0.45s var(--ease-ios); }
+@keyframes viewPush { from { transform: translate3d(40%, 0, 0); opacity: 0; } 55% { opacity: 1; } }
+@keyframes viewPop { from { transform: translate3d(-28%, 0, 0); opacity: 0; } 55% { opacity: 1; } }
+.btn, .pill, .chip.add, .set-list a, .set-list button, .tab img { transition: transform 0.45s var(--spring), background-color 0.2s, border-color 0.2s, opacity 0.2s, filter 0.2s; }
+.btn:active, .pill:active, .chip.add:active { opacity: 1; transform: scale(0.95); transition-duration: 0.1s; }
+.tab:active img { transform: scale(0.88); transition-duration: 0.1s; }
+.tab.active img { animation: tabPop 0.5s var(--spring); }
+@keyframes tabPop { 0% { transform: scale(0.82); } 100% { transform: scale(1); } }
+.switch i::after { transition: transform 0.4s var(--spring), width 0.2s; }
+.switch input:active + i::after { width: 28px; }
+.switch input:checked:active + i::after { transform: translateX(12px); }
+@media (prefers-reduced-motion: reduce) {
+  .view.push, .view.pop { animation: viewFade 0.2s ease-out; }
+  .tab.active img { animation: none; }
+  .btn:active, .pill:active, .chip.add:active, .tab:active img { transform: none; }
+}
