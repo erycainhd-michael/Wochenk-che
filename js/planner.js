@@ -301,7 +301,7 @@ export function buildStructure(ctx, rng, mode = {}) {
     // Abwechslung über Wochen: Gerichte der letzten Woche deutlich seltener, der Vorwoche etwas seltener
     if (ago && inf.weight < 1.3) w *= 1 - variety * (ago === 1 ? 0.92 : 0.5);
     const costRatio = ctx.avgMainCost / Math.max(0.5, inf.cost);
-    w *= Math.pow(costRatio, mode.cheap ? 1.5 + mode.cheap : 0.6);
+    w *= Math.pow(costRatio, mode.cheap ? 2 + mode.cheap : 0.6);
     // gesenktes Protein-Ziel: eiweißärmere Gerichte deutlich bevorzugen
     w *= Math.pow(macroFit(inf.macros, settings.goals), lowProtein(settings.goals) ? 5 : mode.cheap ? 0.6 : 1.6);
     if (lowProtein(settings.goals) && (r.tags || []).includes('eiweissarm')) w *= 8;

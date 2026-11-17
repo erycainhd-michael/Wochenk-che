@@ -14,4 +14,5 @@ jobs:
         with:
           node-version: 22
       - run: node scripts/validate-data.mjs
+      - run: node scripts/audit-recipes.mjs --strict --summary
       - run: node --test "tests/*.test.mjs"
