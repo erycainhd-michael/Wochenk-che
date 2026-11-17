@@ -457,6 +457,9 @@ const daysToEatOut = (days) => days.map((day) => ({ day, slot: 'abend' }));
 const eatOutDays = (list) => [...new Set(list.map((x) => x.day))].sort();
 
 /** Entwurf für die nächste zu planende Woche (Auswärtstage + selbst eingetragene Reste). */
+/** Nicht-da-Tage des Entwurfs (ältere Entwürfe kannten nur einen Starttag: alle Tage davor) */
+const draftOff = (d) => [...new Set([...(d.off || []), ...Array.from({ length: d.start || 0 }, (_, i) => i)])].sort();
+
 function nextDraft() {
   const ws = currentWeek();
   const target = S.plans[ws] ? addDays(ws, 7) : ws;
@@ -552,7 +555,8 @@ async function createPlanFromDraft() {
       busy(null);
     }
   }
-  const plan = await createPlan({ pantry, boost, eatOut: d ? daysToEatOut(d.days) : S.settings.eatOut, start: d?.start || 0 });
+  const off = d ? draftOff(d) : [];
+  const plan = await createPlan({ pantry, boost, eatOut: d ? daysToEatOut(d.days.filter((x) => !off.includes(x))) : S.settings.eatOut, off });
   S.next = null;
   saveNext();
   return plan;
@@ -727,7 +731,7 @@ const IC = {
   list: svgIcon('<path d="M9 6h11M9 12h11M9 18h11"/><circle cx="4.5" cy="6" r=".8" fill="currentColor"/><circle cx="4.5" cy="12" r=".8" fill="currentColor"/><circle cx="4.5" cy="18" r=".8" fill="currentColor"/>', 20),
   grid: svgIcon('<rect x="4" y="4" width="6.5" height="6.5" rx="1.6"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.6"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.6"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.6"/>', 20),
   clock: svgIcon('<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>', 18),
-  dishes: svgIcon('<rect x="3.5" y="12" width="17" height="8" rx="2.5"/><path d="M3.5 15.5h17"/><circle cx="8" cy="7" r="2"/><circle cx="13.5" cy="5.5" r="1.4"/><circle cx="16.5" cy="8.8" r="1.6"/>', 18),
+  dishes: svgIcon('<path d="M2.5 12.5h19M4 12.5v2a5 5 0 0 0 5 5h6a5 5 0 0 0 5-5v-2"/><path d="M9 12.5V6.5a2.5 2.5 0 0 1 5 0v.8"/><path d="M14 9.6c-.6.8-.9 1.3-.9 1.7a.9.9 0 0 0 1.8 0c0-.4-.3-.9-.9-1.7Z" fill="currentColor"/>', 18),
   pot: svgIcon('<path d="M4.5 10h15v6.5a3.5 3.5 0 0 1-3.5 3.5H8a3.5 3.5 0 0 1-3.5-3.5Z"/><path d="M2.5 10h19M9 10V7.5h6V10M10.5 7.5V5.5h3v2"/>'),
   pencil: svgIcon('<path d="M15.5 4.5 19.5 8.5 8.5 19.5H4.5v-4Z"/><path d="m13.5 6.5 4 4"/>', 18),
   tag: svgIcon('<path d="M3.5 12.2V4.5h7.7l9 9-7.7 7.7Z"/><circle cx="8" cy="9" r="1.3"/>'),
@@ -1245,6 +1249,9 @@ function viewStart(stepArg) {
 // Einführung beim ersten Start: eine Frage pro Bildschirm, große Antworten, ein Tipp geht weiter
 // ---------------------------------------------------------------------------
 
+/** Breite eines Zahlenfelds in der Einführung: so breit wie der Inhalt, damit Zahl + Einheit mittig stehen */
+const obWidth = (t) => `${Math.max(2, String(t).length) + 0.3}ch`;
+
 const OB_STEPS = ['welcome', 'name', 'sex', 'age', 'height', 'weight', 'activity', 'goal', 'goalWeight', 'result', 'diet', 'allergies', 'special', 'household', 'budget', 'store', 'eatout', 'ready'];
 const OB_GOAL_TEXT = {
   abnehmen: 'Etwas weniger essen, als du verbrauchst – mit viel Protein für die Muskeln.',
@@ -1273,8 +1280,10 @@ function viewOnboarding() {
     return `<button class="ob-tile ${on ? 'on' : ''}" data-action="ob-pick" data-field="${field}" data-val="${val}" aria-pressed="${!!on}"${extra}><b>${title}</b>${sub ? `<small>${sub}</small>` : ''}</button>`;
   };
   const next = (label = 'Weiter', cls = 'primary') => `<button class="btn ${cls} block ob-next" data-action="ob-go" data-dir="1">${label}</button>`;
-  const numInput = (field, unit, ph, mode = 'numeric') =>
-    `<label class="ob-number"><input type="text" inputmode="${mode}" enterkeyhint="next" data-ob="${field}" value="${e(String(p[field] ?? ''))}" placeholder="${ph}" aria-label="${unit}"><span>${unit}</span></label>`;
+  const numInput = (field, unit, ph, mode = 'numeric', label = unit) => {
+    const v = String(p[field] ?? '');
+    return `<label class="ob-number"><input type="text" inputmode="${mode}" enterkeyhint="next" data-ob="${field}" value="${e(v)}" placeholder="${ph}" aria-label="${label}" style="width:${obWidth(v || ph)}">${unit ? `<span>${unit}</span>` : ''}</label>`;
+  };
   const q = (title, sub = '') => `<h1 class="ob-q">${title}</h1>${sub ? `<p class="ob-sub">${sub}</p>` : ''}`;
   let body = '';
   switch (key) {
@@ -1296,11 +1305,15 @@ function viewOnboarding() {
         <div class="ob-actions">${next()}</div>`;
       break;
     case 'sex':
-      body = `${q(name ? `Schön, dich kennenzulernen, ${e(name)}.` : 'Schön, dich kennenzulernen.', 'Für die Berechnung deines Bedarfs:')}
-        <div class="ob-tiles">${[['w', 'Frau'], ['m', 'Mann'], ['d', 'Divers']].map(([v, l]) => tile('sex', v, l, '', p.sex === v)).join('')}</div>`;
+      body = `${q(name ? `Schön, dich kennenzulernen, ${e(name)}.` : 'Schön, dich kennenzulernen.', 'Dein Energiebedarf hängt auch vom Körper ab. Womit soll Mise rechnen?')}
+        <div class="ob-tiles">${[
+          ['w', 'Weiblich', ''],
+          ['m', 'Männlich', ''],
+          ['d', 'Divers', 'Mise rechnet mit dem Mittelwert'],
+        ].map(([v, l, sub]) => tile('sex', v, l, sub, p.sex === v)).join('')}</div>`;
       break;
     case 'age':
-      body = `${q('Wie alt bist du?')}${numInput('age', 'Jahre', '30')}<div class="ob-actions">${next()}</div>`;
+      body = `${q('Wie alt bist du?')}${numInput('age', '', '30', 'numeric', 'Alter in Jahren')}<div class="ob-actions">${next()}</div>`;
       break;
     case 'height':
       body = `${q('Wie groß bist du?')}${numInput('height', 'cm', '175')}<div class="ob-actions">${next()}</div>`;
@@ -1365,7 +1378,7 @@ function viewOnboarding() {
       body = `${q('Wie viel darf der Einkauf kosten?', 'Pro Woche. Mise plant so günstig wie möglich.')}
         <div class="ob-stepper">
           <button class="ob-step-btn" data-action="ob-budget" data-d="-5" aria-label="5 Euro weniger">−</button>
-          <label class="ob-number"><input type="number" inputmode="numeric" data-set="budget" value="${st.budget}" aria-label="Wochenbudget in Euro"><span>€</span></label>
+          <label class="ob-number"><input type="number" inputmode="numeric" data-set="budget" value="${st.budget}" aria-label="Wochenbudget in Euro" style="width:${obWidth(String(st.budget))}"><span>€</span></label>
           <button class="ob-step-btn" data-action="ob-budget" data-d="5" aria-label="5 Euro mehr">+</button>
         </div>
         <div class="ob-actions">${next()}</div>`;
@@ -1454,6 +1467,8 @@ function obGo(dir, skip = false) {
   haptic();
   render();
   window.scrollTo(0, 0);
+  const v = document.getElementById('view');
+  if (v) v.scrollTop = 0;
   if (to === 'result') obCountUp();
   // Tastatur gleich öffnen (iOS erlaubt das nur direkt in der Reaktion auf den Tipp)
   document.querySelector('.ob-screen input[data-ob], .ob-screen input[data-set="name"]')?.focus();
@@ -2838,13 +2853,13 @@ function viewReview(weekArg) {
   const guesses = leftoverGuesses(draft);
   const guessIds = new Set(guesses.map((x) => x.id));
   const planningCards = `
-    <section class="card"><h2>Ab wann planen?</h2>
-      <p class="sub">Kommst du erst später in der Woche zurück (KW ${isoWeek(draft.week)})? Dann plant Mise erst ab diesem Tag und du kaufst nur für die restlichen Tage ein.</p>
-      <div class="pills days">${DAY_SHORT.map((d, i) => `<button class="pill circle ${(draft.start || 0) === i ? 'on' : ''}" data-action="draft-start" data-day="${i}">${d}</button>`).join('')}</div>
-    </section>
-    <section class="card"><h2>Wann isst du auswärts?</h2>
-      <p class="sub">Tippe die Tage an (KW ${isoWeek(draft.week)}). Sie werden mit ca. ${num(S.settings.eatOutKcal)} kcal eingerechnet; an diesen Tagen wird entsprechend weniger gekocht. Den Standard änderst du in den Einstellungen.</p>
-      ${dayPills(draft.days, 'draft-day')}
+    <section class="card later"><h2>Wann bist du da? <span class="sub">KW ${isoWeek(draft.week)}</span></h2>
+      <p class="sub">Tippe einen Tag an: einmal = abends auswärts, zweimal = nicht da. An Tagen ohne dich plant und kauft Mise nichts.</p>
+      <div class="pills days">${DAY_SHORT.map((d, i) => {
+        const off = draftOff(draft).includes(i);
+        const eat = !off && draft.days.includes(i);
+        return `<button class="pill circle ${off ? 'off' : eat ? 'eat' : ''}" data-action="draft-cycle" data-day="${i}" aria-label="${DAY_NAMES[i]}: ${off ? 'nicht da' : eat ? 'abends auswärts' : 'geplant'}">${eat ? IC.fork : d}</button>`;
+      }).join('')}</div>
     </section>
     <section class="card"><h2>Was ist übrig geblieben?</h2>
       <p class="sub">Trag ein, was noch da ist – Mise plant es in der nächsten Woche ein.</p>
@@ -3485,6 +3500,25 @@ async function onClick(ev) {
       toast(S.settings.studi ? 'Woche im Studi-Modus neu geplant' : 'Woche neu geplant', { icon: S.settings.studi ? '🎓' : '📅', sub: `Einkauf jetzt ${euro(S.plans[currentWeek()].cost)}` });
       return render();
     }
+    case 'draft-cycle': {
+      // gleiche Logik wie „Woche neu planen“: geplant → abends auswärts → nicht da → geplant
+      const d = nextDraft();
+      const day = Number(el.dataset.day);
+      const off = new Set(draftOff(d));
+      const eat = new Set(d.days);
+      if (off.has(day)) off.delete(day);
+      else if (eat.has(day)) {
+        if (off.size >= 6) return toast('Mindestens ein Tag muss geplant werden', { kind: 'warn' });
+        eat.delete(day);
+        off.add(day);
+      } else eat.add(day);
+      d.off = [...off].sort();
+      d.start = 0;
+      d.days = [...eat].sort();
+      saveNext();
+      haptic();
+      return render();
+    }
     case 'draft-start':
       nextDraft().start = Number(el.dataset.day);
       saveNext();
@@ -3668,7 +3702,10 @@ async function onClick(ev) {
       sound.tap();
       haptic();
       const inp = document.querySelector('.ob-stepper input');
-      if (inp) inp.value = S.settings.budget;
+      if (inp) {
+        inp.value = S.settings.budget;
+        inp.style.width = obWidth(S.settings.budget);
+      }
       return;
     }
     case 'ob-pick': {
@@ -4461,6 +4498,7 @@ function onInput(ev) {
     if (b) b.textContent = `+${num(sportKcal(S.ui.sport.type, S.ui.sport.level, S.ui.sport.min, currentKg()))} kcal`;
     return;
   }
+  if (el.closest?.('.ob-number')) el.style.width = obWidth(el.value || el.placeholder);
   if (el.dataset.ob) {
     profDraft()[el.dataset.ob] = el.value.replace(',', '.').trim();
     return;
