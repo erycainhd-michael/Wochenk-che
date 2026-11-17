@@ -1226,7 +1226,7 @@ body:has(.confirm-box) #top-edge { background-color: color-mix(in srgb, var(--bg
 .ob-progress i { display: block; height: 100%; border-radius: inherit; background: var(--accent); transition: width 0.5s var(--ease-ios); }
 .ob-screen { flex: 1; display: flex; flex-direction: column; }
 .ob-screen.fwd { animation: obIn 0.42s var(--ease-ios) both; }
-.ob-screen.back { animation: obBack 0.42s var(--ease-ios) both; }
+.ob-screen.bwd { animation: obBack 0.42s var(--ease-ios) both; }
 @keyframes obIn { from { opacity: 0; transform: translateX(28px); } }
 @keyframes obBack { from { opacity: 0; transform: translateX(-28px); } }
 .ob-screen.shake { animation: obShake 0.4s; }
@@ -1286,20 +1286,12 @@ body:has(.confirm-box) #top-edge { background-color: color-mix(in srgb, var(--bg
 .ob-hero { text-align: center; padding: 6vh 0 0; }
 .ob-hero .welcome-icon { width: 112px; height: 112px; margin-bottom: 26px; }
 .ob-hero .ob-sub { margin-bottom: 0; }
-@media (prefers-reduced-motion: reduce) { .ob-screen.fwd, .ob-screen.back, .ob-screen.shake { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .ob-screen.fwd, .ob-screen.bwd, .ob-screen.shake { animation: none; } }
 .ob-top[hidden] { display: none; }
 
 /* --- Hochwertige Gestaltung ------------------------------------------------------------------------------------
    Schrift: große Überschriften und Kennzahlen in „Fraunces“ (Serifenschrift mit optischen Größen, warm, kulinarisch),
    Fließtext bleibt in der gut lesbaren Sans. Alle Größen in rem – Dynamic Type wirkt weiter. */
-:root { --font-display: 'Fraunces', 'Iowan Old Style', 'Palatino', Georgia, serif; }
-h1, .ob-q, .hero-big, .hero-mid, .ob-kcal b, .ob-macros b, .today-title, .wk-title {
-  font-family: var(--font-display); font-optical-sizing: auto; font-weight: 600; letter-spacing: -0.012em;
-}
-h1 { font-size: 2.1rem; line-height: 1.12; }
-.ob-q { font-weight: 560; }
-.hero-big { font-size: 2.8rem; font-weight: 600; letter-spacing: -0.02em; }
-.hero-mid { font-weight: 600; letter-spacing: -0.01em; }
 /* feine Linien-Icons */
 .ic { display: inline-block; vertical-align: -0.2em; flex: none; }
 .round-btn .ic { width: 20px; height: 20px; color: var(--text); opacity: 0.8; }
@@ -1314,7 +1306,7 @@ h1 { font-size: 2.1rem; line-height: 1.12; }
 /* Wochenseite: persönlicher Kopf */
 .wk-head { margin: 6px 0 16px; }
 .wk-eyebrow { margin: 0 0 4px; font-size: 0.85rem; font-weight: 600; letter-spacing: 0.02em; text-transform: uppercase; color: var(--muted); }
-.wk-title { font-size: 2.1rem; line-height: 1.12; margin: 0; text-wrap: balance; }
+.wk-title { margin: 0; text-wrap: balance; }
 
 /* „Als Nächstes“: großes Bild, Titel in der Display-Schrift, deutlicher Weg ins Rezept */
 .today-card {
@@ -1333,17 +1325,6 @@ h1 { font-size: 2.1rem; line-height: 1.12; }
 .today-title { font-size: 1.3rem; line-height: 1.2; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
 .today-meta { color: var(--muted); font-size: 0.85rem; }
 .today-cta { display: inline-flex; align-items: center; gap: 4px; margin-top: 4px; font-weight: 600; font-size: 0.9rem; color: var(--accent); }
-/* Tag als Zeitleiste */
-.today-line { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 8px; margin: 0 0 18px; position: relative; }
-.tl-step { display: flex; flex-direction: column; gap: 2px; padding: 10px 4px 0; text-decoration: none; color: var(--muted); position: relative; min-width: 0; }
-.tl-step i { position: absolute; top: 0; left: 4px; right: -4px; height: 3px; border-radius: 99px; background: var(--line); }
-.tl-step.done i { background: color-mix(in srgb, var(--accent) 45%, var(--line)); }
-.tl-step.now i { background: var(--accent); }
-.tl-step span { font-size: 0.72rem; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; }
-.tl-step b { font-size: 0.85rem; font-weight: 500; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.tl-step.done b { color: var(--muted); }
-.tl-step.now span { color: var(--accent); }
-
 /* Wochen-Kennzahlen: tiefer, edler Verlauf statt flacher Fläche */
 .card.hero {
   background: radial-gradient(120% 140% at 0% 0%, color-mix(in srgb, var(--hero) 80%, #fff) 0%, var(--hero) 45%, color-mix(in srgb, var(--hero) 75%, #000) 100%);
@@ -1352,3 +1333,19 @@ h1 { font-size: 2.1rem; line-height: 1.12; }
 }
 /* ruhigere Karten: weniger Linie, weicher Schatten */
 .card { border-color: color-mix(in srgb, var(--line) 70%, transparent); box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03); }
+
+/* Einführung ohne Tab-Leiste: genau eine Bildschirmhöhe, nichts zum Wegscrollen */
+body.no-nav .view { padding-bottom: calc(var(--sab) + 16px); }
+body.no-nav { overscroll-behavior: none; }
+.ob-flow { min-height: calc(var(--vh, 100vh) - var(--sat) - 44px - var(--sab) - 18px); }
+/* Icons überall etwas größer und in Textzeilen sauber ausgerichtet */
+.hi .ic { width: 22px; height: 22px; color: var(--accent); }
+.chip .ic, .btn .ic, .pill .ic, .trip-tab .ic { width: 18px; height: 18px; margin-right: 4px; vertical-align: -0.22em; }
+.banner .ic, .card.tip .ic, .warn-text .ic, .allergen-line .ic { width: 20px; height: 20px; vertical-align: -0.28em; margin-right: 2px; color: var(--accent); }
+.warn-text .ic, .allergen-line .ic { color: inherit; }
+.rsearch .ic { width: 20px; height: 20px; opacity: 0.6; }
+.rtile-fav .ic { width: 20px; height: 20px; color: #f5b400; filter: drop-shadow(0 1px 2px rgba(0,0,0,.3)); }
+.pills .pill.circle .ic { width: 20px; height: 20px; margin: 0; }
+.sport-ic .ic, .sport-tag .ic { width: 18px; height: 18px; color: var(--accent); }
+.tools-field .ic, .qty .ic { width: 18px; height: 18px; opacity: 0.7; margin-right: 4px; }
+.round-btn .ic { width: 22px; height: 22px; }

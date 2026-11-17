@@ -27,6 +27,7 @@ export const DEFAULT_SETTINGS = {
   fasting: false,
   // Kalorien und Nährwerte ausblenden (z. B. wenn Zahlen belasten) – der Plan rechnet weiter wie gewohnt
   hideNumbers: false,
+  sounds: true, // Töne bei Bedienung (Timer-Alarme klingeln immer)
   eatOutProtein: 35,
   complexPerWeek: 1,
   dislikes: [],
