@@ -689,6 +689,10 @@ function feedbackFor(ws) {
 // Rendering
 // ---------------------------------------------------------------------------
 
+/** Zurück wie in iOS – nur der Pfeil; wohin es geht, sagt VoiceOver */
+const backLink = (href, to) =>
+  `<a class="back" href="${href}" aria-label="Zurück zu ${to}"><svg viewBox="0 0 12 20" width="12" height="20" aria-hidden="true"><path d="M10 2 2 10l8 8" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg></a>`;
+
 function route() {
   const h = location.hash.replace(/^#\/?/, '');
   const [name, ...rest] = h.split('/');
@@ -1341,7 +1345,7 @@ function viewMeal(key) {
   if (cake) info = `<div class="banner info">🍰 Gebacken wird die ganze Form (${servesOf(r)} Portionen): je ein Stück am Samstag und Sonntag ist für dich eingeplant – der Rest ist für Familie und Gäste.</div>` + info;
   const k = cook ? cook.portions.length : 1;
   const amount = cake ? `ganze Form (${servesOf(r)} Portionen)` : `${k * n === 1 ? '1 Portion' : `${k * n} Portionen`}${n > 1 ? ` · ${n} Personen` : ''}`;
-  return recipeHtml(r, cookItems(plan, meal), meal.macros, `${DAY_NAMES[meal.key.split('-')[0]]} · ${slotLabel(meal)} · ${amount}`, `<a class="back" href="#/woche">‹ Woche</a>`, info, key, cake ? false : 'people', n, k);
+  return recipeHtml(r, cookItems(plan, meal), meal.macros, `${DAY_NAMES[meal.key.split('-')[0]]} · ${slotLabel(meal)} · ${amount}`, backLink('#/woche', 'Woche'), info, key, cake ? false : 'people', n, k);
 }
 
 // Zeit-Filter der Rezeptliste
@@ -1630,7 +1634,7 @@ function viewChoose(key) {
   const list = S.recipes
     .filter((r) => r.type === type && r.id !== meal.recipeId && !recipeBlocked(r, S.settings, S.idx))
     .filter((r) => !q || r.name.toLowerCase().includes(q) || r.ingredients.some((l) => ing(l.id)?.name.toLowerCase().includes(q)));
-  return `<header class="top col"><a class="back" href="#/woche">‹ Woche</a><h1>Rezept wählen</h1>
+  return `<header class="top col">${backLink('#/woche', 'Woche')}<h1>Rezept wählen</h1>
     <div class="sub">${DAY_NAMES[key.split('-')[0]]} · ${SLOT_LABEL[meal.slot]} · statt „${e(recipe(meal.recipeId)?.name || '')}“</div></header>
     <section class="card">
       <input type="search" placeholder="Suchen, z. B. Lachs oder Pasta" data-search="choose" value="${e(S.ui.search)}">
@@ -1658,7 +1662,7 @@ function viewEdit(id) {
   const isBuiltin = S.builtin.some((b) => b.id === r.id);
   const isCustom = S.custom.some((c) => c.id === r.id);
   const exists = !!recipe(r.id);
-  return `<header class="top"><a class="back" href="${exists ? `#/rezept/${r.id}` : '#/rezepte'}" data-action="edit-cancel">‹ Abbrechen</a><button class="btn primary pill" data-action="edit-save">Speichern</button></header>
+  return `<header class="top"><a class="back" href="${exists ? `#/rezept/${r.id}` : '#/rezepte'}" data-action="edit-cancel">Abbrechen</a><button class="btn primary pill" data-action="edit-save">Speichern</button></header>
     <section class="card accent">
       <label class="field">Titel<input data-edit="name" value="${e(r.name)}"></label>
       <div class="grid2">
@@ -1825,7 +1829,7 @@ function viewRecipeBase(id) {
   const n = S.ui.servings || (S.ui.servings = startServings(id));
   const items = r.ingredients.filter((l) => !l.opt || S.settings[l.opt]).map((l) => ({ id: l.id, g: l.g * n, note: l.note }));
   const per = macrosOf(items.map((it) => ({ ...it, g: it.g / n })));
-  const back = S.ui.recipeFrom === 'einkauf' ? `<a class="back" href="#/einkauf">‹ Einkauf</a>` : `<a class="back" href="#/rezepte">‹ Rezepte</a>`;
+  const back = S.ui.recipeFrom === 'einkauf' ? backLink('#/einkauf', 'Einkauf') : backLink('#/rezepte', 'Rezepte');
   return recipeHtml(r, items, per, `Basisrezept · ${n === 1 ? '1 Portion' : n + ' Portionen'}`, back, '', 'r:' + id, true, n);
 }
 
@@ -1936,7 +1940,7 @@ function viewCooking(key) {
   const s = r.steps[n];
   const tools = stepTools(r)[n] || [];
   return `<div class="cook">
-    <header class="top col"><a class="back" href="${backHref}">‹ Zurück</a></header>
+    <header class="top col">${backLink(backHref, 'Rezept')}</header>
     <div class="cook-head"><span class="mtile slot-abend">${recipeEmoji(r)}</span><a class="sub underline" href="${backHref}">${e(r.name)}</a></div>
     <div class="cook-progress" aria-hidden="true">${r.steps.map((_, i) => `<i class="${i <= n ? 'on' : ''}"></i>`).join('')}</div>
     <div class="step-count">Schritt ${n + 1} von ${r.steps.length}</div>
@@ -2519,9 +2523,9 @@ function minBudgetHint(st) {
 }
 
 /** Wie viele essen abends mit? (inkl. dir) – gilt für jedes Abendessen, pro Mahlzeit weiterhin änderbar */
-function householdField(st) {
+function householdField(st, hint = true) {
   const cur = Math.max(1, Number(st.household) || 1);
-  return `<div class="field">Wie viele essen abends mit? <span class="sub">(inkl. dir)</span><div class="seg">${[1, 2, 3, 4, 5, 6].map((n) => `<button class="pill circle ${cur === n ? 'on' : ''}" data-action="set-household" data-val="${n}" aria-label="${n} ${n === 1 ? 'Person' : 'Personen'}">${n}</button>`).join('')}</div><p class="hint">Mise kauft abends für alle ein – deine Portion und deine Nährwerte bleiben gleich.</p></div>`;
+  return `<div class="field">Wie viele essen abends mit? <span class="sub">(inkl. dir)</span><div class="seg">${[1, 2, 3, 4, 5, 6].map((n) => `<button class="pill circle ${cur === n ? 'on' : ''}" data-action="set-household" data-val="${n}" aria-label="${n} ${n === 1 ? 'Person' : 'Personen'}">${n}</button>`).join('')}</div>${hint ? '<p class="hint">Mise kauft abends für alle ein – deine Portion und deine Nährwerte bleiben gleich.</p>' : ''}</div>`;
 }
 
 /** Ernährungsform, Allergien, Schwangerschaft – in der Einführung (vor dem ersten Plan) und in den Einstellungen */
@@ -2669,9 +2673,9 @@ function updateFeedback(ws, fn) {
 
 // Zubereitung/Abwasch werden intern auf die Planer-Regler (0–100) abgebildet
 const PREP = [
-  ['bis 15min', 95],
-  ['15-30min', 60],
-  ['ab 30min', 20],
+  ['bis 15 Min.', 95],
+  ['15–30 Min.', 60],
+  ['ab 30 Min.', 20],
 ];
 const DISHES = [
   ['möglichst fix', 90],
@@ -2726,22 +2730,22 @@ function settingsSections(st) {
   const theme = { dark: 'Dunkel', light: 'Hell' }[st.theme] || 'Automatisch';
   return [
     ['Du & dein Essen', [
-      ['ziel', '🎯', 'Ziel & Tagesziele', hide ? goalLabel : `${goalLabel} · ${num(st.goals.kcal)} kcal`],
-      ['ernaehrung', '🥗', 'Ernährung & Allergien', allergies.length ? `${diet} · ohne ${allergies.length === 1 ? allergies[0] : `${allergies.length} Allergene`}` : diet],
-      ['auswaerts', '🍴', 'Auswärts essen', days.length ? days.map((d) => DAY_SHORT[d]).join(', ') : 'Nie'],
-      ['gerichte', '🍳', 'Gerichte & Abneigungen', `${PREP.find((p) => p[1] === nearest(PREP, st.sliders.simple))[0].replace('min', ' Min.')}${st.dislikes.length ? ` · ${st.dislikes.length} Abneigung${st.dislikes.length > 1 ? 'en' : ''}` : ''}`],
-      ['fertig', '🍕', 'Fertiggerichte', ready.length ? `${ready.length} von 3 an` : 'Aus'],
+      ['ziel', 'Ziel & Tagesziele', hide ? goalLabel : `${goalLabel} · ${num(st.goals.kcal)} kcal`],
+      ['ernaehrung', 'Ernährung & Allergien', allergies.length ? `${diet} · ohne ${allergies.length === 1 ? allergies[0] : `${allergies.length} Allergene`}` : diet],
+      ['auswaerts', 'Auswärts essen', days.length ? days.map((d) => DAY_SHORT[d]).join(', ') : 'Nie'],
+      ['gerichte', 'Gerichte & Abneigungen', `${PREP.find((p) => p[1] === nearest(PREP, st.sliders.simple))[0]}${st.dislikes.length ? ` · ${st.dislikes.length} Abneigung${st.dislikes.length > 1 ? 'en' : ''}` : ''}`],
+      ['fertig', 'Fertiggerichte', ready.length ? `${ready.length} von 3 an` : 'Aus'],
     ]],
     ['Einkauf', [
-      ['laeden', '🛒', 'Läden', on.length ? `${storeLabel(on[0])}${on.length > 1 ? ` + ${on.length - 1}` : ''}` : 'Keiner'],
-      ['budget', '💶', 'Budget & Haushalt', `${euro(st.budget)} · ${people} ${people === 1 ? 'Person' : 'Personen'}${st.studi ? ' · Studi' : ''}`],
+      ['laeden', 'Läden', on.length ? `${storeLabel(on[0])}${on.length > 1 ? ` + ${on.length - 1}` : ''}` : 'Keiner'],
+      ['budget', 'Budget & Haushalt', `${euro(st.budget)} · ${people} ${people === 1 ? 'Person' : 'Personen'}${st.studi ? ' · Studi' : ''}`],
     ]],
     ['App', [
-      ['darstellung', '🎨', 'Darstellung', theme],
-      ['teilen', '🌍', 'Rezepte für alle Geräte', st.shareToken ? 'An' : 'Aus'],
-      ['ki', '✨', 'KI-Rezepte', st.aiKey ? 'An' : 'Aus'],
-      ['sicherung', '☁️', 'Datensicherung', S.snapshots.length ? 'Täglich' : ''],
-      ['quellen', '📚', 'Quellen & Richtlinien', ''],
+      ['darstellung', 'Darstellung', theme],
+      ['teilen', 'Rezepte für alle Geräte', st.shareToken ? 'An' : 'Aus'],
+      ['ki', 'KI-Rezepte', st.aiKey ? 'An' : 'Aus'],
+      ['sicherung', 'Datensicherung', S.snapshots.length ? 'Täglich' : ''],
+      ['quellen', 'Quellen & Richtlinien', ''],
     ]],
   ];
 }
@@ -2753,18 +2757,18 @@ function viewSettings(section) {
     ${settingsSections(st)
       .map(
         ([title, rows]) => `<h3 class="set-group">${title}</h3><ul class="set-list">${rows
-          .map(([id, icon, label, value]) => `<li><a href="#/einstellungen/${id}"><span class="set-icon" aria-hidden="true">${icon}</span><span class="set-label">${label}</span><span class="set-value">${e(value)}</span><span class="chev" aria-hidden="true">›</span></a></li>`)
+          .map(([id, label, value]) => `<li><a href="#/einstellungen/${id}"><span class="set-label">${label}</span><span class="set-value">${e(value)}</span><span class="chev" aria-hidden="true">›</span></a></li>`)
           .join('')}</ul>`
       )
       .join('')}
     <p class="sub center">Mise ersetzt keine ärztliche oder Ernährungsberatung.</p>`;
   }
-  const title = settingsSections(st).flatMap((g) => g[1]).find((r) => r[0] === section)?.[2];
+  const title = settingsSections(st).flatMap((g) => g[1]).find((r) => r[0] === section)?.[1];
   if (!title) return viewSettings();
   const body = settingsPage(section, st);
-  return `<header class="top col"><a class="back" href="#/einstellungen">‹ Einstellungen</a><h1>${title}</h1></header>
-  <p class="set-explain">${body.explain}</p>
-  ${body.html}`;
+  return `<header class="top col">${backLink('#/einstellungen', 'Einstellungen')}<h1>${title}</h1></header>
+  <div class="set-page"><p class="set-explain">${body.explain}</p>
+  ${body.html}</div>`;
 }
 
 function settingsPage(id, st) {
@@ -2795,7 +2799,7 @@ function settingsPage(id, st) {
           </div>
           ${pl.ok ? '' : `<p class="warn-text">⚠️ ${e(pl.message)}</p>`}
           ${!pl.ok && pl.suggestedCarbs > 0 ? `<button class="btn small pill" data-action="fix-carbs" data-val="${pl.suggestedCarbs}">Kohlenhydrate auf ${pl.suggestedCarbs}g setzen</button>` : ''}`}
-          <a class="btn small pill" href="#/start/1">🧮 Mit Assistent neu berechnen</a>`),
+          <a class="btn small pill" href="#/start/1">Mit Assistent neu berechnen</a>`),
       };
     }
     case 'ernaehrung': {
@@ -2816,7 +2820,7 @@ function settingsPage(id, st) {
       };
     }
     case 'gerichte': {
-      const prep = PREP.find((p) => p[1] === nearest(PREP, st.sliders.simple))[0].replace('min', ' Minuten');
+      const prep = PREP.find((p) => p[1] === nearest(PREP, st.sliders.simple))[0].replace('Min.', 'Minuten');
       const fix = nearest(DISHES, st.sliders.dishes) === 90;
       return {
         explain: `Mise wählt vor allem Gerichte mit ${prep} Zubereitung${fix ? ' und wenig Abwasch' : ''}, dazu höchstens ${st.complexPerWeek} aufwendige pro Woche.${st.dislikes.length ? ` Nie dabei: ${e(joinDe(st.dislikes))}.` : ''}`,
@@ -2824,8 +2828,8 @@ function settingsPage(id, st) {
           <div class="field">Abwasch${seg(DISHES, 'dishes')}</div>
           ${field('complexPerWeek', 'Aufwendige Gerichte pro Woche', 'min="0" max="3"')}`) +
           card(`<div class="field">Abneigungen
-            <div class="chips">${st.dislikes.map((d, i) => `<span class="chip soft">${e(d)} <button data-action="del-dislike" data-i="${i}" aria-label="entfernen">×</button></span>`).join('')}</div>
-            <div class="add-row"><input id="dislike-new" placeholder="z. B. Pilze"><button class="btn pill" data-action="add-dislike">Hinzufügen</button></div>
+            ${st.dislikes.length ? `<div class="chips">${st.dislikes.map((d, i) => `<span class="chip soft">${e(d)} <button data-action="del-dislike" data-i="${i}" aria-label="${e(d)} entfernen">×</button></span>`).join('')}</div>` : '<p class="hint">Noch keine – Mise plant alles ein.</p>'}
+            <div class="add-row"><input id="dislike-new" placeholder="Zutat eingeben" enterkeyhint="done"><button class="btn pill" data-action="add-dislike">Hinzufügen</button></div>
           </div>`),
       };
     }
@@ -2856,13 +2860,11 @@ function settingsPage(id, st) {
     case 'budget': {
       const plan = S.plans[currentWeek()];
       return {
-        explain: `Mise plant mit <b>${euro(st.budget)} pro Woche</b>${people > 1 ? ` und kauft abends für ${people} Personen ein – deine Portion bleibt gleich` : ''}.${st.studi ? ' Im Studi-Modus zählt der Preis noch stärker.' : ''}`,
+        explain: `Mise plant mit <b>${euro(st.budget)} pro Woche</b>${people > 1 ? ` und kauft abends für ${people} Personen ein – deine Portion bleibt gleich` : ''}.`,
         html: `${minBudgetHint(st)}` +
-          card(`${householdField(st)}
-          <div class="grid2 budget-row">
-            <label class="field">Wochenbudget<span class="unit-input"><input type="number" inputmode="numeric" step="1" data-set="budget" value="${st.budget}"><i>€</i></span></label>
-            <label class="studi-toggle"><input type="checkbox" class="big-check" data-set="studi" ${st.studi ? 'checked' : ''}><span>Studi-Modus</span></label>
-          </div>
+          card(`${householdField(st, false)}
+          <label class="field">Wochenbudget<span class="unit-input"><input type="number" inputmode="numeric" step="1" data-set="budget" value="${st.budget}"><i>€</i></span></label>
+          <label class="toggle-row"><span><b>Studi-Modus</b><small>Preis zählt noch stärker</small></span><span class="switch"><input type="checkbox" data-set="studi" ${st.studi ? 'checked' : ''}><i></i></span></label>
           ${plan && (plan.studi ?? false) !== !!st.studi ? `<button class="btn small pill" data-action="replan-studi">Diese Woche ${st.studi ? 'im Studi-Modus ' : ''}neu planen</button>` : ''}`),
       };
     }
@@ -2880,7 +2882,7 @@ function settingsPage(id, st) {
           ? `Neue Rezepte landen in der gemeinsamen Sammlung und erscheinen nach ein paar Minuten auf allen Geräten.${q ? ` ${q} Rezept(e) warten auf Internet.` : ''}`
           : 'Neue Rezepte bleiben gerade nur auf diesem Gerät. Mit dem Freigabe-Schlüssel erscheinen sie auf allen Geräten.',
         html: card(`${keyField('Freigabe-Schlüssel', 'shareToken', 'github_pat_…')}
-          ${st.shareToken ? `<button class="btn small pill" data-action="share-invite">📨 Einladungslink für ein anderes Gerät</button>` : ''}`),
+          ${st.shareToken ? `<button class="btn small pill" data-action="share-invite">Einladungslink für ein anderes Gerät</button>` : ''}`),
       };
     }
     case 'ki':
@@ -2897,11 +2899,10 @@ function settingsPage(id, st) {
           (S.snapshots.length
             ? card(`<div class="field">Automatische Sicherung<div class="snap-row"><select id="snap-pick">${S.snapshots.map((x) => `<option value="${x.day}">${fmtDateTime(x.savedAt)}</option>`).join('')}</select><button class="btn pill" data-action="snap-restore">Wiederherstellen</button></div></div>`)
             : '') +
-          card(`<div class="grid2"><button class="btn primary" data-action="export">☁️ Sichern</button>
+          card(`<div class="grid2"><button class="btn primary" data-action="export">Sichern</button>
             <label class="btn">Importieren<input type="file" accept="application/json,.json" id="import-file" hidden></label></div>
             <p class="hint">${store.get('lastExport') ? `In iCloud zuletzt: ${fmtDateTime(store.get('lastExport'))}` : 'Noch nie in iCloud gesichert.'}</p>`) +
-          card(`<button class="link danger" data-action="reset-settings">Einstellungen zurücksetzen</button>
-            <button class="link danger" data-action="reset-app">App zurücksetzen (alles löschen)</button>`),
+          `<ul class="set-list danger-list"><li><button data-action="reset-settings">Einstellungen zurücksetzen</button></li><li><button data-action="reset-app">App zurücksetzen (alles löschen)</button></li></ul>`,
       };
     case 'quellen':
       return {
