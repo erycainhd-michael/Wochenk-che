@@ -2,7 +2,7 @@
 import { DAY_NAMES, DAY_SHORT, SLOT_LABEL, addDays, clone, berlinNow, escapeHtml as e, euro, formatDate, isoWeek, mondayOf, num, shortName } from './util.js';
 import { buildIndex, plausibility } from './nutrition.js';
 import { cakesOf, generatePlan, overallGrade, readyKind, refitPlan, setEatOut, swapMeal } from './planner.js';
-import { ALLERGENS, DIETS, recipeBlocked, restrictions } from './diet.js';
+import { ALLERGENS, DIETS, DIET_CLASSES, DIET_LEVELS, dietFromWeights, dietPreset, dietWeights, recipeBlocked, recipeClasses, restrictions } from './diet.js';
 import { mergeOffers, storeOpen, storeOrder, STORES, STORE_IDS } from './prices.js';
 import { packText } from './shopping.js';
 import { kitchenText } from './units.js';
@@ -1947,12 +1947,20 @@ const CUISINES = {
   italienisch: 'Italienisch',
   franzoesisch: 'Französisch',
   spanisch: 'Spanisch',
+  griechisch: 'Griechisch',
   deutsch: 'Deutsch',
   skandinavisch: 'Skandinavisch',
+  tuerkisch: 'Türkisch',
   orientalisch: 'Orientalisch',
+  afrikanisch: 'Afrikanisch',
   indisch: 'Indisch',
   asiatisch: 'Asiatisch',
+  thailaendisch: 'Thailändisch',
+  vietnamesisch: 'Vietnamesisch',
+  japanisch: 'Japanisch',
+  koreanisch: 'Koreanisch',
   amerikanisch: 'Amerikanisch',
+  mexikanisch: 'Mexikanisch',
 };
 const AUTO_CATS = {
   'Wenig Abwasch': (r) => r.dishes <= 2,
@@ -1977,6 +1985,7 @@ const AUTO_CATS = {
   Fleisch: (r) => hasMeat(r),
   Fisch: (r) => hasFishIng(r),
   Vegetarisch: (r) => !hasMeat(r) && !hasFishIng(r),
+  Vegan: (r) => r.ingredients.every((l) => !(ing(l.id)?.animal || []).length),
   ...Object.fromEntries(Object.entries(CUISINES).map(([key, label]) => [label, (r) => r.cuisine === key])),
 };
 // Filter-Gruppen der Rezeptliste (durch Linien getrennt). Innerhalb einer Gruppe gilt eine Auswahl,
@@ -1986,7 +1995,7 @@ const CAT_GROUPS = [
   ['Wenig Abwasch', 'Mehr Abwasch'],
   ['Mahlzeiten', 'Frühstück', 'Vorspeisen', 'Suppen', 'Salate', 'Beilagen', 'Dressings', 'Kuchen', 'Desserts', 'Brot'],
   Object.values(CUISINES),
-  ['Fleisch', 'Fisch', 'Vegetarisch'],
+  ['Fleisch', 'Fisch', 'Vegetarisch', 'Vegan'],
   ['Protein', 'Carbs', 'Fette'],
 ];
 /** Gruppen mit den vorhandenen Kategorien; alles Übrige (Gourmet, eigene) kommt in die letzte Gruppe */
@@ -3106,6 +3115,18 @@ function householdField(st, hint = true) {
   return `<div class="field">Wie viele essen abends mit? <span class="sub">(inkl. dir)</span><div class="seg">${[1, 2, 3, 4, 5, 6].map((n) => `<button class="pill circle ${cur === n ? 'on' : ''}" data-action="set-household" data-val="${n}" aria-label="${n} ${n === 1 ? 'Person' : 'Personen'}">${n}</button>`).join('')}</div>${hint ? '<p class="hint">Mise kauft abends für alle ein – deine Portion und deine Nährwerte bleiben gleich.</p>' : ''}</div>`;
 }
 
+/** Wie oft welche Ernährungsweise in den Plan kommt: 0 nie (ausgegraut) … 3 oft */
+function dietWeightsField(st) {
+  const w = dietWeights(st);
+  const mains = S.recipes.filter((r) => r.type === 'main' && !(r.tags || []).includes('fertiggericht'));
+  const count = (k) => mains.filter((r) => recipeClasses(r, S.idx, st).has(k)).length;
+  return `<div class="field">Wie oft im Plan?<p class="hint">Gilt für Mittag- und Abendessen. „nie“ lässt die Gerichte ganz weg, „oft“ macht sie zur Hauptsache.</p>
+    <ul class="dw-list">${DIET_CLASSES.map(([k, l, sub]) => `<li class="dw-row ${w[k] === 0 ? 'off' : ''}">
+      <span class="dw-txt"><b>${l}</b><small>${sub} · ${count(k)} Gerichte</small></span>
+      <span class="dw-seg" role="radiogroup" aria-label="${l}: wie oft">${DIET_LEVELS.map((lv, i) => `<button class="dw-b ${w[k] === i ? 'on' : ''}" role="radio" aria-checked="${w[k] === i}" aria-label="${l}: ${lv}" data-action="diet-w" data-k="${k}" data-val="${i}"><i class="dw-dots" aria-hidden="true">${'●'.repeat(i) || '–'}</i><small>${lv}</small></button>`).join('')}</span>
+    </li>`).join('')}</ul></div>`;
+}
+
 /** Ernährungsform, Allergien, Schwangerschaft – in der Einführung (vor dem ersten Plan) und in den Einstellungen */
 function dietCard(st, onboarding = false, page = false) {
   const rx = restrictions(st);
@@ -3113,7 +3134,8 @@ function dietCard(st, onboarding = false, page = false) {
   const n = S.recipes.filter((r) => r.type === 'main' && !(r.tags || []).includes('fertiggericht') && !recipeBlocked(r, st, S.idx, rx)).length;
   const sw = (attr, on, label, sub) => `<label class="toggle-row"><span><b>${label}</b><small>${sub}</small></span><span class="switch"><input type="checkbox" ${attr} ${on ? 'checked' : ''}><i></i></span></label>`;
   return `<section class="card ${onboarding ? 'accent' : ''}">${page ? '' : `<h2>${onboarding ? 'Was isst du nicht?' : 'Ernährung & Allergien'}</h2>`}
-    <div class="field">Ernährungsform<div class="seg diet-seg">${DIETS.map(([v, l]) => `<button class="pill ${(st.diet || 'alles') === v ? 'on' : ''}" data-action="set-diet" data-val="${v}">${l}</button>`).join('')}</div></div>
+    <div class="field">Ernährungsform<div class="seg diet-seg">${DIETS.map(([v, l]) => `<button class="pill ${JSON.stringify(dietWeights(st)) === JSON.stringify(dietPreset(v)) ? 'on' : ''}" data-action="set-diet" data-val="${v}">${l}</button>`).join('')}</div></div>
+    ${dietWeightsField(st)}
     <div class="field">Allergien & Unverträglichkeiten<div class="chips allergy-chips">${ALLERGENS.map(([v, l]) => `<button class="chip ${(st.allergies || []).includes(v) ? 'on' : ''}" data-action="toggle-allergy" data-val="${v}" aria-pressed="${(st.allergies || []).includes(v)}">${l}</button>`).join('')}</div></div>
     ${page ? '</section><section class="card">' : ''}
     ${showPregnancy ? sw('data-action="toggle-pregnant"', st.profile?.pregnant, 'Schwanger', '+250 kcal, nichts Rohes, keine Leber') : ''}
@@ -3312,7 +3334,7 @@ function settingsSections(st) {
   const days = eatOutDays(st.eatOut);
   const on = storeOrder(st).filter((id) => st.stores[id]);
   const ready = READY.filter(([k]) => st.readyMeals?.[k] !== false);
-  const diet = DIETS.find((d) => d[0] === (st.diet || 'alles'))?.[1] || 'Alles';
+  const diet = st.dietWeights && JSON.stringify(dietWeights(st)) !== JSON.stringify(dietPreset(st.diet || 'alles')) ? 'Eigene Mischung' : DIETS.find((d) => d[0] === (st.diet || 'alles'))?.[1] || 'Alles';
   const allergies = (st.allergies || []).map((a) => ALLERGENS.find((x) => x[0] === a)?.[1] || a);
   const people = Math.max(1, Number(st.household) || 1);
   const theme = { dark: 'Dunkel', light: 'Hell' }[st.theme] || 'Automatisch';
@@ -3907,6 +3929,7 @@ async function onClick(ev) {
       if (['sex', 'activity', 'goal'].includes(f)) profDraft()[f] = v;
       else if (f === 'diet') {
         S.settings.diet = v;
+        delete S.settings.dietWeights;
         applyRestrictions();
       } else if (f === 'household') S.settings.household = Number(v);
       else if (f === 'mainStore') {
@@ -4374,10 +4397,26 @@ async function onClick(ev) {
     }
     case 'set-diet':
       S.settings.diet = el.dataset.val;
+      // Voreinstellung für die Gewichte (Vegan: vegan „oft“, alles Tierische „nie“)
+      delete S.settings.dietWeights;
       saveSettings();
       haptic();
       applyRestrictions();
       return render();
+    case 'diet-w': {
+      const w = { ...dietWeights(S.settings) };
+      const k = el.dataset.k;
+      w[k] = Number(el.dataset.val);
+      // mindestens eine Ernährungsweise muss übrig bleiben
+      if (!Object.values(w).some((v) => v > 0)) return toast('Eine Ernährungsweise muss bleiben', { icon: '🥗', kind: 'warn' });
+      // Fleisch/Fisch wieder erlaubt: die Ernährungsform folgt den Gewichten (sonst sperrt „Vegan“ weiter alles)
+      S.settings.diet = dietFromWeights(w);
+      S.settings.dietWeights = w;
+      saveSettings();
+      haptic();
+      applyRestrictions();
+      return render();
+    }
     case 'toggle-allergy': {
       const set = new Set(S.settings.allergies || []);
       if (set.has(el.dataset.val)) set.delete(el.dataset.val);
