@@ -1,11 +1,16 @@
 // Service Worker: App offline verfügbar machen.
 // Bei Änderungen an App-Dateien VERSION erhöhen, damit iPhones die neue Version laden.
-const VERSION = 'mf-v93';
+const VERSION = 'mf-v94';
 const SHELL = [
   './',
   './index.html',
   './manifest.webmanifest',
   './css/app.css',
+  './css/fonts.css',
+  './fonts/google-sans-flex-latin-79a7b3.woff2',
+  './fonts/google-sans-flex-latin-ext-c13462.woff2',
+  './fonts/noto-serif-latin-6c5191.woff2',
+  './fonts/noto-serif-latin-ext-af3d18.woff2',
   './js/app.js',
   './js/util.js',
   './js/nutrition.js',

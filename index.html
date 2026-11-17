@@ -16,9 +16,9 @@
     <link rel="manifest" href="manifest.webmanifest" />
     <link rel="icon" href="icons/icon-192.png" type="image/png" />
     <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
-    <!-- Google Sans Flex, nicht blockierend geladen: Hängt der Abruf, startet die App trotzdem (mit Systemschrift) -->
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Google+Sans+Flex:opsz,wght@6..144,400..700&family=Noto+Serif:wght@400;600;700&display=swap" media="print" onload="this.media='all'" />
+    <!-- Schriften liegen bei der App (css/fonts.css) – keine Verbindung zu Google-Servern (Datenschutz) -->
+    <link rel="preload" href="fonts/google-sans-flex-latin-79a7b3.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="stylesheet" href="css/fonts.css" />
     <link rel="stylesheet" href="css/app.css" />
   </head>
   <body>

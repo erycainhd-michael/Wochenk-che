@@ -129,6 +129,51 @@ function applyDynamicType() {
   document.documentElement.classList.toggle('large-text', scale >= 1.3);
 }
 
+// --- Beta-Auswertung: Fehlerprotokoll und Nutzungszähler ----------------------------------------------------
+// Beides bleibt auf diesem Gerät (localStorage) und steckt nur in der eigenen Sicherungsdatei – nichts wird
+// gesendet. Testpersonen schicken ihre Sicherung; scripts/analyze-export.mjs wertet sie aus.
+function logError(kind, msg, where) {
+  try {
+    const l = store.get('errlog', []);
+    l.push({ at: new Date().toISOString(), kind, msg: String(msg || '').slice(0, 300), where: String(where || '').slice(0, 200), route: location.hash.slice(0, 60) });
+    store.set('errlog', l.slice(-30));
+  } catch {
+    /* Protokoll darf nie selbst Fehler werfen */
+  }
+}
+window.addEventListener('error', (ev) => logError('error', ev.message, `${(ev.filename || '').split('/').pop()}:${ev.lineno}`));
+window.addEventListener('unhandledrejection', (ev) => logError('promise', ev.reason?.message || ev.reason, String(ev.reason?.stack || '').split('\n')[1]));
+
+let usage = null;
+let usageTimer;
+/** Zählt Seitenaufrufe und Aktionen (nur Namen, keine Inhalte) */
+function countUse(kind, name) {
+  try {
+    usage ||= store.get('usage', null) || { since: new Date().toISOString(), days: [], routes: {}, actions: {} };
+    const day = new Date().toISOString().slice(0, 10);
+    if (!usage.days.includes(day)) usage.days = [...usage.days, day].slice(-90);
+    const bucket = usage[kind];
+    bucket[name] = (bucket[name] || 0) + 1;
+    clearTimeout(usageTimer);
+    usageTimer = setTimeout(() => store.set('usage', usage), 1500);
+  } catch {
+    /* egal */
+  }
+}
+
+// Zähler sofort sichern, wenn die Seite verlassen oder neu geladen wird (z. B. beim Service-Worker-Update)
+const flushUsage = () => {
+  if (!usage) return;
+  clearTimeout(usageTimer);
+  try {
+    store.set('usage', usage);
+  } catch {
+    /* egal */
+  }
+};
+window.addEventListener('pagehide', flushUsage);
+document.addEventListener('visibilitychange', () => document.visibilityState === 'hidden' && flushUsage());
+
 async function init() {
   window.__miseStarted = true;
   applyDynamicType();
@@ -160,6 +205,12 @@ async function init() {
     S.offers = await loadJSON('data/offers.json');
   } catch {
     S.offers = null; // dann gelten Richtpreise
+  }
+  // Impressum (vom Inhaber in data/legal.json einzutragen – fehlt die Datei, zeigt Mise einen Hinweis)
+  try {
+    S.legal = await loadJSON('data/legal.json');
+  } catch {
+    S.legal = null;
   }
   timers = new TimerManager((tickOnly) => (tickOnly ? updateTimerDock() : renderTimerDock()));
   window.addEventListener('hashchange', onRouteChange);
@@ -276,6 +327,7 @@ async function aiRecipe({ title = '', type = 'main' } = {}) {
     ingredients: [...S.idx.values()].filter((i) => !i.staple || ['olivenoel', 'rapsoel', 'gewuerze', 'sojasauce', 'honig', 'senf', 'gemuesebruehe', 'tomatenmark', 'balsamico'].includes(i.id)),
     avoid: S.recipes.filter((x) => x.type === type).map((x) => x.name),
     dislikes: S.settings.dislikes,
+    profile: { name: S.settings.name, goal: S.settings.profile?.goal, kcal: S.settings.goals?.kcal, protein: S.settings.goals?.protein, diet: S.settings.diet, allergies: (S.settings.allergies || []).map((a) => ALLERGENS.find((x) => x[0] === a)?.[1] || a) },
   });
   r.source = 'ki';
   r.createdAt = new Date().toISOString();
@@ -856,6 +908,7 @@ function render() {
   const shownRecipe = routeRecipe(r);
   // Aufwendige Gerichte: magischer Swoosh statt Kochlöffel
   if (changed && r.name === 'kochen' && !lastRoute.startsWith('kochen/') && S.ui.cookActive !== r.args[0]) (isFancy(shownRecipe) ? sound.magicStart : sound.cookStart)();
+  if (changed) countUse('routes', r.name === 'einstellungen' && r.args[0] ? `einstellungen/${r.args[0]}` : r.name);
   lastRoute = key;
   const views = {
     woche: viewWeek,
@@ -1254,6 +1307,9 @@ function viewStart(stepArg) {
 /** Breite eines Zahlenfelds in der Einführung: so breit wie der Inhalt, damit Zahl + Einheit mittig stehen */
 const obWidth = (t) => `${Math.max(2, String(t).length) + 0.3}ch`;
 
+/** Standardwerte für „Erst mal ansehen“ (Erwachsene, Gewicht halten; ≈ DGE-Richtwert, Protein ~1,2 g/kg bei 75 kg) */
+const QUICK_GOALS = { kcal: 2000, protein: 90, carbs: 245, fat: 70 };
+
 const OB_STEPS = ['welcome', 'name', 'sex', 'age', 'height', 'weight', 'activity', 'goal', 'goalWeight', 'result', 'diet', 'allergies', 'special', 'household', 'budget', 'store', 'eatout', 'ready'];
 const OB_GOAL_TEXT = {
   abnehmen: 'Etwas weniger essen, als du verbrauchst – mit viel Protein für die Muskeln.',
@@ -1263,6 +1319,12 @@ const OB_GOAL_TEXT = {
 const obKey = () => OB_STEPS[Math.min(OB_STEPS.length - 1, Math.max(0, Number(S.ui.ob) || 0))];
 /** Nächster/vorheriger Schritt – das Zielgewicht entfällt beim Halten */
 function obNeighbor(key, dir) {
+  // „Erst mal ansehen“: nur das Sicherheitsrelevante (Ernährungsform, Allergien), dann gleich planen
+  if (S.ui.obQuick) {
+    const quick = ['welcome', 'diet', 'allergies', 'ready'];
+    const j = quick.indexOf(key);
+    if (j >= 0) return quick[Math.max(0, Math.min(quick.length - 1, j + dir))];
+  }
   let i = OB_STEPS.indexOf(key) + dir;
   if (OB_STEPS[i] === 'goalWeight' && profDraft().goal === 'halten') i += dir;
   return OB_STEPS[Math.max(0, Math.min(OB_STEPS.length - 1, i))];
@@ -1297,6 +1359,7 @@ function viewOnboarding() {
         <div class="ob-actions">
           <button class="btn primary block ob-next" data-action="ob-go" data-dir="1">Los geht’s</button>
           ${snap ? `<select id="snap-pick" hidden><option value="${snap.day}"></option></select><button class="btn block" data-action="snap-restore">Sicherung vom ${fmtDateTime(snap.savedAt)} wiederherstellen</button>` : ''}
+          <button class="btn block" data-action="ob-quick">Erst mal ansehen – ohne Angaben</button>
           <label class="btn ghost block">Ich habe schon ein Profil<input type="file" accept="application/json,.json" data-import="profile" hidden></label>
           <p class="hint center">Alles bleibt nur auf diesem Gerät.</p></div>`;
       break;
@@ -1356,14 +1419,14 @@ function viewOnboarding() {
     case 'allergies':
       body = `${q('Verträgst du etwas nicht?', 'Tippe alles an, was nie in den Plan soll.')}
         <div class="chips allergy-chips ob-chips">${ALLERGENS.map(([v, l]) => `<button class="chip ${(st.allergies || []).includes(v) ? 'on' : ''}" data-action="toggle-allergy" data-val="${v}" aria-pressed="${(st.allergies || []).includes(v)}">${l}</button>`).join('')}</div>
-        <div class="ob-actions">${next((st.allergies || []).length ? 'Weiter' : 'Nichts davon')}</div>`;
+        <div class="ob-actions">${next((st.allergies || []).length ? 'Weiter' : 'Nichts davon')}${S.ui.obQuick ? '' : '<button class="btn ghost block" data-action="ob-later">Fertig – den Rest später</button>'}</div>`;
       break;
     case 'special': {
       const sw = (attr, on, label, sub) => `<label class="toggle-row"><span><b>${label}</b><small>${sub}</small></span><span class="switch"><input type="checkbox" ${attr} ${on ? 'checked' : ''}><i></i></span></label>`;
       body = `${q('Gibt es etwas Besonderes?', 'Meist nicht – dann einfach weiter.')}
         <div class="card ob-card">
           ${p.sex !== 'm' ? sw('data-action="toggle-pregnant"', st.profile?.pregnant, 'Schwanger', '+250 kcal, nichts Rohes, keine Leber') : ''}
-          ${sw('data-set="carbSpread"', st.carbSpread, 'Kohlenhydrate verteilen', 'z. B. bei Diabetes')}
+          ${sw('data-set="carbSpread"', st.carbSpread, 'Kohlenhydrate verteilen', 'höchstens ca. 60 g pro Mahlzeit')}
           ${sw('data-set="fasting"', st.fasting, 'Fasten tagsüber', 'z. B. im Ramadan')}
           ${sw('data-set="hideNumbers"', st.hideNumbers, 'Kalorien ausblenden', 'gleicher Plan, nur ohne Zahlen')}
         </div>
@@ -1398,7 +1461,7 @@ function viewOnboarding() {
     }
     case 'ready':
       body = `<div class="ob-hero"><img class="welcome-icon" src="icons/icon-512.png" alt="">
-          ${q(name ? `Alles bereit, ${e(name)}.` : 'Alles bereit.', 'Mise stellt jetzt deine erste Woche zusammen – mit Plan, Einkaufsliste und Portionen.')}</div>
+          ${q(name ? `Alles bereit, ${e(name)}.` : 'Alles bereit.', S.ui.obQuick ? 'Mise plant deine erste Woche mit Standardwerten (rund 2.000 kcal). Auf dich zuschneiden kannst du sie danach in einer Minute.' : 'Mise stellt jetzt deine erste Woche zusammen – mit Plan, Einkaufsliste und Portionen.')}</div>
         <div class="ob-actions"><button class="btn primary block" data-action="first-plan">Meine Woche planen</button></div>`;
       break;
   }
@@ -1483,6 +1546,7 @@ function obCalc() {
   S.settings.profile = { ...p, pregnant: !!S.settings.profile?.pregnant };
   S.settings.bodyWeight = Number(p.weight);
   S.settings.bodyWeightAt = new Date().toISOString();
+  S.settings.startWeight ||= Number(p.weight);
   const gw = parseKg(p.goalWeight);
   S.settings.goalWeight = gw || null;
   saveSettings();
@@ -1530,6 +1594,8 @@ function viewWeek() {
       <h1 class="wk-title" data-nav-title="KW ${isoWeek(plan.weekStart)}">${stripEmoji(greeting())}</h1>
     </header>
     ${isCurrent ? todayCard(plan, b) : ''}
+    ${S.settings.quickstart && !S.settings.profile?.height ? `<a class="nudge" href="#/start/1"><span><b>Auf dich zuschneiden</b><small>Der Plan nutzt Standardwerte (${num(S.settings.goals.kcal)} kcal). Mit Größe, Gewicht und Ziel in einer Minute passend.</small></span>${IC.arrow}</a>` : ''}
+    ${isCurrent ? weekCheck() : ''}
     ${banners.join('')}
     <section class="card hero">
       <div class="hero-top">
@@ -1558,6 +1624,41 @@ function viewWeek() {
  * Oben auf der Wochenseite: das nächste Gericht von heute als einladende Karte mit Bild, darunter der Tag als
  * kleine Zeitleiste (Frühstück · Mittag · Abend). Nach dem Abendessen zeigt sie das Frühstück von morgen.
  */
+/**
+ * Wochen-Check für alle, die Ergebnisse sehen wollen: einmal pro Woche das Gewicht mit einem Tipp bestätigen
+ * (vorbefüllt mit dem letzten Wert) und den Weg seit dem Start sehen – ohne Tagebuch, ohne Kalorienzählen.
+ * Bewusst NICHT bei: Ziel „Halten“ ohne Zielgewicht, ausgeblendeten Zahlen, unter 18, Untergewicht, Schwangerschaft.
+ * Kein Serien-Druck: überspringen jederzeit, keine Erinnerung an verpasste Wochen.
+ */
+function weekCheck() {
+  const st = S.settings;
+  const p = st.profile;
+  if (!p?.height || st.hideNumbers || p.pregnant) return '';
+  if (p.goal === 'halten' && !st.goalWeight) return '';
+  if (Number(p.age) < 18 || bmiOf(currentKg(), p.height) < UNDERWEIGHT_BMI) return '';
+  const ws = currentWeek();
+  const now = feedbackFor(ws)?.week?.weight;
+  const start = st.startWeight || S.feedback.filter((f) => f.week?.weight > 0).sort((a, b) => a.weekStart.localeCompare(b.weekStart))[0]?.week.weight || null;
+  const cur = now || currentKg();
+  const diff = start ? Math.round((cur - start) * 10) / 10 : 0;
+  const goal = st.goalWeight;
+  const left = goal ? Math.round(Math.abs(goal - cur) * 10) / 10 : null;
+  const pct = goal && start && start !== goal ? Math.max(0, Math.min(100, ((start - cur) / (start - goal)) * 100)) : null;
+  const way = start && Math.abs(diff) >= 0.1
+    ? `<span class="wc-way"><b>${diff > 0 ? '+' : '−'}${fmtKg(Math.abs(diff))} kg</b> seit dem Start${left != null ? ` · noch ${fmtKg(left)} kg bis ${fmtKg(goal)} kg` : ''}</span>`
+    : '';
+  const bar = pct != null ? `<span class="wc-bar" aria-hidden="true"><i style="width:${pct.toFixed(0)}%"></i></span>` : '';
+  if (now) return `<section class="card wcheck done"><div class="wc-head"><b>Wochen-Check erledigt</b><small>${fmtKg(now)} kg diese Woche</small></div>${way}${bar}</section>`;
+  if (store.get('weighSkip') === ws) return way ? `<section class="card wcheck done">${way}${bar}</section>` : '';
+  const v = S.ui.qw ?? Math.round(currentKg() * 10) / 10;
+  return `<section class="card wcheck"><div class="wc-head"><b>Kurz auf die Waage?</b><small>Einmal pro Woche reicht – Mise passt die Portionen an.</small></div>
+    <div class="wc-row"><button class="ob-step-btn" data-action="qw-step" data-d="-0.1" aria-label="0,1 kg weniger">−</button>
+      <output class="wc-val" aria-live="polite">${fmtKg(v)} <small>kg</small></output>
+      <button class="ob-step-btn" data-action="qw-step" data-d="0.1" aria-label="0,1 kg mehr">+</button></div>
+    <div class="wc-actions"><button class="btn primary" data-action="qw-save">Eintragen</button><button class="btn ghost" data-action="qw-skip">Diese Woche nicht</button></div>
+    ${way}${bar}</section>`;
+}
+
 function todayCard(plan, b) {
   const order = ['fruehstueck', 'mittag', 'abend'];
   const nowIdx = b.hour < 10 ? 0 : b.hour < 14 ? 1 : b.hour < 21 ? 2 : 3;
@@ -3016,7 +3117,7 @@ function dietCard(st, onboarding = false, page = false) {
     <div class="field">Allergien & Unverträglichkeiten<div class="chips allergy-chips">${ALLERGENS.map(([v, l]) => `<button class="chip ${(st.allergies || []).includes(v) ? 'on' : ''}" data-action="toggle-allergy" data-val="${v}" aria-pressed="${(st.allergies || []).includes(v)}">${l}</button>`).join('')}</div></div>
     ${page ? '</section><section class="card">' : ''}
     ${showPregnancy ? sw('data-action="toggle-pregnant"', st.profile?.pregnant, 'Schwanger', '+250 kcal, nichts Rohes, keine Leber') : ''}
-    ${sw('data-set="carbSpread"', st.carbSpread, 'Kohlenhydrate verteilen', 'z. B. bei Diabetes: max. ca. 60 g pro Mahlzeit')}
+    ${sw('data-set="carbSpread"', st.carbSpread, 'Kohlenhydrate verteilen', 'höchstens ca. 60 g pro Mahlzeit, gleichmäßig über den Tag')}
     ${sw('data-set="fasting"', st.fasting, 'Fasten tagsüber', 'z. B. Ramadan: Suhur und Iftar')}
     ${sw('data-set="hideNumbers"', st.hideNumbers, 'Kalorien ausblenden', 'gleicher Plan, nur ohne Zahlen')}
     ${page ? '' : `<p class="hint">${n} Hauptgerichte passen dazu. Mise kennt die 14 Hauptallergene der Zutaten, aber keine Spuren – prüfe bei schweren Allergien immer die Packung.</p>`}
@@ -3234,6 +3335,7 @@ function settingsSections(st) {
       ['sicherung', 'Datensicherung', S.snapshots.length ? 'Täglich' : ''],
       ['profil', 'Profil wechseln', ''],
       ['quellen', 'Quellen & Richtlinien', ''],
+      ['recht', 'Datenschutz & Rechtliches', ''],
     ]],
   ];
 }
@@ -3294,7 +3396,7 @@ function settingsPage(id, st) {
       const rx = restrictions(st);
       const n = S.recipes.filter((r) => r.type === 'main' && !(r.tags || []).includes('fertiggericht') && !recipeBlocked(r, st, S.idx, rx)).length;
       return {
-        explain: `${dietSentence(st)} Gerade passen <b>${n} Hauptgerichte</b>${n < 10 ? ' – das ist wenig, der Plan wiederholt sich dann öfter' : ''}. Mise prüft die Zutaten, aber keine Spuren – bei schweren Allergien immer die Packung lesen.`,
+        explain: `${dietSentence(st)} Gerade passen <b>${n} Hauptgerichte</b>${n < 10 ? ' – das ist wenig, der Plan wiederholt sich dann öfter' : ''}. Mise prüft die Zutaten, aber keine Spuren – bei schweren Allergien immer die Packung lesen. Bei Erkrankungen oder in der Schwangerschaft ersetzt Mise keine ärztliche oder Ernährungsberatung.`,
         html: dietCard(st, false, true),
       };
     }
@@ -3366,7 +3468,7 @@ function settingsPage(id, st) {
       return {
         explain: `Wie Mise aussieht, klingt und wann der neue Wochenplan kommt. Töne sind gerade <b>${st.sounds !== false ? 'an' : 'aus'}</b> – Timer-Alarme klingeln immer.`,
         html: card(`<label class="field">Design<select data-set="theme"><option value="auto" ${!st.theme || st.theme === 'auto' ? 'selected' : ''}>Automatisch</option><option value="dark" ${st.theme === 'dark' ? 'selected' : ''}>Dunkel</option><option value="light" ${st.theme === 'light' ? 'selected' : ''}>Hell</option></select></label>
-          <label class="field">Dein Name<input type="text" autocomplete="given-name" data-set="name" value="${e(st.name || '')}" placeholder="z. B. Michael"></label>
+          <label class="field">Dein Name<input type="text" autocomplete="given-name" data-set="name" value="${e(st.name || '')}" placeholder="Vorname"></label>
           ${field('planHour', 'Neuer Plan montags ab (Uhr)', 'min="0" max="23"')}`) +
           card(`<label class="toggle-row"><span><b>Töne</b><small>leise Klänge beim Abhaken, Auswählen und Kochen</small></span><span class="switch"><input type="checkbox" data-set="sounds" ${st.sounds !== false ? 'checked' : ''}><i></i></span></label>`),
       };
@@ -3407,6 +3509,29 @@ function settingsPage(id, st) {
             <p class="hint">${store.get('lastExport') ? `Zuletzt gesichert: ${fmtDateTime(store.get('lastExport'))}` : 'Noch nie in iCloud gesichert.'}</p>`) +
           card(`<button class="btn primary block" data-action="restart-onboarding">Einführung neu starten</button>`),
       };
+    case 'recht': {
+      const legal = S.legal || {};
+      const li = (t) => `<li>${t}</li>`;
+      return {
+        explain: 'Mise hat <b>keine Konten, keine Werbung und keine Analyse-Dienste</b>. Deine Daten bleiben auf diesem Gerät.',
+        html:
+          card(`<h2>Was Mise speichert</h2><ul class="legal-list">${[
+            'Deine Angaben (Name, Größe, Gewicht, Ziele, Ernährungsform, Allergien, ggf. Schwangerschaft), Pläne, Einkaufslisten, Rückblick und eigene Rezepte – <b>nur auf diesem Gerät</b> im Speicher des Browsers.',
+            'Tägliche Sicherungen ebenfalls nur auf diesem Gerät; Sicherungen in iCloud legst du selbst an.',
+            'Ein kleines Fehlerprotokoll und Nutzungszähler (welche Seiten und Knöpfe wie oft – keine Inhalte). Beides verlässt das Gerät nur, wenn du deine Sicherungsdatei selbst weitergibst.',
+          ].map(li).join('')}</ul>`) +
+          card(`<h2>Verbindungen nach außen</h2><ul class="legal-list">${[
+            '<b>GitHub Pages</b> (GitHub, Inc.) liefert die App, Rezepte und Angebote aus. Dabei verarbeitet GitHub technisch notwendig deine IP-Adresse.',
+            '<b>Open Food Facts</b> – nur, wenn du einen Barcode scannst oder ein Produkt suchst.',
+            '<b>Anthropic</b> und <b>esm.sh</b> – nur mit eigenem KI-Schlüssel, wenn Mise ein Rezept erfindet. Gesendet werden deine Ziele, Ernährungsform, Allergien und Abneigungen.',
+            '<b>GitHub-API</b> – nur mit Freigabe-Schlüssel, wenn du ein Rezept für alle Geräte teilst.',
+            'Schriften und Bilder liegen bei der App; es werden keine Google-Dienste geladen.',
+          ].map(li).join('')}</ul>`) +
+          card(`<h2>Gesundheit</h2><p class="hint">Mise ist ein Planungs- und Kochhelfer für gesunde Erwachsene und <b>kein Medizinprodukt</b>. Nährwerte und Preise sind Richtwerte. Bei Erkrankungen, Essstörungen, in der Schwangerschaft oder bei ärztlich vorgegebener Ernährung sprich die Pläne bitte mit Ärztin, Arzt oder Ernährungsberatung ab.</p>`) +
+          card(`<h2>Löschen</h2><p class="hint">Einstellungen → Datensicherung → „App zurücksetzen“ löscht alles auf diesem Gerät. Die automatischen Sicherungen löscht zusätzlich das Entfernen der App vom Home-Bildschirm bzw. das Löschen der Website-Daten in Safari.</p>`) +
+          card(`<h2>Impressum</h2>${legal.name ? `<p class="hint">${e(legal.name)}<br>${e(legal.address || '').replace(/\n/g, '<br>')}<br>${e(legal.email || '')}</p>` : '<p class="hint">Private Testversion. Das Impressum wird vor dem öffentlichen Start ergänzt.</p>'}`),
+      };
+    }
     case 'quellen':
       return {
         explain: 'Daran hält sich Mise bei Tageszielen, Wochenplan und Sport. Preise und Nährwerte sind Richtwerte.',
@@ -3475,6 +3600,7 @@ async function onClick(ev) {
   const el = ev.target.closest('[data-action]');
   if (!el) return;
   const a = el.dataset.action;
+  countUse('actions', a);
   const plan = displayedPlan();
   switch (a) {
     case 'mep': {
@@ -3718,6 +3844,40 @@ async function onClick(ev) {
       toast('Rezept übernommen', { icon: '🔄', sub: 'Einkaufsliste ist aktualisiert' });
       return;
     }
+    case 'qw-step':
+      S.ui.qw = Math.round(((S.ui.qw ?? Math.round(currentKg() * 10) / 10) + Number(el.dataset.d)) * 10) / 10;
+      sound.tap();
+      haptic();
+      return render();
+    case 'qw-save': {
+      const v = S.ui.qw ?? Math.round(currentKg() * 10) / 10;
+      const ws = currentWeek();
+      const before = lastWeightBefore(ws) ?? currentKg();
+      updateFeedback(ws, (fb) => {
+        fb.week ||= {};
+        fb.week.weight = v;
+      });
+      S.ui.qw = null;
+      sound.check();
+      haptic();
+      if (v !== before) checkGoal(before, v);
+      weighIn(v);
+      return render();
+    }
+    case 'qw-skip':
+      store.set('weighSkip', currentWeek());
+      haptic();
+      return render();
+    case 'ob-quick':
+      S.ui.obQuick = true;
+      return obGo(1);
+    case 'ob-later':
+      // Rest mit Standardwerten: 1 Person, Budget wie eingestellt, Hauptladen Lidl, jeden Abend zu Hause
+      S.ui.obDir = 1;
+      S.ui.ob = OB_STEPS.indexOf('ready');
+      sound.next();
+      haptic();
+      return render();
     case 'ob-go':
       return obGo(Number(el.dataset.dir), !!el.dataset.skip);
     case 'ob-edit-goals':
@@ -3886,6 +4046,12 @@ async function onClick(ev) {
     case 'first-plan':
     case 'plan-now':
       el.disabled = true;
+      // Schnellstart ohne Körperdaten: neutrale Standardwerte für Erwachsene, später zuschneidbar
+      if (a === 'first-plan' && !S.settings.profile?.height) {
+        S.settings.goals = { ...QUICK_GOALS };
+        S.settings.quickstart = true;
+        saveSettings();
+      }
       store.set('welcomed', true);
       await createPlanFromDraft();
       S.ui.openDays = {};
@@ -3976,7 +4142,7 @@ async function onClick(ev) {
       if (!d.name.trim()) return toast('Bitte zuerst einen Titel eintragen', { icon: '✏️', kind: 'warn' });
       busy(`Mise erfindet „${d.name}“ …`);
       try {
-        const r = await inventRecipe({ apiKey: S.settings.aiKey, title: d.name, type: d.type, ingredients: [...S.idx.values()], avoid: [], dislikes: S.settings.dislikes });
+        const r = await inventRecipe({ apiKey: S.settings.aiKey, title: d.name, type: d.type, ingredients: [...S.idx.values()], avoid: [], dislikes: S.settings.dislikes, profile: { name: S.settings.name, goal: S.settings.profile?.goal, kcal: S.settings.goals?.kcal, protein: S.settings.goals?.protein, diet: S.settings.diet, allergies: (S.settings.allergies || []).map((a) => ALLERGENS.find((x) => x[0] === a)?.[1] || a) }, });
         S.ui.edit = { ...r, id: d.id, name: d.name, source: d.source === 'eigen' ? 'ki' : d.source };
       } catch (err) {
         toast('Das hat nicht geklappt', { icon: '⚠️', sub: err.message, kind: 'warn' });
