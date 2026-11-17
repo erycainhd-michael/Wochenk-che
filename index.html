@@ -22,6 +22,11 @@
     <link rel="stylesheet" href="css/app.css" />
   </head>
   <body>
+    <!-- Fester Streifen am oberen Rand – muss IMMER da sein und darf sich nie verändern (nur die Farbe).
+         iOS 26 färbt den oberen Rand in der Farbe des fest positionierten Elements, das es dort findet; wechselt
+         dieses Element (Startbildschirm weg, Leiste neu, Überblendung …), legt iOS dauerhaft einen Weichzeichner
+         über den oberen Bereich. Siehe css/app.css → #top-edge. -->
+    <div id="top-edge" aria-hidden="true"></div>
     <div id="splash" aria-hidden="true">
       <div class="splash-icon"><div class="splash-board">
         <div class="sp-items">
