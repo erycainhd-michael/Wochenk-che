@@ -137,8 +137,8 @@ async function init() {
   pinChrome();
   setVh();
   addEventListener('resize', () => (pinChrome(), setVh()));
-  // Töne sind immer an (Timer und „Fertig“ klingeln auch bei Lautlos)
-  setSoundsEnabled(true);
+  // Bedien-Töne nach Einstellung; Timer-Alarme und „Fertig“ klingeln immer (auch bei Lautlos)
+  setSoundsEnabled(S.settings.sounds !== false);
   try {
     const [ing, rec] = await Promise.all([loadJSON('data/ingredients.json'), loadJSON('data/recipes.json')]);
     S.ingBase = ing.items;
@@ -712,7 +712,7 @@ function feedbackFor(ws) {
 // ---------------------------------------------------------------------------
 
 /** Feine Linien-Icons im Stil der SF Symbols – ersetzen Emojis in Bedienelementen */
-const svgIcon = (d, size = 20) => `<svg class="ic" viewBox="0 0 24 24" width="${size}" height="${size}" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`;
+const svgIcon = (d, size = 22) => `<svg class="ic" viewBox="0 0 24 24" width="${size}" height="${size}" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`;
 const IC = {
   swap: svgIcon('<path d="M4 8h13l-3.5-3.5M20 16H7l3.5 3.5"/>'),
   search: svgIcon('<circle cx="11" cy="11" r="6.5"/><path d="m16 16 4.5 4.5"/>'),
@@ -722,6 +722,32 @@ const IC = {
   cook: svgIcon('<path d="M4 11h16v2a6 6 0 0 1-6 6h-4a6 6 0 0 1-6-6Z"/><path d="M20 12h1.5M9 7c0-1 1-1.5 1-2.5M13 7c0-1 1-1.5 1-2.5"/>', 18),
   fork: svgIcon('<path d="M7 3v8a2 2 0 0 0 2 2v8M7 3v5M11 3v8a2 2 0 0 1-2 2M17 21V3c-2 1.5-3 4-3 7v3h3"/>', 18),
   arrow: svgIcon('<path d="M5 12h14m-5-5 5 5-5 5"/>', 18),
+  star: svgIcon('<path d="m12 3.6 2.6 5.3 5.8.8-4.2 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8-4.2-4.1 5.8-.8Z"/>'),
+  starFill: '<svg class="ic" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" fill="currentColor"><path d="m12 3.6 2.6 5.3 5.8.8-4.2 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8-4.2-4.1 5.8-.8Z"/></svg>',
+  list: svgIcon('<path d="M9 6h11M9 12h11M9 18h11"/><circle cx="4.5" cy="6" r=".8" fill="currentColor"/><circle cx="4.5" cy="12" r=".8" fill="currentColor"/><circle cx="4.5" cy="18" r=".8" fill="currentColor"/>', 20),
+  grid: svgIcon('<rect x="4" y="4" width="6.5" height="6.5" rx="1.6"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.6"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.6"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.6"/>', 20),
+  clock: svgIcon('<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>', 18),
+  dishes: svgIcon('<ellipse cx="12" cy="13" rx="8.5" ry="5"/><ellipse cx="12" cy="13" rx="4" ry="2.2"/><path d="M8 5.5c.6-.8 1.4-1 2-.6M13 4.5c.6-.6 1.4-.6 2 0"/>', 18),
+  pencil: svgIcon('<path d="M15.5 4.5 19.5 8.5 8.5 19.5H4.5v-4Z"/><path d="m13.5 6.5 4 4"/>', 18),
+  tag: svgIcon('<path d="M3.5 12.2V4.5h7.7l9 9-7.7 7.7Z"/><circle cx="8" cy="9" r="1.3"/>'),
+  basket: svgIcon('<path d="M3.5 10h17l-1.8 8.4a2 2 0 0 1-2 1.6H7.3a2 2 0 0 1-2-1.6Z"/><path d="m8 10 3-6M16 10l-3-6M9 14v2.5M12 14v2.5M15 14v2.5"/>'),
+  pan: svgIcon('<circle cx="10" cy="13" r="6.5"/><path d="M16.2 11.2 21 9"/>'),
+  plate: svgIcon('<circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/>'),
+  cart: svgIcon('<path d="M3 4h2.2l2.2 11h10.2l2-7.5H6.4"/><circle cx="9" cy="19" r="1.3"/><circle cx="16.5" cy="19" r="1.3"/>', 18),
+  leaf: svgIcon('<path d="M5 19C5 10 10 5 19.5 4.5 19 14 14 19 5 19Z"/><path d="M5 19 13 11"/>', 18),
+  sparkle: svgIcon('<path d="M12 3.5 13.8 10.2 20.5 12 13.8 13.8 12 20.5 10.2 13.8 3.5 12 10.2 10.2Z"/>', 18),
+  camera: svgIcon('<path d="M4 8.5h3.2L9 6h6l1.8 2.5H20v10.5H4Z"/><circle cx="12" cy="13.5" r="3.3"/>', 18),
+  up: svgIcon('<path d="M7.5 10.5V20H4.5v-9.5ZM7.5 10.5l3.8-6.5a1.8 1.8 0 0 1 3.3 1.2l-.8 4.3h5a1.8 1.8 0 0 1 1.8 2.1l-1.3 6.8a2 2 0 0 1-2 1.6H7.5"/>'),
+  down: svgIcon('<path d="M7.5 13.5V4H4.5v9.5ZM7.5 13.5l3.8 6.5a1.8 1.8 0 0 0 3.3-1.2l-.8-4.3h5a1.8 1.8 0 0 0 1.8-2.1l-1.3-6.8a2 2 0 0 0-2-1.6H7.5"/>'),
+  euro: svgIcon('<path d="M17.5 6.5A6.5 6.5 0 1 0 17.5 17.5M4.5 10.5h9M4.5 13.5h9"/>'),
+  bulb: svgIcon('<path d="M9 17.5h6M10 20.5h4M12 3.5a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2V17h5v-.6c0-.8.4-1.5 1-2A6 6 0 0 0 12 3.5Z"/>', 18),
+  target: svgIcon('<circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r=".9" fill="currentColor"/>', 18),
+  trend: svgIcon('<path d="m3.5 17 6-6 4 4 7-7.5M15 7.5h5.5V13"/>', 18),
+  portion: svgIcon('<rect x="3.5" y="7" width="17" height="11.5" rx="2.5"/><path d="M12 7v11.5M3.5 10.5h17"/>', 18),
+  scale: svgIcon('<path d="M12 4v16M6 20h12M5 8h14M5 8l-2.5 6a3 3 0 0 0 5 0ZM19 8l-2.5 6a3 3 0 0 0 5 0Z"/>', 18),
+  cake: svgIcon('<path d="M4 20.5h16v-7a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2ZM4 15.5c1.3 1 2.7 1 4 0s2.7-1 4 0 2.7 1 4 0 2.7-1 4 0M12 11.5V8M12 6c-.8-.8-.8-1.6 0-2.5.8.9.8 1.7 0 2.5Z"/>', 18),
+  plus: svgIcon('<path d="M12 5v14M5 12h14"/>', 18),
+  activity: svgIcon('<path d="M3 12h4l2.5-6 5 12L17 12h4"/>', 18),
   cloud: svgIcon('<path d="M7 18.5h10a4 4 0 0 0 .6-8A5.5 5.5 0 0 0 7 9.5a4.5 4.5 0 0 0 0 9Z"/><path d="M12 11v5m-2.2-2.2L12 16l2.2-2.2"/>', 18),
 };
 /** Emojis aus Texten entfernen (z. B. Begrüßungssprüche) */
@@ -1239,8 +1265,12 @@ function viewOnboarding() {
   const i = OB_STEPS.indexOf(key);
   const progress = key === 'welcome' ? 0 : Math.round((i / (OB_STEPS.length - 1)) * 100);
   const name = (st.name || '').trim();
-  const tile = (field, val, title, sub, on, extra = '') =>
-    `<button class="ob-tile ${on ? 'on' : ''}" data-action="ob-pick" data-field="${field}" data-val="${val}" aria-pressed="${!!on}"${extra}><b>${title}</b>${sub ? `<small>${sub}</small>` : ''}</button>`;
+  // Nichts vorauswählen: markiert ist nur, was in dieser Einführung selbst angetippt wurde
+  const picked = (field) => !!S.ui.obAnswered?.[field];
+  const tile = (field, val, title, sub, on0, extra = '') => {
+    const on = on0 && picked(field);
+    return `<button class="ob-tile ${on ? 'on' : ''}" data-action="ob-pick" data-field="${field}" data-val="${val}" aria-pressed="${!!on}"${extra}><b>${title}</b>${sub ? `<small>${sub}</small>` : ''}</button>`;
+  };
   const next = (label = 'Weiter', cls = 'primary') => `<button class="btn ${cls} block ob-next" data-action="ob-go" data-dir="1">${label}</button>`;
   const numInput = (field, unit, ph, mode = 'numeric') =>
     `<label class="ob-number"><input type="text" inputmode="${mode}" enterkeyhint="next" data-ob="${field}" value="${e(String(p[field] ?? ''))}" placeholder="${ph}" aria-label="${unit}"><span>${unit}</span></label>`;
@@ -1327,7 +1357,7 @@ function viewOnboarding() {
     case 'household': {
       const cur = Math.max(1, Number(st.household) || 1);
       body = `${q('Wie viele essen abends mit?', 'Dich eingerechnet. Mise kauft abends für alle ein.')}
-        <div class="ob-circles">${[1, 2, 3, 4, 5, 6].map((n) => `<button class="ob-circle ${cur === n ? 'on' : ''}" data-action="ob-pick" data-field="household" data-val="${n}" aria-pressed="${cur === n}" aria-label="${n} ${n === 1 ? 'Person' : 'Personen'}">${n}</button>`).join('')}</div>`;
+        <div class="ob-circles">${[1, 2, 3, 4, 5, 6].map((n) => `<button class="ob-circle ${cur === n && picked('household') ? 'on' : ''}" data-action="ob-pick" data-field="household" data-val="${n}" aria-pressed="${cur === n && picked('household')}" aria-label="${n} ${n === 1 ? 'Person' : 'Personen'}">${n}</button>`).join('')}</div>`;
       break;
     }
     case 'budget':
@@ -1357,7 +1387,7 @@ function viewOnboarding() {
       break;
   }
   // Einblenden nur beim Schrittwechsel – nicht bei jedem Neuzeichnen (Allergie antippen o. Ä.)
-  const anim = S.ui.obShown === key ? '' : S.ui.obDir < 0 ? 'back' : 'fwd';
+  const anim = S.ui.obShown === key ? '' : S.ui.obDir < 0 ? 'bwd' : 'fwd'; // nicht „back“ – das ist die Klasse der Zurück-Links
   S.ui.obShown = key;
   const back = i > 0 ? `<button class="ob-back" data-action="ob-go" data-dir="-1" aria-label="Zurück">${CHEVRON_LEFT}</button>` : '<span class="ob-back"></span>';
   return `<div class="ob ob-flow" data-step="${key}">
@@ -1537,15 +1567,7 @@ function todayCard(plan, b) {
         <span class="today-meta">${r.time} Min.${S.settings.hideNumbers ? '' : ` · ${num(next.macros.kcal)} kcal`}</span>
         <span class="today-cta">Zum Rezept ${IC.arrow}</span></span></a>`;
   }
-  const steps = mains
-    .map((m) => {
-      const i = order.indexOf(m.slot);
-      const st = tomorrow ? (m === next ? 'now' : 'later') : i < order.indexOf(next.slot) ? 'done' : m === next ? 'now' : 'later';
-      const label = m.kind === 'eatout' ? 'auswärts' : e(shortName(recipe(m.recipeId)));
-      return `<a class="tl-step ${st}" href="${m.kind === 'eatout' ? '#/woche' : `#/mahlzeit/${m.key}`}"><i></i><span>${slotLabel(m)}</span><b>${label}</b></a>`;
-    })
-    .join('');
-  return `${card}<nav class="today-line" aria-label="${tomorrow ? 'Morgen' : 'Heute'}">${steps}</nav>`;
+  return card;
 }
 
 function daysHtml(plan, firstDay, todayIdx) {
@@ -1669,14 +1691,14 @@ function currentKg() {
   if (set && (!fb || (S.settings.bodyWeightAt || '') >= (fb.updatedAt || ''))) return set;
   return fb?.week.weight || set || 80;
 }
-const sportIcons = (plan, d) => (plan.structure?.sport?.[d] || []).map((x) => sportById(x.type).icon).join('');
+const sportIcons = (plan, d) => ((plan.structure?.sport?.[d] || []).length ? IC.activity : '');
 
 function sportBlock(plan, d) {
   const list = plan.structure?.sport?.[d.day] || [];
   const f = S.ui.sport?.day === d.day && S.ui.sport.week === plan.weekStart ? S.ui.sport : null;
   const rows = list
     .map(
-      (x, i) => `<li class="sport-row"><span class="sport-ic">${sportById(x.type).icon}</span>
+      (x, i) => `<li class="sport-row"><span class="sport-ic">${IC.activity}</span>
       <div class="sport-t"><b>${e(sportById(x.type).name)}</b><span class="sub">${x.min} Min. · ${LEVELS[x.level]} · +${num(x.kcal)} kcal</span></div>
       <button class="round-btn" data-action="sport-del" data-day="${d.day}" data-i="${i}" aria-label="Eintrag löschen">✕</button></li>`
     )
@@ -1686,7 +1708,7 @@ function sportBlock(plan, d) {
     const sp = sportById(f.type);
     const kg = currentKg();
     form = `<div class="sport-form">
-      <label class="field">Sportart<select data-sport="type">${SPORTS.map((s) => `<option value="${s.id}" ${s.id === f.type ? 'selected' : ''}>${s.icon} ${e(s.name)}</option>`).join('')}</select></label>
+      <label class="field">Sportart<select data-sport="type">${SPORTS.map((s) => `<option value="${s.id}" ${s.id === f.type ? 'selected' : ''}>${e(s.name)}</option>`).join('')}</select></label>
       <div class="field">Intensität<div class="seg">${LEVELS.map((l, i) => `<button class="pill ${f.level === i ? 'on' : ''}" data-action="sport-level" data-val="${i}">${l}</button>`).join('')}</div>
         <p class="hint">${e(sp.hint[f.level])} · ${String(sp.met[f.level]).replace('.', ',')} MET</p></div>
       <div class="grid2">
@@ -1698,7 +1720,7 @@ function sportBlock(plan, d) {
       <p class="hint">Mise erhöht das Kalorienziel dieses Tages um diesen Wert und passt die Portionen an. Richtwerte nach dem Compendium of Physical Activities.</p>
     </div>`;
   }
-  return `<div class="sport">${rows ? `<ul class="sport-list">${rows}</ul>` : ''}${form || `<button class="btn small pill sport-btn" data-action="sport-open" data-day="${d.day}">🏃 Sport eintragen</button>`}</div>`;
+  return `<div class="sport">${rows ? `<ul class="sport-list">${rows}</ul>` : ''}${form || `<button class="btn small pill sport-btn" data-action="sport-open" data-day="${d.day}">${IC.activity}Sport eintragen</button>`}</div>`;
 }
 
 /** Sport ändern → Tagesziel und Portionen neu berechnen */
@@ -1740,11 +1762,11 @@ function viewMeal(key) {
     // Portionen sind auf die Tagesziele abgestimmt – bei deutlich unterschiedlicher Größe Aufteilung nennen
     const shares = cook.portions.map((p) => Math.round((p.factor / cook.totalFactor) * 100));
     const split = Math.abs(shares[0] - shares[1]) >= 10 ? ` Teile etwa ${shares.join(' : ')} auf.` : '';
-    info = `<div class="banner info">🍱 Du kochst 2 Portionen: <b>${parts}</b>.${split} ${meal.leftover ? 'Heute isst du die vorgekochte Portion – nur aufwärmen.' : 'Füll die zweite Portion direkt in die Lunchbox.'}</div>`;
+    info = `<div class="banner info">${IC.portion} Du kochst 2 Portionen: <b>${parts}</b>.${split} ${meal.leftover ? 'Heute isst du die vorgekochte Portion – nur aufwärmen.' : 'Füll die zweite Portion direkt in die Lunchbox.'}</div>`;
   }
   for (const a of meal.addons || []) {
     const ar = recipe(a);
-    info += `<div class="banner info">💪 Dazu: <b>${e(ar.name)}</b> – ergänzt heute dein Protein. ${ar.steps.map((x) => e(x.t)).join(' ')}</div>`;
+    info += `<div class="banner info">${IC.plus} Dazu: <b>${e(ar.name)}</b> – ergänzt heute dein Protein. ${ar.steps.map((x) => e(x.t)).join(' ')}</div>`;
   }
   // Für die Tagesziele angepasstes Verhältnis von Beilage und Proteinquelle erklären
   const mx = meal.mix;
@@ -1753,10 +1775,10 @@ function viewMeal(key) {
     const parts = [];
     if (Math.abs(mx.s - 1) >= 0.1) parts.push(`${mx.s > 1 ? 'mehr' : 'weniger'} ${meal.slot === 'fruehstueck' ? 'Haferflocken bzw. Brot' : 'Beilage wie Reis, Nudeln oder Kartoffeln'} (${pct(mx.s)})`);
     if (Math.abs(mx.q - 1) >= 0.1) parts.push(`${mx.q > 1 ? 'mehr' : 'weniger'} Proteinquelle (${pct(mx.q)})`);
-    info += `<div class="banner info">⚖️ Für deine Tagesziele angepasst: ${parts.join(' und ')} als im Grundrezept. Die Mengen unten sind schon umgerechnet.</div>`;
+    info += `<div class="banner info">${IC.scale} Für deine Tagesziele angepasst: ${parts.join(' und ')} als im Grundrezept. Die Mengen unten sind schon umgerechnet.</div>`;
   }
   const cake = isCake(meal) && servesOf(r) > 1;
-  if (cake) info = `<div class="banner info">🍰 Gebacken wird die ganze Form (${servesOf(r)} Portionen): je ein Stück am Samstag und Sonntag ist für dich eingeplant – der Rest ist für Familie und Gäste.</div>` + info;
+  if (cake) info = `<div class="banner info">${IC.cake} Gebacken wird die ganze Form (${servesOf(r)} Portionen): je ein Stück am Samstag und Sonntag ist für dich eingeplant – der Rest ist für Familie und Gäste.</div>` + info;
   const k = cook ? cook.portions.length : 1;
   const amount = cake ? `ganze Form (${servesOf(r)} Portionen)` : `${k * n === 1 ? '1 Portion' : `${k * n} Portionen`}${n > 1 ? ` · ${n} Personen` : ''}`;
   return recipeHtml(r, cookItems(plan, meal), meal.macros, `${DAY_NAMES[meal.key.split('-')[0]]} · ${slotLabel(meal)} · ${amount}`, backLink('#/woche', 'Woche'), info, key, cake ? false : 'people', n, k);
@@ -1924,7 +1946,7 @@ function viewRecipes() {
   const chipsOf = (g, i) =>
     g
       .filter((n) => !AUTO_CATS[n] || sel[i] === n || all.some((r) => catsOf(r.id).includes(n)))
-      .map((n) => `<button class="chip ${sel[i] === n ? 'on' : ''}" data-action="rfilter-cat" data-group="${i}" data-val="${e(n)}">${n === 'Favoriten' ? '⭐ ' : ''}${e(n)} <small>${all.filter((r) => match(r, i) && catsOf(r.id).includes(n)).length}</small></button>`)
+      .map((n) => `<button class="chip ${sel[i] === n ? 'on' : ''}" data-action="rfilter-cat" data-group="${i}" data-val="${e(n)}">${n === 'Favoriten' ? IC.star : ''}${e(n)} <small>${all.filter((r) => match(r, i) && catsOf(r.id).includes(n)).length}</small></button>`)
       .join('');
   // Gruppe 0 = „Favoriten“: steht in der ersten Zeile direkt neben „Alle“
   const groupChips = groups
@@ -1936,11 +1958,11 @@ function viewRecipes() {
   const activeChips = [
     cookedOnly ? cookedChip : '',
     tf !== 'all' ? `<button class="chip on" data-action="rfilter-time" data-val="${tf}">${TIME_FILTERS.find(([v]) => v === tf)[1]}</button>` : '',
-    ...Object.entries(sel).map(([i, n]) => `<button class="chip on" data-action="rfilter-cat" data-group="${i}" data-val="${e(n)}">${n === 'Favoriten' ? '⭐ ' : ''}${e(n)}</button>`),
+    ...Object.entries(sel).map(([i, n]) => `<button class="chip on" data-action="rfilter-cat" data-group="${i}" data-val="${e(n)}">${n === 'Favoriten' ? IC.star : ''}${e(n)}</button>`),
   ].join('');
   return `<header class="top col"><h1><span class="h-count">${list.length}</span> ${list.length === 1 ? 'Rezept' : 'Rezepte'}</h1></header>
     <section class="card accent filters">
-      <label class="rsearch"><span aria-hidden="true">🔍</span><input type="search" data-rsearch placeholder="Suchen: Gericht, Zutat, Küche …" value="${e(S.ui.rQuery || '')}" autocomplete="off" enterkeyhint="search"><button type="button" class="rsearch-x" data-action="rsearch-clear" aria-label="Suche löschen" ${S.ui.rQuery ? '' : 'hidden'}>✕</button></label>
+      <label class="rsearch"><span aria-hidden="true">${IC.search}</span><input type="search" data-rsearch placeholder="Suchen: Gericht, Zutat, Küche …" value="${e(S.ui.rQuery || '')}" autocomplete="off" enterkeyhint="search"><button type="button" class="rsearch-x" data-action="rsearch-clear" aria-label="Suche löschen" ${S.ui.rQuery ? '' : 'hidden'}>✕</button></label>
       <div class="filter-bar"><button class="link filter-toggle" data-action="rfilters-toggle">${open ? '▾' : '▸'} Filter${nActive ? ` <b class="filter-n">${nActive}</b>` : ''}</button>${any ? `<button class="link" data-action="rfilter-all">Zurücksetzen</button>` : ''}</div>
       ${
         open
@@ -1956,8 +1978,8 @@ function viewRecipes() {
     </section>
     <section class="card ${grid ? 'rgrid-card' : ''}">
       <div class="view-toggle seg" role="group" aria-label="Darstellung">
-        <button class="pill ${grid ? '' : 'on'}" data-action="rview" data-val="list" aria-label="Liste">☰ Liste</button>
-        <button class="pill ${grid ? 'on' : ''}" data-action="rview" data-val="grid" aria-label="Raster">▦ Raster</button>
+        <button class="pill ${grid ? '' : 'on'}" data-action="rview" data-val="list" aria-label="Liste">${IC.list}Liste</button>
+        <button class="pill ${grid ? 'on' : ''}" data-action="rview" data-val="grid" aria-label="Raster">${IC.grid}Raster</button>
       </div>
       <div id="rlist">${recipeListHtml(list, grid, fbw)}</div>
     </section>`;
@@ -2001,7 +2023,7 @@ function recipeListHtml(list, grid, fbw = recipeWeights(S.feedback)) {
     return `<p class="sub">${S.ui.rQuery ? `Nichts gefunden für „${e(S.ui.rQuery)}“${Object.keys(sel).length ? ' in den gewählten Kategorien' : ''}.` : Object.keys(sel).length ? 'Keine Rezepte für diese Auswahl – tippe eine Kategorie nochmal an, um sie aufzuheben.' : 'Keine Rezepte für diesen Filter.'}</p>`;
   return grid
           ? `<ul class="rgrid">${newEntry}${list
-              .map((r) => `<li class="${themeCls(r)}"><a class="rcell" href="#/rezept/${r.id}" aria-label="${e(r.name)}"><span class="rtile">${recipeArt(r)}${isFav(r.id) ? '<i class="rtile-fav" aria-hidden="true">⭐</i>' : ''}${cookedBadge(r.id)}</span><span class="rtile-name">${e(shortName(r))}</span></a></li>`)
+              .map((r) => `<li class="${themeCls(r)}"><a class="rcell" href="#/rezept/${r.id}" aria-label="${e(r.name)}"><span class="rtile">${recipeArt(r)}${isFav(r.id) ? `<i class="rtile-fav" aria-hidden="true">${IC.starFill}</i>` : ''}${cookedBadge(r.id)}</span><span class="rtile-name">${e(shortName(r))}</span></a></li>`)
               .join('')}</ul>`
           : `<ul class="list">${newEntry}${list
         .map((r) => {
@@ -2099,14 +2121,14 @@ function viewEdit(id) {
       <ol class="edit-steps">${r.steps
         .map(
           (st, n) => `<li><textarea rows="3" data-edit-step="${n}" data-f="t">${e(st.t)}</textarea>
-          <label class="tools-field">🍳 <input data-edit-step="${n}" data-f="tools" value="${e((tools[n] || []).join(', '))}" placeholder="Geschirr, z. B. Pfanne, Schüssel"></label>
-          <div class="step-meta"><span class="qty">⏱️ <input type="number" inputmode="decimal" step="0.5" min="0" data-edit-step="${n}" data-f="timer" value="${st.timer ? st.timer / 60 : ''}" placeholder="–"> Min.</span>
+          <label class="tools-field">${IC.pan}<input data-edit-step="${n}" data-f="tools" value="${e((tools[n] || []).join(', '))}" placeholder="Geschirr, z. B. Pfanne, Schüssel"></label>
+          <div class="step-meta"><span class="qty">${IC.clock}<input type="number" inputmode="decimal" step="0.5" min="0" data-edit-step="${n}" data-f="timer" value="${st.timer ? st.timer / 60 : ''}" placeholder="–"> Min.</span>
           <input data-edit-step="${n}" data-f="label" value="${e(st.label || '')}" placeholder="Timer-Name">
           <button class="round-btn" data-action="edit-del-step" data-n="${n}" aria-label="entfernen">✕</button></div></li>`
         )
         .join('')}</ol>
       <button class="btn pill small" data-action="edit-add-step">+ Schritt</button>
-      ${S.settings.aiKey ? `<button class="btn pill small" data-action="edit-ai">✨ Mit KI ausfüllen</button>` : ''}
+      ${S.settings.aiKey ? `<button class="btn pill small" data-action="edit-ai">${IC.sparkle}Mit KI ausfüllen</button>` : ''}
       <p class="hint">Geschirr: was in dem Schritt neu dazukommt. Daraus zählt Mise den Abwasch.</p>
     </section>
     <button class="btn primary block" data-action="edit-save">Speichern</button>
@@ -2141,8 +2163,8 @@ function editIngRow(l, n) {
       ${i.needsData ? `<b>Nährwerte für „${e(i.name)}“ finden</b>` : `<span class="sub">Pro 100g: ${vals}</span>${source}`}
       <div class="own-actions">
         <input type="search" data-lookup-q="${n}" value="${e(look?.q ?? i.name)}" placeholder="Produkt suchen" aria-label="Produkt suchen">
-        <button class="btn small pill" data-action="ing-search" data-n="${n}">${look?.loading ? '…' : '🔎 Suchen'}</button>
-        <button class="btn small pill" data-action="ing-scan" data-n="${n}">📷 Scannen</button>
+        <button class="btn small pill" data-action="ing-search" data-n="${n}">${look?.loading ? '…' : `${IC.search}Suchen`}</button>
+        <button class="btn small pill" data-action="ing-scan" data-n="${n}">${IC.camera}Scannen</button>
       </div>
       ${look?.error ? `<p class="warn-text">${e(look.error)}</p>` : ''}
       ${results}
@@ -2281,7 +2303,7 @@ function recipeHtml(r, items, macros, subtitle, back, info, cookKey, withServing
     ? [1, 2, 3, 4, 5, 6].filter((p) => p * perPerson <= 12).map((p) => [p, p * perPerson])
     : [...new Set([1, 2, 3, 4, 6, 8, servesOf(r), cur])].sort((a, b) => a - b).map((x) => [x, x]);
   const servings = withServings
-    ? `<section class="card">${H2('🍽️', 'Portionen')}<div class="pills">${choices
+    ? `<section class="card">${H2(IC.plate, 'Portionen')}<div class="pills">${choices
         .map(([n, label]) => `<button class="pill circle ${cur === n ? 'on' : ''}" data-action="${people ? 'people' : 'servings'}" data-key="${e(cookKey)}" data-n="${n}">${label}</button>`)
         .join('')}</div>${
         people
@@ -2304,9 +2326,9 @@ function recipeHtml(r, items, macros, subtitle, back, info, cookKey, withServing
   return `<header class="top">${back}<div class="top-actions">${star}${active ? `<a class="btn primary pill ${activeMagic}" href="${resumeHref}">${IC.cook}Weiter kochen</a>` : startBtn('pill')}</div></header>
     <section class="card accent rhero">
       <div class="rhero-art ${r.img ? 'has-img' : ''} slot-${r.type === 'breakfast' ? 'fruehstueck' : 'abend'}">${recipeArt(r, false)}${recipe(r.id) ? cookedBadge(r.id) : ''}</div>
-      <div class="card-head"><div class="sub">${e(subtitle)}</div><a class="btn small pill" href="#/bearbeiten/${r.id}">✏️ Ändern</a></div>
+      <div class="card-head"><div class="sub">${e(subtitle)}</div><a class="btn small pill" href="#/bearbeiten/${r.id}">${IC.pencil}Ändern</a></div>
       <h1 class="rtitle">${e(r.name)}</h1>
-      <div class="chips"><span class="chip on">⏱️ ${r.time} Min.</span><span class="chip">🧽 ${dishesText(allTools.length || r.dishes)}</span><span class="chip">${isFancy(r) ? `✨ ${fancyLabel(r)}` : ['', 'einfach', 'normal', 'aufwendig'][r.effort]}</span>${r.protein ? `<span class="chip">${e(r.protein)}</span>` : ''}</div>
+      <div class="chips"><span class="chip on">${IC.clock}${r.time} Min.</span><span class="chip">${IC.dishes}${dishesText(allTools.length || r.dishes)}</span><span class="chip">${isFancy(r) ? `✨ ${fancyLabel(r)}` : ['', 'einfach', 'normal', 'aufwendig'][r.effort]}</span>${r.protein ? `<span class="chip">${e(r.protein)}</span>` : ''}</div>
       ${allergenLine(r)}
       <div class="mtiles">
         <div class="mt-k"><b>${num(macros.kcal)}</b><span>kcal</span></div>
@@ -2315,16 +2337,16 @@ function recipeHtml(r, items, macros, subtitle, back, info, cookKey, withServing
         <div><b>${g_(macros.f)}</b><span>Fett</span></div>
       </div>
     </section>
-    <section class="card">${H2('🏷️', 'Kategorien')}
+    <section class="card">${H2(IC.tag, 'Kategorien')}
       <div class="chips cats">${S.cats.names
         .map((n) => `<button class="chip ${catsOf(r.id).includes(n) ? 'on' : ''}" data-action="rcat-toggle" data-id="${r.id}" data-val="${e(n)}">${catsOf(r.id).includes(n) ? '✓ ' : ''}${e(n)}</button>`)
         .join('')}</div>
     </section>
     ${info}
     ${servings}
-    <section class="card">${H2('🧺', 'Zutaten')}<p class="hint">Antippen zum Abhaken, während du alles bereitlegst.</p><ul class="ings">${ingList}</ul></section>
-    ${allTools.length ? `<section class="card">${H2('🍳', 'Das brauchst du')}<div class="chips tools">${allTools.map((t) => `<span class="chip">${e(t)}</span>`).join('')}</div><p class="hint">Bei der Zubereitung steht an jedem Schritt, was neu dazukommt.</p></section>` : ''}
-    <section class="card">${H2('👨‍🍳', 'Zubereitung')}<ol class="steps tl">${steps}</ol>
+    <section class="card">${H2(IC.basket, 'Zutaten')}<p class="hint">Antippen zum Abhaken, während du alles bereitlegst.</p><ul class="ings">${ingList}</ul></section>
+    ${allTools.length ? `<section class="card">${H2(IC.pan, 'Das brauchst du')}<div class="chips tools">${allTools.map((t) => `<span class="chip">${e(t)}</span>`).join('')}</div><p class="hint">Bei der Zubereitung steht an jedem Schritt, was neu dazukommt.</p></section>` : ''}
+    <section class="card">${H2(IC.cook, 'Zubereitung')}<ol class="steps tl">${steps}</ol>
       ${startBtn('block')}
     </section>`;
 }
@@ -2486,7 +2508,7 @@ function viewShopping() {
   const cur = S.ui.tripIdx || 0;
   const storeBlocks = twoTrips
     ? `<div class="trip-tabs" role="tablist">${[1, 2]
-        .map((t, i) => `<button class="trip-tab ${cur === i ? 'on' : ''}" data-action="trip-go" data-i="${i}" role="tab"><span>${t === 1 ? '🛒 Einkauf 1 · Mo' : '🥬 Einkauf 2 · Do'}</span><b>${euro(tripOf(t).reduce((a, x) => a + x.cost, 0))}</b></button>`)
+        .map((t, i) => `<button class="trip-tab ${cur === i ? 'on' : ''}" data-action="trip-go" data-i="${i}" role="tab"><span>${t === 1 ? `${IC.cart}Einkauf 1 · Mo` : `${IC.leaf}Einkauf 2 · Do`}</span><b>${euro(tripOf(t).reduce((a, x) => a + x.cost, 0))}</b></button>`)
         .join('')}</div>
       <div class="trips" id="trips">
         <div class="trip-panel">${blocksFor(tripOf(1))}</div>
@@ -2649,10 +2671,10 @@ function trendCard(ws, rateWs = null) {
     // Motivierender Ausblick
     if (slope != null) {
       const perWeek = `${slope > 0 ? '+' : '−'}${fmtKg(Math.abs(slope))} kg/Woche`;
-      if (goal && Math.abs(goal - last) < 0.3) trendText = `🎯 Du bist am Ziel – jetzt geht es ums Halten.`;
+      if (goal && Math.abs(goal - last) < 0.3) trendText = `${IC.target} Du bist am Ziel – jetzt geht es ums Halten.`;
       else if (goal && Math.abs(slope) >= 0.05 && Math.sign(goal - last) === Math.sign(slope)) {
         const weeksLeft = Math.ceil(Math.abs(goal - last) / Math.abs(slope));
-        trendText = weeksLeft <= 52 ? `📈 Weiter so! Bei deinem Tempo (${perWeek}) erreichst du dein Ziel etwa in <b>KW ${isoWeek(addDays(weeks[lastIdx], 7 * weeksLeft))}</b>.` : `📈 Du bist auf dem richtigen Weg (${perWeek}).`;
+        trendText = weeksLeft <= 52 ? `${IC.trend} Weiter so! Bei deinem Tempo (${perWeek}) erreichst du dein Ziel etwa in <b>KW ${isoWeek(addDays(weeks[lastIdx], 7 * weeksLeft))}</b>.` : `📈 Du bist auf dem richtigen Weg (${perWeek}).`;
       } else if (goal && Math.abs(slope) >= 0.05) trendText = `Trend: ${perWeek} – dein Ziel liegt in der anderen Richtung. Kleine Anpassungen bringen dich zurück auf Kurs.`;
       else trendText = `Trend: ${Math.abs(slope) < 0.05 ? 'stabil' : perWeek}.`;
     }
@@ -2867,7 +2889,7 @@ function viewReview(weekArg) {
   const top = (card) => `<div class="rb-top">${head}${card}${weekPager(ws, maxWeek)}</div>`;
   if (ws > currentWeek() && !plan) {
     return `${top(trendCard(currentWeek(), currentWeek()))}
-      <section class="card tip"><p>🗓️ Der Plan für KW ${isoWeek(ws)} wird am Montag ab ${S.settings.planHour ?? 8}:00 Uhr erstellt. Hier kannst du ihn vorbereiten:</p></section>
+      <section class="card tip"><p>${IC.calendar} Der Plan für KW ${isoWeek(ws)} wird am Montag ab ${S.settings.planHour ?? 8}:00 Uhr erstellt. Hier kannst du ihn vorbereiten:</p></section>
       ${planningCards}`;
   }
   const fb = feedbackFor(ws) || { weekStart: ws, recipes: {}, week: {} };
@@ -2903,7 +2925,7 @@ function viewReview(weekArg) {
               .map((id) => {
                 const more = also.get(id).slice(1);
                 return `<div class="fb-meal"><div class="fb-name">${e(recipe(id)?.name || id)}${more.length ? ` <small class="muted">· auch ${more.join(', ')}</small>` : ''}</div><div class="pills">
-          ${icon(id, 'rating', 1, '👍', 'War gut')}${icon(id, 'rating', -1, '👎', 'War schlecht')}${icon(id, 'dishes', undefined, '🧽', 'War zu viel Abwasch')}${icon(id, 'tooComplex', undefined, '⏱️', 'War zu aufwendig')}${icon(id, 'tooExpensive', undefined, '💸', 'War zu teuer')}
+          ${icon(id, 'rating', 1, IC.up, 'War gut')}${icon(id, 'rating', -1, IC.down, 'War schlecht')}${icon(id, 'dishes', undefined, IC.dishes, 'War zu viel Abwasch')}${icon(id, 'tooComplex', undefined, IC.clock, 'War zu aufwendig')}${icon(id, 'tooExpensive', undefined, IC.euro, 'War zu teuer')}
         </div></div>`;
               })
               .join('')}</div></li>`
@@ -2911,7 +2933,7 @@ function viewReview(weekArg) {
           .join('')}</ul></section>`
       : '';
   return `${top(trendCard(ws, ws))}
-    ${hints.length ? `<section class="card tip">${hints.map((h) => `<p>💡 ${e(h)}</p>`).join('')}</section>` : ''}
+    ${hints.length ? `<section class="card tip">${hints.map((h) => `<p>${IC.bulb} ${e(h)}</p>`).join('')}</section>` : ''}
     ${plan ? '' : `<p class="sub center">Für diese Woche gibt es keinen Plan – Sättigung, Energie und Gewicht kannst du trotzdem eintragen.</p>`}
     ${dishesCard()}
     ${ws === currentWeek() || ws === weeks[0] ? planningCards : ''}`;
@@ -2999,7 +3021,7 @@ function allergenLine(r) {
   const set = new Set(r.ingredients.flatMap((l) => ing(l.id)?.allergens || []));
   const names = ALLERGENS.filter(([k]) => set.has(k)).map(([, l]) => l);
   const why = recipeBlocked(r, S.settings, S.idx);
-  if (why) return `<p class="allergen-line conflict">⚠️ Passt nicht zu deinen Einstellungen (${e(why)}).${names.length ? ` Enthält: ${e(names.join(', '))}.` : ''}</p>`;
+  if (why) return `<p class="allergen-line conflict">${IC.alert} Passt nicht zu deinen Einstellungen (${e(why)}).${names.length ? ` Enthält: ${e(names.join(', '))}.` : ''}</p>`;
   return names.length ? `<p class="allergen-line">Enthält: ${e(names.join(', '))}</p>` : '';
 }
 
@@ -3035,7 +3057,7 @@ async function weighIn(kg) {
     S.settings.goalReachedAsked = S.settings.goalWeight;
     saveSettings();
     sound.progress();
-    if (await confirmBox('Zielgewicht erreicht! 🎉', `Du hast ${fmtKg(S.settings.goalWeight)} kg erreicht. Soll Mise ab jetzt auf „Gewicht halten“ planen?`, 'Auf Halten umstellen', S.settings.profile.goal === 'aufbauen' ? 'Weiter aufbauen' : 'Weiter abnehmen')) {
+    if (await confirmBox('Zielgewicht erreicht!', `Du hast ${fmtKg(S.settings.goalWeight)} kg erreicht. Soll Mise ab jetzt auf „Gewicht halten“ planen?`, 'Auf Halten umstellen', S.settings.profile.goal === 'aufbauen' ? 'Weiter aufbauen' : 'Weiter abnehmen')) {
       const g = switchGoal(S.settings, 'halten');
       Object.assign(S.settings, { profile: g.profile, goals: g.goals });
       saveSettings();
@@ -3168,7 +3190,7 @@ function settingsSections(st) {
       ['budget', 'Budget & Haushalt', `${euro(st.budget)} · ${people} ${people === 1 ? 'Person' : 'Personen'}${st.studi ? ' · Studi' : ''}`],
     ]],
     ['App', [
-      ['darstellung', 'Darstellung', theme],
+      ['darstellung', 'Darstellung & Töne', `${theme}${st.sounds === false ? ' · ohne Töne' : ''}`],
       ['teilen', 'Rezepte für alle Geräte', st.shareToken ? 'An' : 'Aus'],
       ['ki', 'KI-Rezepte', st.aiKey ? 'An' : 'Aus'],
       ['sicherung', 'Datensicherung', S.snapshots.length ? 'Täglich' : ''],
@@ -3224,7 +3246,7 @@ function settingsPage(id, st) {
             ${field('goals.protein', 'Protein (g)', 'step="5"')}
             ${field('goals.fat', 'Fett (g)', 'step="5"')}
           </div>
-          ${pl.ok ? '' : `<p class="warn-text">⚠️ ${e(pl.message)}</p>`}
+          ${pl.ok ? '' : `<p class="warn-text">${IC.alert} ${e(pl.message)}</p>`}
           ${!pl.ok && pl.suggestedCarbs > 0 ? `<button class="btn small pill" data-action="fix-carbs" data-val="${pl.suggestedCarbs}">Kohlenhydrate auf ${pl.suggestedCarbs}g setzen</button>` : ''}`}
           <a class="btn small pill" href="#/start/1">Mit Assistent neu berechnen</a>`),
       };
@@ -3303,10 +3325,11 @@ function settingsPage(id, st) {
     }
     case 'darstellung':
       return {
-        explain: 'Wie Mise aussieht und wann der neue Wochenplan kommt.',
+        explain: `Wie Mise aussieht, klingt und wann der neue Wochenplan kommt. Töne sind gerade <b>${st.sounds !== false ? 'an' : 'aus'}</b> – Timer-Alarme klingeln immer.`,
         html: card(`<label class="field">Design<select data-set="theme"><option value="auto" ${!st.theme || st.theme === 'auto' ? 'selected' : ''}>Automatisch</option><option value="dark" ${st.theme === 'dark' ? 'selected' : ''}>Dunkel</option><option value="light" ${st.theme === 'light' ? 'selected' : ''}>Hell</option></select></label>
           <label class="field">Dein Name<input type="text" autocomplete="given-name" data-set="name" value="${e(st.name || '')}" placeholder="z. B. Michael"></label>
-          ${field('planHour', 'Neuer Plan montags ab (Uhr)', 'min="0" max="23"')}`),
+          ${field('planHour', 'Neuer Plan montags ab (Uhr)', 'min="0" max="23"')}`) +
+          card(`<label class="toggle-row"><span><b>Töne</b><small>leise Klänge beim Abhaken, Auswählen und Kochen</small></span><span class="switch"><input type="checkbox" data-set="sounds" ${st.sounds !== false ? 'checked' : ''}><i></i></span></label>`),
       };
     case 'teilen': {
       const q = store.get('shareQueue', []).length;
@@ -3651,6 +3674,7 @@ async function onClick(ev) {
       }
       const f = el.dataset.field;
       const v = el.dataset.val;
+      (S.ui.obAnswered ||= {})[f] = true;
       if (['sex', 'activity', 'goal'].includes(f)) profDraft()[f] = v;
       else if (f === 'diet') {
         S.settings.diet = v;
@@ -4237,6 +4261,10 @@ function onChange(ev) {
     let v = el.type === 'checkbox' ? el.checked : el.value;
     if (el.type === 'number') v = Number(v);
     setPath(S.settings, el.dataset.set, v);
+    if (el.dataset.set === 'sounds') {
+      setSoundsEnabled(v);
+      if (v) sound.check();
+    }
     if (!STORE_IDS.some((id) => S.settings.stores[id])) S.settings.stores.lidl = true;
     // Hauptladen ist immer auch ausgewählt
     if (el.dataset.set === 'mainStore') {
