@@ -9,7 +9,7 @@ import { kitchenText } from './units.js';
 import { searchScore } from './search.js';
 import { recipeWeights, weekHints } from './feedback.js';
 import { ACTIVITY, DEFAULT_SETTINGS, GOALS, applyWeighIn, bmiOf, calcGoals, goalBlocked, mergeSettings, switchGoal, UNDERWEIGHT_BMI } from './settings.js';
-import { exportAll, importAll, prunePlans, requestPersistence, store } from './storage.js';
+import { exportAll, importAll, isBackup, prunePlans, requestPersistence, store } from './storage.js';
 import { TimerManager, fmtTime, keepAwake, unlockAudio } from './timers.js';
 import { cleanRecipe, inventRecipe } from './ai.js';
 import { setSoundsEnabled, sound } from './sounds.js';
@@ -1130,13 +1130,18 @@ function viewStart(stepArg) {
       ? `<section class="card accent"><h2>Sicherung gefunden</h2><p class="sub">Auf diesem iPhone liegt eine automatische Sicherung vom ${fmtDateTime(snap.savedAt)}. Möchtest du deine Daten zurückholen?</p>
         <select id="snap-pick" hidden><option value="${snap.day}"></option></select><button class="btn primary block" data-action="snap-restore">Wiederherstellen</button></section>`
       : '';
+    // Schon ein Profil? Sicherung (z. B. aus iCloud Drive) auswählen statt neu anzulegen
+    const importCard = `<section class="card ob-import"><b>Schon ein Profil?</b>
+        <p class="sub">Wähle deine Mise-Sicherung, z. B. aus iCloud Drive – Ziele, Pläne und Rezepte sind sofort wieder da.</p>
+        <label class="btn block">Vorhandenes Profil laden<input type="file" accept="application/json,.json" data-import="profile" hidden></label></section>`;
     body = `${restore}<div class="welcome"><img class="welcome-icon" src="icons/icon-512.png" alt=""><h2>Willkommen bei Mise!</h2>
         <p class="mise-word"><b>Mise en Place</b>, franz.: „alles an seinem Platz“</p></div>
+      ${importCard}
       <section class="card"><p>Der Trick der Profiküche: Erst wird geschnippelt, abgewogen und bereitgestellt – dann wird ganz entspannt gekocht. 🧄🍋🌿</p>
         <p>Mise macht das für deine ganze Woche: Plan, Einkauf und Portionen stehen bereit, passend zu deinen Zielen – ganz ohne Kalorienzählen. Du musst nur noch kochen.</p>
         <p class="sub">In vier kurzen Schritten ist alles an seinem Platz.</p>
         <label class="field">Wie heißt du?<input type="text" autocomplete="given-name" data-set="name" value="${e(st.name || '')}" placeholder="Dein Vorname"></label>
-        <p class="hint">Alles bleibt nur auf diesem Gerät.</p>${nav("Los geht's", 1)}</section>`;
+        <p class="hint">Alles bleibt nur auf diesem Gerät.</p>${nav('Neu anlegen', 1)}</section>`;
   } else if (step === 1) {
     body = `<section class="card accent"><h2>Über dich</h2><p class="sub">Damit Mise deinen Bedarf berechnen kann.</p>
       <div class="field">Geschlecht${pills('sex', [['m', 'Mann'], ['w', 'Frau'], ['d', 'Divers']])}</div>
@@ -3937,6 +3942,11 @@ function onChange(ev) {
     saveSettings();
     return render();
   }
+  if (el.dataset.import === 'profile' && el.files?.[0]) {
+    importProfile(el.files[0]);
+    el.value = '';
+    return;
+  }
   if (el.id === 'import-file' && el.files?.[0]) {
     const reader = new FileReader();
     reader.onload = () => {
@@ -3950,6 +3960,41 @@ function onChange(ev) {
     };
     reader.readAsText(el.files[0]);
   }
+}
+
+/** Einführung: vorhandenes Profil aus einer Sicherungsdatei übernehmen – erst Vorschau, dann bestätigen */
+function importProfile(file) {
+  const reader = new FileReader();
+  reader.onload = async () => {
+    let obj;
+    try {
+      obj = JSON.parse(reader.result);
+      if (!isBackup(obj)) throw new Error('Das ist keine Mise-Sicherung.');
+    } catch (err) {
+      toast('Diese Datei passt nicht', { icon: '⚠️', sub: err.message === 'Das ist keine Mise-Sicherung.' ? err.message : 'Bitte eine Mise-Sicherung (.json) wählen.', kind: 'warn' });
+      return;
+    }
+    const d = obj.data;
+    const name = d.settings?.name ? `von ${d.settings.name}` : '';
+    const plans = Object.keys(d.plans || {}).length;
+    const own = (d.customRecipes || []).length;
+    const facts = [
+      d.settings?.goals?.kcal ? `Ziel ${num(d.settings.goals.kcal)} kcal` : '',
+      plans ? (plans === 1 ? '1 Wochenplan' : `${plans} Wochenpläne`) : '',
+      own ? `${own} eigene Rezepte` : '',
+    ].filter(Boolean);
+    const when = obj.exportedAt ? ` vom ${fmtDateTime(obj.exportedAt)}` : '';
+    if (!(await confirmBox(name ? `Profil ${name} laden?` : 'Profil laden?', `Sicherung${when}.${facts.length ? ` Enthält: ${facts.join(', ')}.` : ''}`, 'Laden'))) return;
+    try {
+      importAll(obj);
+      if (d.settings) store.set('welcomed', true);
+      toast(`Willkommen zurück${d.settings?.name ? `, ${d.settings.name}` : ''}!`, { icon: '👋' });
+      setTimeout(() => location.reload(), 700);
+    } catch (err) {
+      toast('Import hat nicht geklappt', { icon: '⚠️', sub: err.message, kind: 'warn' });
+    }
+  };
+  reader.readAsText(file);
 }
 
 let searchTimer;

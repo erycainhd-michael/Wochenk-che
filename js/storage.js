@@ -47,6 +47,9 @@ export function exportAll() {
   return { app: APP_ID, version: 1, exportedAt: new Date().toISOString(), data };
 }
 
+/** Ist das eine Sicherung dieser App? */
+export const isBackup = (obj) => !!obj && obj.app === APP_ID && typeof obj.data === 'object';
+
 export function importAll(obj) {
   if (!obj || obj.app !== APP_ID || typeof obj.data !== 'object') {
     throw new Error('Das ist keine Mise-Sicherung.');
