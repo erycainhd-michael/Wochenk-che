@@ -141,6 +141,20 @@ function eatOutSet(settings) {
   return new Set((settings.eatOut || []).map((e) => slotKey(e.day, e.slot)));
 }
 
+/**
+ * Budget für diese Woche: Das eingestellte Budget gilt für eine volle Woche zu Hause. An Tagen, an denen man
+ * nicht da ist, wird nicht gekocht und nicht eingekauft – das Budget schrumpft anteilig. Ein Sockel von 15 % bleibt
+ * für Packungen, die man auch für wenige Tage ganz kauft. (Einzelne Mahlzeiten auswärts ändern das Budget nicht:
+ * Packungen werden trotzdem angebrochen, und der Rest des Tages braucht Ausgleich.)
+ */
+export function weekBudget(settings, away = []) {
+  const b = Number(settings.budget) || 60;
+  const home = 7 - new Set((away || []).filter((d) => d >= 0 && d < 7)).size;
+  return home >= 7 ? b : Math.round(b * (0.15 + (0.85 * home) / 7) * 2) / 2;
+}
+/** Budget, an dem ein fertiger Plan gemessen wird */
+export const planBudget = (plan, settings) => weekBudget(settings, plan.structure?.away || []);
+
 /** Simulierter Vorrat: wie viel einer Zutat ist durch angebrochene Packungen/Reste schon da? */
 class Stock {
   constructor(pantry, idx, priceOf) {
@@ -787,7 +801,7 @@ export function scorePlan(plan, ctx) {
   // Haltbarer Vorrat (Reis, Nudeln …) zählt nur teilweise, er wird in den Folgewochen verbraucht
   // Budget: der Kassenbon soll das Budget nicht überschreiten (deutlicher Abzug je Euro darüber).
   // Darunter gilt: lieber günstiger einkaufen als das Budget auszuschöpfen – jeder gesparte Euro zählt etwas.
-  const over = Math.max(0, plan.cost - settings.budget);
+  const over = Math.max(0, plan.cost - planBudget(plan, settings));
   s.budgetPenalty = -6 * over;
   s.thrift = -0.5 * budgetCost(plan);
   s.wastePenalty = -0.6 * plan.shopping.wasteEuro;
@@ -939,7 +953,8 @@ export function generatePlan(input) {
   // Über Budget: in Runden immer sparsamer planen, bis ein Plan mit Kassenbon ≤ Budget gefunden ist,
   // der deine Ziele trotzdem erreicht. Sonst der günstigste Plan, der die Ziele erreicht.
   const ok = (p) => p.score.stats.pRatio >= 0.93 && p.score.stats.kDev <= 0.06;
-  const budget = budgetTarget(input.settings);
+  const wb = weekBudget(input.settings, ctx.away);
+  const budget = budgetTarget({ ...input.settings, budget: wb });
   for (let round = 1; round <= 2 && best.cost > budget; round++) {
     for (let i = 0; i < n; i++) {
       const rng = mulberry32(seed + 104729 * round + i * 7919);
@@ -962,7 +977,7 @@ export function generatePlan(input) {
   if (best.cost > budget) {
     const good = all.filter(ok);
     best = (good.length ? good : all).reduce((a, b) => (b.cost < a.cost ? b : a));
-    if (best.cost > input.settings.budget) budgetInfo = { cheapest: best.cost, missing: best.cost - input.settings.budget };
+    if (best.cost > wb) budgetInfo = { cheapest: best.cost, missing: best.cost - wb };
   }
 
   // Fertiggerichte im Angebot: einen kleinen Vorrat anlegen (zwei weitere Beutel), wenn das Budget es hergibt
@@ -1026,7 +1041,8 @@ export function setEatOut(plan, mealKey, on, input) {
  */
 /** Nach jeder Änderung (Mitesser, Tausch, auswärts): Budget neu bewerten */
 function budgetCheck(plan, settings) {
-  return plan.cost > settings.budget ? { cheapest: plan.cost, missing: plan.cost - settings.budget, after: true } : null;
+  const b = planBudget(plan, settings);
+  return plan.cost > b ? { cheapest: plan.cost, missing: plan.cost - b, after: true } : null;
 }
 
 export function refitPlan(plan, input) {
@@ -1069,11 +1085,13 @@ export function swapMeal(plan, mealKey, input, chosenId = null) {
     if (!cook) return plan;
     const old = ctx.recipesById.get(cook.recipeId);
     const usedIds = new Set(structure.cooks.map((c) => c.recipeId));
-    let pool = ctx.mains.filter((r) => !usedIds.has(r.id) && (old.effort === 3 ? r.effort === 3 : r.effort < 3) && (cook.portions.length === 1 || r.mealPrep));
+    // Beim aufwendigen Gericht der Woche darf auch ein normales kommen (wer keine Lust hat, tauscht es weg);
+    // umgekehrt wird ein normales Gericht nie zu einem aufwendigen
+    let pool = ctx.mains.filter((r) => !usedIds.has(r.id) && (old.effort === 3 || r.effort < 3) && (cook.portions.length === 1 || r.mealPrep));
     if (!pool.length) pool = ctx.mains.filter((r) => r.id !== old.id && (cook.portions.length === 1 || r.mealPrep));
     if (chosenId) cook.recipeId = chosenId;
     else if (!pool.length) return plan;
-    else cook.recipeId = pickWeighted(pool, pool.map((r) => Math.pow(ctx.info.get(r.id).weight, 1.5)), rng).id;
+    else cook.recipeId = pickWeighted(pool, pool.map((r) => Math.pow(ctx.info.get(r.id).weight, 1.5) * ctx.info.get(r.id).dietF), rng).id;
     if (isReady(ctx.recipesById.get(cook.recipeId))) cook.ready = true;
     else delete cook.ready;
   }
@@ -1102,11 +1120,14 @@ function step(v, th, higherIsBetter = false) {
   return 5;
 }
 
-/** Gesamtnote der Woche aus den bewerteten Kategorien (Mittelwert, gerundet) */
+/**
+ * Gesamtnote der Woche aus den bewerteten Kategorien. Wohlwollend gerundet: Schon ein Mise-Plan ist ausgewogener
+ * als das, was die meisten essen – eine einzelne B-Kategorie soll die Woche nicht auf B ziehen.
+ */
 export function overallGrade(evaluation) {
   const gs = (evaluation || []).map((x) => x.grade).filter((x) => x != null);
   if (!gs.length) return null;
-  return Math.min(5, Math.max(1, Math.round(gs.reduce((a, b) => a + b, 0) / gs.length)));
+  return Math.min(5, Math.max(1, Math.round(gs.reduce((a, b) => a + b, 0) / gs.length - 0.25)));
 }
 
 export function evaluatePlan(plan, ctx) {
@@ -1122,9 +1143,11 @@ export function evaluatePlan(plan, ctx) {
 
   // 1. Kalorien
   const kRatio = st.daysInRange / Math.max(1, nDays);
+  // Note: Tage im Bereich ±10 % (eine Banane mehr oder weniger ist kein Fehler); der Text nennt weiter ±5 %
+  const near = active.filter((d) => Math.abs(d.totals.kcal - (d.goalKcal || g.kcal)) / (d.goalKcal || g.kcal) <= 0.1).length / Math.max(1, nDays);
   out.push({
     cat: 'Kalorien',
-    grade: step(kRatio, [0.85, 0.7, 0.55, 0.4], true),
+    grade: step(Math.max(kRatio, near), [0.7, 0.55, 0.4, 0.25], true),
     short: `${st.daysInRange} von ${nDays} Tagen im Ziel`,
     level: st.daysInRange >= nDays - 1 ? 'ok' : 'hint',
     title: `Energie: Ø ${num(avgK)} kcal/Tag`,
@@ -1152,7 +1175,7 @@ export function evaluatePlan(plan, ctx) {
   const lowMeals = plan.days.flatMap((d) => d.meals.filter((m) => m.kind === 'recipe' && m.slot !== 'snack' && m.macros.p < 25).map((m) => `${d.short} ${ctx.recipesById.get(m.recipeId).name}`));
   out.push({
     cat: 'Protein',
-    grade: step(st.pRatio, [0.97, 0.92, 0.85, 0.75], true),
+    grade: step(st.pRatio, [0.93, 0.85, 0.75, 0.65], true),
     short: st.pRatio >= 0.97 ? 'Ziel erreicht' : `etwas unter dem Ziel (${Math.round(st.pRatio * 100)} %)`,
     level: st.pRatio >= 0.97 ? 'ok' : 'hint',
     title: `Protein: Ø ${num(avgP)}g/Tag`,
@@ -1165,7 +1188,8 @@ export function evaluatePlan(plan, ctx) {
   // 3. Gemüse, Obst, Ballaststoffe
   out.push({
     cat: 'Gemüse & Obst',
-    grade: Math.min(5, step(st.veg, [400, 330, 260, 200], true) + (Math.abs(st.fib - st.fiberTarget) > 6 ? 1 : 0)),
+    // Viel Gemüse ist nie ein Abzug; Ballaststoffe nur, wenn deutlich zu wenig
+    grade: Math.min(5, step(st.veg, [400, 300, 220, 150], true) + (st.fib < st.fiberTarget - 10 ? 1 : 0)),
     short: `${num(st.veg)} g am Tag${st.veg >= 400 ? ' – reichlich' : ''}`,
     level: st.veg >= 380 && Math.abs(st.fib - st.fiberTarget) <= 6 ? 'ok' : 'hint',
     title: `Gemüse & Obst: Ø ${num(st.veg)}g/Tag · Ballaststoffe Ø ${num(st.fib)}g`,
@@ -1178,7 +1202,7 @@ export function evaluatePlan(plan, ctx) {
   // 4. Vielfalt
   out.push({
     cat: 'Vielfalt',
-    grade: Math.min(5, step(st.plants, [25, 20, 15, 10], true) + (st.proteins.length < 3 ? 1 : 0)),
+    grade: Math.min(5, step(st.plants, [18, 14, 10, 7], true) + (st.proteins.length < 2 ? 1 : 0)),
     short: `${st.plants} Pflanzen, ${st.proteins.length} Proteinquellen`,
     level: st.plants >= 20 && st.proteins.length >= 4 ? 'ok' : 'hint',
     title: `Vielfalt: ${st.plants} pflanzliche Lebensmittel, ${st.proteins.length} Proteinquellen`,
@@ -1202,7 +1226,7 @@ export function evaluatePlan(plan, ctx) {
   if (Math.abs(cDev) > 0.12 || Math.abs(fDev) > 0.15) {
     out.push({
       cat: 'Makros',
-      grade: step(Math.max(Math.abs(cDev), Math.abs(fDev)), [0.12, 0.2, 0.3, 0.4]),
+      grade: step(Math.max(Math.abs(cDev), Math.abs(fDev)), [0.2, 0.3, 0.4, 0.55]),
       short: fDev > 0.15 ? 'etwas mehr Fett als geplant' : cDev < -0.12 ? 'etwas weniger Kohlenhydrate' : 'leichte Abweichung',
       level: 'hint',
       title: `Makros: Ø ${num(avgC)}g Kohlenhydrate · ${num(avgF)}g Fett`,
@@ -1223,14 +1247,14 @@ export function evaluatePlan(plan, ctx) {
   }
 
   // Budget
-  const b = ctx.settings.budget;
+  const b = planBudget(plan, ctx.settings);
   if (plan.cost <= b) {
     out.push({ cat: 'Einkauf', grade: 1, short: `${euro(plan.cost)} – im Budget`, level: 'ok', title: `Einkauf: ca. ${euro(plan.cost)}`, text: `Budget ${euro(b)} eingehalten (Vorratsartikel wie Öl und Gewürze nicht eingerechnet).` });
   } else {
     const info = plan.budgetInfo;
     out.push({
       cat: 'Einkauf',
-      grade: step(plan.cost / b - 1, [0, 0.05, 0.15, 0.3]),
+      grade: step(plan.cost / b - 1, [0.05, 0.12, 0.25, 0.4]),
       short: `${euro(plan.cost - b)} über Budget`,
       level: 'warn',
       title: `Einkauf: ca. ${euro(plan.cost)} – ${euro(plan.cost - b)} über Budget`,
