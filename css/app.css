@@ -1470,3 +1470,15 @@ html.large-text .bars { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .dw-row.off .dw-b.on { background: var(--muted); color: var(--card); }
 .dw-b:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 .dw-b small, .dw-b .dw-dots { color: inherit; }
+.dw-compact .dw-row { padding: 3px 0; }
+.dw-compact .dw-b { min-height: 44px; }
+.dw-compact .dw-list { margin-top: 4px; }
+/* kleine Bildschirme (iPhone SE): Einführung ohne Scrollen */
+@media (max-height: 700px) {
+  .ob-top { margin-bottom: 14px; }
+  .ob-q { font-size: 1.6rem; }
+  .dw-compact .dw-row { padding: 1px 0; }
+  .dw-compact .dw-b { min-height: 40px; }
+  .ob-actions { padding-top: 14px; }
+  .dw-compact .dw-list { margin-top: 0; }
+}

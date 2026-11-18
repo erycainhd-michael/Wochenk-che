@@ -1,7 +1,7 @@
 // Mise – App-Oberfläche (Vanilla JS, kein Build-Schritt). Design nach Figma-Vorlage.
 import { DAY_NAMES, DAY_SHORT, SLOT_LABEL, addDays, clone, berlinNow, escapeHtml as e, euro, formatDate, isoWeek, mondayOf, num, shortName } from './util.js';
 import { buildIndex, plausibility } from './nutrition.js';
-import { cakesOf, generatePlan, overallGrade, readyKind, refitPlan, setEatOut, swapMeal } from './planner.js';
+import { cakesOf, generatePlan, overallGrade, planBudget, readyKind, refitPlan, setEatOut, swapMeal } from './planner.js';
 import { ALLERGENS, DIETS, DIET_CLASSES, DIET_LEVELS, dietFromWeights, dietPreset, dietWeights, recipeBlocked, recipeClasses, restrictions } from './diet.js';
 import { mergeOffers, storeOpen, storeOrder, STORES, STORE_IDS } from './prices.js';
 import { packText } from './shopping.js';
@@ -1413,8 +1413,9 @@ function viewOnboarding() {
       break;
     }
     case 'diet':
-      body = `${q('Wie isst du?')}
-        <div class="ob-tiles">${DIETS.map(([v, l]) => tile('diet', v, l, { alles: 'Fleisch, Fisch, alles', pescetarisch: 'Fisch ja, Fleisch nein', vegetarisch: 'ohne Fleisch und Fisch', vegan: 'rein pflanzlich' }[v], (st.diet || 'alles') === v)).join('')}</div>`;
+      body = `${q('Was soll wie oft in den Plan?')}
+        ${dietWeightsField(st, true)}
+        <div class="ob-actions">${next()}</div>`;
       break;
     case 'allergies':
       body = `${q('Verträgst du etwas nicht?', 'Tippe alles an, was nie in den Plan soll.')}
@@ -1440,7 +1441,7 @@ function viewOnboarding() {
       break;
     }
     case 'budget':
-      body = `${q('Wie viel darf der Einkauf kosten?', 'Pro Woche. Mise plant so günstig wie möglich.')}
+      body = `${q('Wie viel darf der Einkauf kosten?', 'Für eine ganze Woche. Bist du ein paar Tage weg, plant Mise entsprechend weniger ein.')}
         <div class="ob-stepper">
           <button class="ob-step-btn" data-action="ob-budget" data-d="-5" aria-label="5 Euro weniger">−</button>
           <label class="ob-number"><input type="number" inputmode="numeric" data-set="budget" value="${st.budget}" aria-label="Wochenbudget in Euro" style="width:${obWidth(String(st.budget))}"><span>€</span></label>
@@ -1578,6 +1579,9 @@ function viewWeek() {
   const g = plan.goals;
   // Durchschnitt nur über Tage mit Plan (nicht über Tage „unterwegs“)
   const active = plan.days.filter((d) => !d.away);
+  // Budget dieser Woche: weniger Tage zu Hause = weniger einkaufen
+  const wkBudget = planBudget(plan, S.settings);
+  const activeDaysTxt = `für ${active.length} ${active.length === 1 ? 'Tag' : 'Tage'}`;
   const nD = Math.max(1, active.length);
   const avgK = active.reduce((a, d) => a + d.totals.kcal, 0) / nD;
   const avgP = active.reduce((a, d) => a + d.totals.p, 0) / nD;
@@ -1600,7 +1604,7 @@ function viewWeek() {
     <section class="card hero">
       <div class="hero-top">
         <div><span class="hero-label">Ø pro Tag</span><b class="hero-big">${cnt('w-k', avgK, 'int')}<small> kcal</small></b><span class="hero-sub">Ziel ${cnt('w-gk', avgGoal, 'int')} kcal${sportWeek ? ' inkl. Sport' : ''}</span></div>
-        <div class="hero-right"><span class="hero-label">Einkauf</span><b class="hero-mid">${cnt('w-cost', plan.cost, 'euro')}</b><span class="hero-sub ${plan.cost > S.settings.budget + 0.5 ? 'over' : ''}">${plan.cost > S.settings.budget + 0.5 ? `${euro(plan.cost - S.settings.budget)} über Budget` : `Budget ${euro(S.settings.budget)}`}</span></div>
+        <div class="hero-right"><span class="hero-label">Einkauf</span><b class="hero-mid">${cnt('w-cost', plan.cost, 'euro')}</b><span class="hero-sub ${plan.cost > wkBudget + 0.5 ? 'over' : ''}">${plan.cost > wkBudget + 0.5 ? `${euro(plan.cost - wkBudget)} über Budget` : `Budget ${euro(wkBudget)}${wkBudget < S.settings.budget ? ` <small>(${activeDaysTxt})</small>` : ''}`}</span></div>
       </div>
       <div class="macro-bars">
         ${[
@@ -2212,6 +2216,13 @@ function confirmBox(title, text, okLabel = 'Löschen', cancelLabel = 'Abbrechen'
       resolve(b?.dataset.cb === '1');
     });
   });
+}
+
+/** Hinweis nach einem Tausch: neuer Wochenpreis und Unterschied */
+function priceChange(before, after) {
+  const d = Math.round((after.cost - before.cost) * 100) / 100;
+  const diff = Math.abs(d) < 0.05 ? 'gleich teuer' : `${d > 0 ? '+' : '−'}${euro(Math.abs(d))}`;
+  return `Woche jetzt ${euro(after.cost)} (${diff}) · Einkaufsliste aktualisiert`;
 }
 
 /** 🔎 Rezept aus der Sammlung für eine Mahlzeit auswählen */
@@ -3116,13 +3127,13 @@ function householdField(st, hint = true) {
 }
 
 /** Wie oft welche Ernährungsweise in den Plan kommt: 0 nie (ausgegraut) … 3 oft */
-function dietWeightsField(st) {
+function dietWeightsField(st, compact = false) {
   const w = dietWeights(st);
   const mains = S.recipes.filter((r) => r.type === 'main' && !(r.tags || []).includes('fertiggericht'));
   const count = (k) => mains.filter((r) => recipeClasses(r, S.idx, st).has(k)).length;
-  return `<div class="field">Wie oft im Plan?<p class="hint">Gilt für Mittag- und Abendessen. „nie“ lässt die Gerichte ganz weg, „oft“ macht sie zur Hauptsache.</p>
+  return `<div class="field ${compact ? 'dw-compact' : ''}">${compact ? '' : 'Ernährungsweise: wie oft im Plan?<p class="hint">Gilt für Mittag- und Abendessen. „nie“ lässt die Gerichte ganz weg, „oft“ macht sie zur Hauptsache. Vegan: alles außer „Vegan“ auf „nie“.</p>'}
     <ul class="dw-list">${DIET_CLASSES.map(([k, l, sub]) => `<li class="dw-row ${w[k] === 0 ? 'off' : ''}">
-      <span class="dw-txt"><b>${l}</b><small>${sub} · ${count(k)} Gerichte</small></span>
+      <span class="dw-txt"><b>${l}</b>${compact ? "" : `<small>${sub} · ${count(k)} Gerichte</small>`}</span>
       <span class="dw-seg" role="radiogroup" aria-label="${l}: wie oft">${DIET_LEVELS.map((lv, i) => `<button class="dw-b ${w[k] === i ? 'on' : ''}" role="radio" aria-checked="${w[k] === i}" aria-label="${l}: ${lv}" data-action="diet-w" data-k="${k}" data-val="${i}"><i class="dw-dots" aria-hidden="true">${'●'.repeat(i) || '–'}</i><small>${lv}</small></button>`).join('')}</span>
     </li>`).join('')}</ul></div>`;
 }
@@ -3134,7 +3145,6 @@ function dietCard(st, onboarding = false, page = false) {
   const n = S.recipes.filter((r) => r.type === 'main' && !(r.tags || []).includes('fertiggericht') && !recipeBlocked(r, st, S.idx, rx)).length;
   const sw = (attr, on, label, sub) => `<label class="toggle-row"><span><b>${label}</b><small>${sub}</small></span><span class="switch"><input type="checkbox" ${attr} ${on ? 'checked' : ''}><i></i></span></label>`;
   return `<section class="card ${onboarding ? 'accent' : ''}">${page ? '' : `<h2>${onboarding ? 'Was isst du nicht?' : 'Ernährung & Allergien'}</h2>`}
-    <div class="field">Ernährungsform<div class="seg diet-seg">${DIETS.map(([v, l]) => `<button class="pill ${JSON.stringify(dietWeights(st)) === JSON.stringify(dietPreset(v)) ? 'on' : ''}" data-action="set-diet" data-val="${v}">${l}</button>`).join('')}</div></div>
     ${dietWeightsField(st)}
     <div class="field">Allergien & Unverträglichkeiten<div class="chips allergy-chips">${ALLERGENS.map(([v, l]) => `<button class="chip ${(st.allergies || []).includes(v) ? 'on' : ''}" data-action="toggle-allergy" data-val="${v}" aria-pressed="${(st.allergies || []).includes(v)}">${l}</button>`).join('')}</div></div>
     ${page ? '</section><section class="card">' : ''}
@@ -3482,6 +3492,7 @@ function settingsPage(id, st) {
         html: `${minBudgetHint(st)}` +
           card(`${householdField(st, false)}
           <label class="field">Wochenbudget<span class="unit-input"><input type="number" inputmode="numeric" step="1" data-set="budget" value="${st.budget}"><i>€</i></span></label>
+          <p class="hint">Gilt für eine ganze Woche. Bist du an manchen Tagen nicht da, plant Mise anteilig weniger ein (bei 3 Tagen etwa die Hälfte).</p>
           <label class="toggle-row"><span><b>Studi-Modus</b><small>Preis zählt noch stärker</small></span><span class="switch"><input type="checkbox" data-set="studi" ${st.studi ? 'checked' : ''}><i></i></span></label>
           ${plan && (plan.studi ?? false) !== !!st.studi ? `<button class="btn small pill" data-action="replan-studi">Diese Woche ${st.studi ? 'im Studi-Modus ' : ''}neu planen</button>` : ''}`),
       };
@@ -3849,7 +3860,7 @@ async function onClick(ev) {
       next.done = plan.done || {};
       S.plans[plan.weekStart] = next;
       savePlans();
-      toast(chosen ? 'Neues Rezept eingeplant' : 'Gericht getauscht', { icon: chosen ? '✨' : '🔄', sub: 'Einkaufsliste ist aktualisiert' });
+      toast(chosen ? 'Neues Rezept eingeplant' : 'Gericht getauscht', { icon: chosen ? '✨' : '🔄', sub: priceChange(plan, next) });
       haptic();
       fx(`.meal[data-key="${key}"]`, 'swapped');
       return render();
@@ -3863,7 +3874,7 @@ async function onClick(ev) {
       haptic();
       fx(`.meal[data-key="${el.dataset.key}"]`, 'swapped');
       location.hash = '#/woche';
-      toast('Rezept übernommen', { icon: '🔄', sub: 'Einkaufsliste ist aktualisiert' });
+      toast('Rezept übernommen', { icon: '🔄', sub: priceChange(plan, next) });
       return;
     }
     case 'qw-step':
@@ -4391,7 +4402,7 @@ async function onClick(ev) {
       if (S.plans[currentWeek()]?.structure) {
         refitCurrent();
         const c = S.plans[currentWeek()].cost;
-        toast(`Abends für ${S.settings.household} ${S.settings.household === 1 ? 'Person' : 'Personen'}`, { icon: '🍽️', sub: `Einkauf diese Woche ${euro(c)}${c > S.settings.budget ? ' – über Budget, ab nächster Woche plant Mise passend' : ''}` });
+        toast(`Abends für ${S.settings.household} ${S.settings.household === 1 ? 'Person' : 'Personen'}`, { icon: '🍽️', sub: `Einkauf diese Woche ${euro(c)}${c > planBudget(S.plans[currentWeek()], S.settings) ? ' – über Budget, ab nächster Woche plant Mise passend' : ''}` });
       }
       return render();
     }
@@ -4407,6 +4418,7 @@ async function onClick(ev) {
       const w = { ...dietWeights(S.settings) };
       const k = el.dataset.k;
       w[k] = Number(el.dataset.val);
+      (S.ui.obAnswered ||= {}).diet = true;
       // mindestens eine Ernährungsweise muss übrig bleiben
       if (!Object.values(w).some((v) => v > 0)) return toast('Eine Ernährungsweise muss bleiben', { icon: '🥗', kind: 'warn' });
       // Fleisch/Fisch wieder erlaubt: die Ernährungsform folgt den Gewichten (sonst sperrt „Vegan“ weiter alles)
